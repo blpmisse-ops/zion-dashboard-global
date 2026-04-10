@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Zion Church — Dashboard Global</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;font-family:'Montserrat',sans-serif;background:#202020;color:#FCFCEB}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#043030}
+::-webkit-scrollbar-thumb{background:#078780;border-radius:2px}
+select option{background:#043030;color:#FCFCEB}
+.font-display{font-family:'Brygada 1918',serif}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+.fade-up{animation:fadeUp .4s ease forwards}
+.skeleton{background:rgba(12,81,73,.4);border-radius:6px;animation:pulse 1.5s ease infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const {
+  AreaChart, Area, LineChart, Line, BarChart, Bar, RadarChart, Radar,
+  PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ReferenceLine, LabelList
+} = Recharts;
+
+// ─── BRAND ───────────────────────────────────────────────────────────────────
+const B = {
+  deepGreen:'#043030', teal:'#078780', midGreen:'#0C5149',
+  sage:'#439B6A', cream:'#FCFCEB', sand:'#E5E4C1', ice:'#9EDEDC',
+  black:'#202020', amber:'#E5C07B', red:'#E06C75'
+};
+
+const TIER_COLORS = {
+  Black:   {bg:'#078780', text:'#FCFCEB'},
+  Diamond: {bg:'#9EDEDC', text:'#043030'},
+  Platinum:{bg:'#E5E4C1', text:'#043030'},
+  Gold:    {bg:'#E5C07B', text:'#043030'},
+  Silver:  {bg:'rgba(252,252,235,.15)', text:'#FCFCEB', border:'rgba(252,252,235,.3)'},
+};
+
+const LOCATIONS = [
+  {id:'sao-paulo',      name:'São Paulo',      country:'Brasil',  flag:'🇧🇷', tier:'Black'},
+  {id:'campinas',       name:'Campinas',       country:'Brasil',  flag:'🇧🇷', tier:'Gold'},
+  {id:'recife',         name:'Recife',         country:'Brasil',  flag:'🇧🇷', tier:'Gold'},
+  {id:'jundiai',        name:'Jundiaí',        country:'Brasil',  flag:'🇧🇷', tier:'Gold'},
+  {id:'lisboa',         name:'Lisboa',         country:'Portugal',flag:'🇵🇹', tier:'Gold'},
+  {id:'ribeirao-preto', name:'Ribeirão Preto', country:'Brasil',  flag:'🇧🇷', tier:'Silver'},
+  {id:'maceio',         name:'Maceió',         country:'Brasil',  flag:'🇧🇷', tier:'Silver'},
+  {id:'santos',         name:'Santos',         country:'Brasil',  flag:'🇧🇷', tier:'Silver'},
+  {id:'campo-grande',   name:'Campo Grande',   country:'Brasil',  flag:'🇧🇷', tier:'Silver'},
+  {id:'vale-do-ribeira',name:'Vale do Ribeira',country:'Brasil',  flag:'🇧🇷', tier:'Silver'},
+  {id:'porto',          name:'Porto',          country:'Portugal',flag:'🇵🇹', tier:'Silver'},
+  {id:'quito',          name:'Quito',          country:'Ecuador', flag:'🇪🇨', tier:'Silver'},
+  {id:'cuenca',         name:'Cuenca',         country:'Ecuador', flag:'🇪🇨', tier:'Silver'},
+  {id:'santiago',       name:'Santiago',       country:'Chile',   flag:'🇨🇱', tier:'Silver'},
+  {id:'miami',          name:'Miami',          country:'EUA',     flag:'🇺🇸', tier:'Silver'},
+  {id:'orlando',        name:'Orlando',        country:'EUA',     flag:'🇺🇸', tier:'Silver'},
+];
+
+const LINE_COLORS = [
+  '#078780','#439B6A','#9EDEDC','#FCFCEB','#E5E4C1',
+  '#5BA8A0','#7BC4A0','#B0E8E6','#D4D4A8','#A8C8A0',
+  '#3D7870','#2D6850','#70C4C0','#ECD8B8','#C8C8A0','#1D5840'
+];
+
+const COUNTRY_COLORS = {Brasil:'#078780',Portugal:'#439B6A',Ecuador:'#9EDEDC',Chile:'#E5E4C1',EUA:'#FCFCEB'};
+
+const METRICS = [
+  {id:'cultos',label:'Cultos'},{id:'links',label:'Links'},
+  {id:'pessoas_links',label:'Pessoas em Links'},{id:'voluntarios',label:'Voluntários'},
+  {id:'raizes',label:'Raízes'},{id:'batismo',label:'Batismo nas Águas'},
+  {id:'zao',label:'ZAO'},{id:'presenca_digital',label:'Presença Digital'},
+];
+
+const SEMESTERS = ['2026-S1','2025-S2','2025-S1','2024-S2','2024-S1'];
+
+// ─── MOCK DATA GENERATOR ─────────────────────────────────────────────────────
+const BASE = {
+  'sao-paulo':      {m:1.00,g:[1.00,1.09,1.19,1.28,1.38]},
+  'campinas':       {m:0.82,g:[1.00,1.10,1.22,1.35,1.48]},
+  'recife':         {m:0.75,g:[1.00,1.08,1.17,1.26,1.36]},
+  'jundiai':        {m:0.60,g:[1.00,1.12,1.26,1.40,1.55]},
+  'lisboa':         {m:0.55,g:[1.00,1.07,1.14,1.22,1.30]},
+  'ribeirao-preto': {m:0.45,g:[1.00,1.11,1.24,1.38,1.53]},
+  'maceio':         {m:0.40,g:[1.00,1.09,1.20,1.32,1.45]},
+  'santos':         {m:0.38,g:[1.00,1.06,1.12,1.19,1.26]},
+  'campo-grande':   {m:0.35,g:[1.00,1.13,1.28,1.44,1.62]},
+  'vale-do-ribeira':{m:0.28,g:[1.00,1.08,1.16,1.25,1.35]},
+  'porto':          {m:0.32,g:[1.00,1.05,1.10,1.16,1.22]},
+  'quito':          {m:0.42,g:[1.00,1.14,1.30,1.48,1.68]},
+  'cuenca':         {m:0.25,g:[1.00,1.10,1.22,1.35,1.50]},
+  'santiago':       {m:0.30,g:[1.00,1.07,1.15,1.23,1.32]},
+  'miami':          {m:0.48,g:[1.00,1.10,1.22,1.35,1.50]},
+  'orlando':        {m:0.35,g:[1.00,1.08,1.18,1.28,1.40]},
+};
+
+const SP_BASE = {cultos:1850,links:85,pessoas_links:920,voluntarios:520,raizes:45,batismo:22,zao:380,ig:48000,yt:12000};
+const SEM_IDX = {'2024-S1':0,'2024-S2':1,'2025-S1':2,'2025-S2':3,'2026-S1':4};
+const MONTHS_SEMS = {
+  '2024-S1':[{m:'Jan',mn:1,y:2024},{m:'Fev',mn:2,y:2024},{m:'Mar',mn:3,y:2024},{m:'Abr',mn:4,y:2024},{m:'Mai',mn:5,y:2024},{m:'Jun',mn:6,y:2024}],
+  '2024-S2':[{m:'Jul',mn:7,y:2024},{m:'Ago',mn:8,y:2024},{m:'Set',mn:9,y:2024},{m:'Out',mn:10,y:2024},{m:'Nov',mn:11,y:2024},{m:'Dez',mn:12,y:2024}],
+  '2025-S1':[{m:'Jan',mn:1,y:2025},{m:'Fev',mn:2,y:2025},{m:'Mar',mn:3,y:2025},{m:'Abr',mn:4,y:2025},{m:'Mai',mn:5,y:2025},{m:'Jun',mn:6,y:2025}],
+  '2025-S2':[{m:'Jul',mn:7,y:2025},{m:'Ago',mn:8,y:2025},{m:'Set',mn:9,y:2025},{m:'Out',mn:10,y:2025},{m:'Nov',mn:11,y:2025},{m:'Dez',mn:12,y:2025}],
+  '2026-S1':[{m:'Jan',mn:1,y:2026},{m:'Fev',mn:2,y:2026},{m:'Mar',mn:3,y:2026},{m:'Abr',mn:4,y:2026}],
+};
+
+function jitter(v){return Math.round(v*(1+(Math.random()-.5)*.1));}
+function getVal(locId,baseKey,sem){
+  const idx=SEM_IDX[sem]??2;
+  return Math.max(0,jitter(Math.round(SP_BASE[baseKey]*(BASE[locId]?.m??0.4)*(BASE[locId]?.g[idx]??1))));
+}
+
+function buildData(){
+  const cultos={},links={},pessoas={},vol={},raizes={},bat={},zao={},ig={},yt={};
+  const monthly={}; // {locId:{sem:{label:val}}}
+
+  for(const sem of SEMESTERS){
+    for(const loc of LOCATIONS){
+      const id=loc.id;
+      if(!cultos[id]) cultos[id]={};
+      if(!links[id]) links[id]={};
+      if(!pessoas[id]) pessoas[id]={};
+      if(!vol[id]) vol[id]={};
+      if(!raizes[id]) raizes[id]={};
+      if(!bat[id]) bat[id]={};
+      if(!zao[id]) zao[id]={};
+      if(!ig[id]) ig[id]={};
+      if(!yt[id]) yt[id]={};
+      if(!monthly[id]) monthly[id]={};
+
+      const months=MONTHS_SEMS[sem]||[];
+      let cTotal=0,lTotal=0,pTotal=0,vTotal=0,rTotal=0,bTotal=0,zTotal=0,igTotal=0,ytTotal=0;
+      const mvs=[.9,.95,1,.95,1.05,.98];
+
+      months.forEach(({m,mn,y},i)=>{
+        const mv=mvs[i]??1;
+        const key=`${y}-${String(mn).padStart(2,'0')}`;
+        if(!monthly[id][key]) monthly[id][key]={label:`${m}/${y}`};
+        const cv=jitter(Math.round(getVal(id,'cultos',sem)*mv*4));
+        cTotal+=cv;
+        monthly[id][key].cultos=(monthly[id][key].cultos||0)+cv;
+        monthly[id][key].pessoas_links=(monthly[id][key].pessoas_links||0)+jitter(Math.round(getVal(id,'pessoas_links',sem)*mv));
+        monthly[id][key].voluntarios=(monthly[id][key].voluntarios||0)+jitter(Math.round(getVal(id,'voluntarios',sem)*mv));
+        lTotal+=jitter(Math.round(getVal(id,'links',sem)*mv));
+        pTotal+=jitter(Math.round(getVal(id,'pessoas_links',sem)*mv));
+        vTotal+=jitter(Math.round(getVal(id,'voluntarios',sem)*mv));
+        rTotal+=jitter(Math.round(getVal(id,'raizes',sem)*mv));
+        bTotal+=jitter(Math.round(getVal(id,'batismo',sem)*mv));
+        zTotal+=jitter(Math.round(getVal(id,'zao',sem)*mv));
+        igTotal+=jitter(Math.round(getVal(id,'ig',sem)*mv));
+        ytTotal+=jitter(Math.round(getVal(id,'yt',sem)*mv));
+      });
+
+      cultos[id][sem]=cTotal;
+      links[id][sem]=lTotal;
+      pessoas[id][sem]=pTotal;
+      vol[id][sem]=vTotal;
+      raizes[id][sem]=rTotal;
+      bat[id][sem]=bTotal;
+      zao[id][sem]=zTotal;
+      ig[id][sem]=igTotal;
+      yt[id][sem]=ytTotal;
+    }
+  }
+
+  return {cultos,links,pessoas,vol,raizes,bat,zao,ig,yt,monthly};
+}
+
+const DATA = buildData();
+
+function getMetricData(metric,sem){
+  const d={cultos:DATA.cultos,links:DATA.links,pessoas_links:DATA.pessoas,
+    voluntarios:DATA.vol,raizes:DATA.raizes,batismo:DATA.bat,zao:DATA.zao}[metric];
+  if(!d) return {};
+  const res={};
+  for(const loc of LOCATIONS) res[loc.id]=(d[loc.id]||{})[sem]||0;
+  return res;
+}
+
+function getPrevSem(s){
+  const [y,h]=s.split('-S').map(Number);
+  return h===1?`${y-1}-S2`:`${y}-S1`;
+}
+
+function delta(curr,prev){
+  if(!prev||prev===0) return 0;
+  return ((curr-prev)/prev)*100;
+}
+
+function fmtNum(v){
+  if(v>=1e6) return `${(v/1e6).toFixed(1)}M`;
+  if(v>=1000) return `${(v/1000).toFixed(1)}K`;
+  return v.toLocaleString('pt-BR');
+}
+function fmtDelta(d){return `${d>0?'+':''}${d.toFixed(1)}%`;}
+function statusColor(d){return d>=0?B.sage:B.red;}
+
+// ─── BRAND COMPONENTS ────────────────────────────────────────────────────────
+function ZionLogo({size=36}){
+  const c=B.teal, tc=B.cream;
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:10}}>
+      <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke={c} strokeWidth="2" fill="none"/>
+        <path d="M8 28 L15 16 L20 22 L24 14 L32 28 Z" fill={c}/>
+        <circle cx="20" cy="20" r="18" stroke={c} strokeWidth="1.5" fill="none" opacity=".3"/>
+      </svg>
+      <span style={{fontFamily:'Montserrat',fontWeight:600,fontSize:Math.round(size*.38),letterSpacing:'.25em',color:tc,lineHeight:1}}>ZION</span>
+    </div>
+  );
+}
+
+function TierBadge({tier,small}){
+  const c=TIER_COLORS[tier]||TIER_COLORS.Silver;
+  return (
+    <span style={{background:c.bg,color:c.text,border:c.border?`1px solid ${c.border}`:undefined,
+      padding:small?'3px 8px':'4px 10px',borderRadius:4,fontSize:small?9:10,
+      fontFamily:'Montserrat',fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',
+      display:'inline-block',lineHeight:1.4,whiteSpace:'nowrap'}}>
+      {tier}
+    </span>
+  );
+}
+
+function TierDot({tier}){
+  const c=TIER_COLORS[tier]||TIER_COLORS.Silver;
+  return <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:c.bg,border:c.border?`1px solid ${c.border}`:undefined,flexShrink:0}}/>;
+}
+
+function StatusDot({d}){
+  const c=d>=0?B.sage:d>=-20?B.amber:B.red;
+  return <span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:c}}/>;
+}
+
+function HeroShapes({opacity=.08}){
+  return (
+    <svg width="360" height="260" viewBox="0 0 360 260" fill="none"
+      style={{position:'absolute',right:0,top:0,pointerEvents:'none',opacity}}>
+      <circle cx="300" cy="40" r="110" fill={B.teal}/>
+      <path d="M360 130 A140 140 0 0 1 220 270 L360 270 Z" fill={B.teal}/>
+      <circle cx="180" cy="180" r="55" stroke={B.teal} strokeWidth="2" fill="none"/>
+    </svg>
+  );
+}
+
+// ─── CHARTS ──────────────────────────────────────────────────────────────────
+function ZionTooltip({active,payload,label}){
+  if(!active||!payload?.length) return null;
+  return (
+    <div style={{background:B.deepGreen,border:`1px solid ${B.teal}`,borderRadius:8,padding:'10px 14px',fontFamily:'Montserrat'}}>
+      <p style={{color:'rgba(252,252,235,.6)',fontSize:11,marginBottom:6}}>{label}</p>
+      {payload.map((p,i)=>(
+        <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+          <span style={{width:8,height:8,borderRadius:'50%',background:p.color,display:'inline-block'}}/>
+          <span style={{color:B.cream,fontSize:12,fontWeight:500}}>{p.name}: {Number(p.value).toLocaleString('pt-BR')}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SparkLine({data,color=B.teal}){
+  const d=data.map((v,i)=>({i,v}));
+  return (
+    <ResponsiveContainer width="100%" height={36}>
+      <LineChart data={d}>
+        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.8} dot={false} isAnimationActive={false}/>
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function AreaChartZ({data,series,xKey='date',height=260}){
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={data} margin={{top:10,right:10,bottom:0,left:0}}>
+        <defs>
+          {series.map(s=>(
+            <linearGradient key={s.key} id={`g-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={s.color} stopOpacity={.2}/>
+              <stop offset="100%" stopColor={s.color} stopOpacity={0}/>
+            </linearGradient>
+          ))}
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(252,252,235,.06)" vertical={false}/>
+        <XAxis dataKey={xKey} tick={{fill:'rgba(252,252,235,.4)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} tickFormatter={v=>typeof v==='string'?v.substring(0,7):v}/>
+        <YAxis tick={{fill:'rgba(252,252,235,.4)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} width={44} tickFormatter={v=>v>=1000?`${(v/1000).toFixed(0)}K`:v}/>
+        <Tooltip content={<ZionTooltip/>}/>
+        {series.length>1&&<Legend wrapperStyle={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.6)'}}/>}
+        {series.map(s=>(
+          <Area key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2.5} fill={`url(#g-${s.key})`} dot={false} activeDot={{r:4}}/>
+        ))}
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+function LineChartZ({data,series,xKey='date',height=260}){
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={data} margin={{top:10,right:20,bottom:0,left:0}}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(252,252,235,.06)" vertical={false}/>
+        <XAxis dataKey={xKey} tick={{fill:'rgba(252,252,235,.4)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} tickFormatter={v=>typeof v==='string'?v.substring(0,7):v}/>
+        <YAxis tick={{fill:'rgba(252,252,235,.4)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} width={44} tickFormatter={v=>v>=1000?`${(v/1000).toFixed(0)}K`:v}/>
+        <Tooltip content={<ZionTooltip/>}/>
+        <Legend wrapperStyle={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.5)'}}/>
+        {series.map((s,i)=>(
+          <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color||LINE_COLORS[i%LINE_COLORS.length]} strokeWidth={s.dashed?1.5:2} strokeDasharray={s.dashed?'6 4':undefined} dot={false} activeDot={{r:4}}/>
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function BarChartZ({data,horizontal,height=280,showDelta,avg}){
+  const getC=(v)=>showDelta?(v>=0?B.sage:B.red):(v>=(avg||0)?B.teal:B.midGreen);
+  if(horizontal){
+    return (
+      <ResponsiveContainer width="100%" height={Math.max(height,data.length*34)}>
+        <BarChart data={data} layout="vertical" margin={{top:0,right:70,bottom:0,left:0}}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(252,252,235,.06)" horizontal={false}/>
+          <XAxis type="number" tick={{fill:'rgba(252,252,235,.4)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} tickFormatter={v=>showDelta?`${v>0?'+':''}${v.toFixed(0)}%`:v>=1000?`${(v/1000).toFixed(0)}K`:v}/>
+          <YAxis dataKey="name" type="category" tick={{fill:'rgba(252,252,235,.7)',fontSize:11,fontFamily:'Montserrat'}} axisLine={false} tickLine={false} width={120}/>
+          <Tooltip content={<ZionTooltip/>}/>
+          {showDelta&&<ReferenceLine x={0} stroke="rgba(252,252,235,.25)" strokeDasharray="4 4"/>}
+          {!showDelta&&avg!==undefined&&<ReferenceLine x={avg} stroke="rgba(252,252,235,.2)" strokeDasharray="4 4"/>}
+          <Bar dataKey="value" radius={[0,4,4,0]} maxBarSize={22}>
+            {data.map((e,i)=><Cell key={i} fill={e.color||getC(e.value)}/>)}
+            <LabelList dataKey="value" position="right" formatter={v=>showDelta?`${v>0?'+':''}${v.toFixed(1)}%`:fmtNum(v)} style={{fill:'rgba(252,252,235,.6)',fontSize:10,fontFamily:'Montserrat'}}/>
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} margin={{top:10,right:10,bottom:0,left:0}}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(252,252,235,.06)" vertical={false}/>
+        <XAxis dataKey="name" tick={{fill:'rgba(252,252,235,.4)',fontSize:11}} axisLine={false} tickLine={false}/>
+        <YAxis tick={{fill:'rgba(252,252,235,.4)',fontSize:11}} axisLine={false} tickLine={false} width={44} tickFormatter={v=>v>=1000?`${(v/1000).toFixed(0)}K`:v}/>
+        <Tooltip content={<ZionTooltip/>}/>
+        <Bar dataKey="value" radius={[4,4,0,0]} maxBarSize={40}>
+          {data.map((e,i)=><Cell key={i} fill={e.color||getC(e.value)}/>)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function DonutChartZ({data,height=240}){
+  const total=data.reduce((s,d)=>s+d.value,0);
+  const flags={Brasil:'🇧🇷',Portugal:'🇵🇹',Ecuador:'🇪🇨',Chile:'🇨🇱',EUA:'🇺🇸'};
+  const RADIAN=Math.PI/180;
+  const lbl=({cx,cy,midAngle,innerRadius,outerRadius,percent})=>{
+    if(percent<.05) return null;
+    const r=innerRadius+(outerRadius-innerRadius)*.5;
+    return <text x={cx+r*Math.cos(-midAngle*RADIAN)} y={cy+r*Math.sin(-midAngle*RADIAN)} fill={B.cream} textAnchor="middle" dominantBaseline="central" style={{fontFamily:'Montserrat',fontSize:12,fontWeight:500}}>{`${(percent*100).toFixed(0)}%`}</text>;
+  };
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:32,flexWrap:'wrap'}}>
+      <ResponsiveContainer width={height} height={height} minWidth={height}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={height*.28} outerRadius={height*.44} dataKey="value" labelLine={false} label={lbl}>
+            {data.map(e=><Cell key={e.name} fill={COUNTRY_COLORS[e.name]||B.teal} stroke="rgba(0,0,0,.2)" strokeWidth={1}/>)}
+          </Pie>
+          <Tooltip content={<ZionTooltip/>}/>
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {data.map(e=>(
+          <div key={e.name} style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{width:10,height:10,borderRadius:'50%',background:COUNTRY_COLORS[e.name]||B.teal,flexShrink:0}}/>
+            <span style={{fontFamily:'Montserrat',fontSize:13,color:B.cream}}>{flags[e.name]||''} {e.name}</span>
+            <span style={{fontFamily:'Montserrat',fontSize:12,color:'rgba(252,252,235,.5)',marginLeft:'auto',paddingLeft:16}}>{total>0?`${((e.value/total)*100).toFixed(1)}%`:'—'}</span>
+            <span style={{fontFamily:'Montserrat',fontSize:12,color:B.ice,minWidth:60,textAlign:'right'}}>{fmtNum(e.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RadarChartZ({data,locName,height=280}){
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <RadarChart data={data} margin={{top:20,right:30,bottom:20,left:30}}>
+        <PolarGrid stroke="rgba(252,252,235,.1)"/>
+        <PolarAngleAxis dataKey="subject" tick={{fill:'rgba(252,252,235,.6)',fontSize:11,fontFamily:'Montserrat'}}/>
+        <PolarRadiusAxis angle={90} domain={[0,150]} tick={{fill:'rgba(252,252,235,.3)',fontSize:10}} tickCount={4} tickFormatter={v=>`${v}%`}/>
+        <Radar name="Média da rede" dataKey="network" stroke="rgba(252,252,235,.3)" fill="rgba(252,252,235,.05)" strokeWidth={1.5} strokeDasharray="4 4"/>
+        <Radar name={locName} dataKey="location" stroke={B.teal} fill="rgba(7,135,128,.25)" strokeWidth={2}/>
+        <Legend wrapperStyle={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.6)'}}/>
+        <Tooltip contentStyle={{background:B.deepGreen,border:`1px solid ${B.teal}`,borderRadius:8,fontFamily:'Montserrat',fontSize:12}} labelStyle={{color:B.cream}} itemStyle={{color:B.cream}}/>
+      </RadarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function GaugeSVG({value,max=1,label,size=110}){
+  const pct=Math.min(value/max,1);
+  const cx=size/2,cy=size*.6,r=size*.38;
+  const arcPath=(from,to,radius)=>{
+    const x1=cx+radius*Math.cos(from),y1=cy+radius*Math.sin(from);
+    const x2=cx+radius*Math.cos(to),y2=cy+radius*Math.sin(to);
+    const lg=Math.abs(to-from)>Math.PI?1:0;
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${lg} 1 ${x2} ${y2}`;
+  };
+  const filledTo=Math.PI-pct*Math.PI;
+  const nAngle=Math.PI-pct*Math.PI;
+  const nx=cx+(r*.75)*Math.cos(nAngle),ny=cy+(r*.75)*Math.sin(nAngle);
+  const c=pct>=.75?B.sage:pct>=.25?B.amber:B.red;
+  return (
+    <div style={{textAlign:'center'}}>
+      <svg width={size} height={size*.65} viewBox={`0 0 ${size} ${size*.65}`}>
+        <path d={arcPath(Math.PI,0,r)} stroke="rgba(252,252,235,.08)" strokeWidth={size*.09} fill="none" strokeLinecap="round"/>
+        <path d={arcPath(Math.PI,filledTo,r)} stroke={c} strokeWidth={size*.09} fill="none" strokeLinecap="round"/>
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={B.cream} strokeWidth={1.5} strokeLinecap="round" opacity=".8"/>
+        <circle cx={cx} cy={cy} r={size*.04} fill={B.cream} opacity=".8"/>
+        <text x={cx} y={cy-size*.12} textAnchor="middle" style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:size*.22,fill:B.cream}}>
+          {`${(value*100).toFixed(0)}%`}
+        </text>
+      </svg>
+      <p style={{fontFamily:'Montserrat',fontSize:10,color:'rgba(252,252,235,.55)',textTransform:'uppercase',letterSpacing:'.06em',marginTop:2}}>{label}</p>
+    </div>
+  );
+}
+
+function HeatmapViz({locId,months}){
+  const data=[];
+  for(const loc of LOCATIONS){
+    for(const m of months){
+      let v=0;
+      const rows=DATA.monthly[loc.id]||{};
+      const row=rows[m];
+      if(row) v=locId==='cultos'?(row.cultos||0):locId==='pessoas_links'?(row.pessoas_links||0):(row.voluntarios||0);
+      data.push({locId:loc.id,locName:loc.name,flag:loc.flag,month:m,value:v});
+    }
+  }
+  const vals=data.map(d=>d.value).filter(v=>v>0);
+  const minV=Math.min(...vals)||0,maxV=Math.max(...vals)||1;
+  function interp(v){
+    const t=(v-minV)/(maxV-minV);
+    if(t<.5){const u=t*2;return `rgb(${Math.round(4+8*u)},${Math.round(48+33*u)},${Math.round(48+25*u)})`;}
+    const u=(t-.5)*2;return `rgb(${Math.round(12-5*u)},${Math.round(81+54*u)},${Math.round(73+55*u)})`;
+  }
+  const byLoc={};
+  for(const d of data){
+    if(!byLoc[d.locId]) byLoc[d.locId]={flag:d.flag,name:d.locName};
+    byLoc[d.locId][d.month]=d.value;
+  }
+  const short=m=>m.substring(5,7)+'/'+m.substring(2,4);
+  return (
+    <div style={{overflowX:'auto'}}>
+      <table style={{borderCollapse:'collapse',width:'100%',fontFamily:'Montserrat',minWidth:600}}>
+        <thead>
+          <tr>
+            <th style={{padding:'8px 12px',textAlign:'left',background:B.deepGreen,color:'rgba(252,252,235,.5)',fontSize:11,textTransform:'uppercase',letterSpacing:'.08em',minWidth:140,position:'sticky',left:0,zIndex:2}}>Localidade</th>
+            {months.map(m=><th key={m} style={{padding:'8px 6px',textAlign:'center',background:B.deepGreen,color:'rgba(252,252,235,.5)',fontSize:10,textTransform:'uppercase',minWidth:62}}>{short(m)}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {LOCATIONS.map((loc,ri)=>(
+            <tr key={loc.id} style={{background:ri%2===0?'transparent':'rgba(12,81,73,.15)'}}>
+              <td style={{padding:'7px 12px',position:'sticky',left:0,background:ri%2===0?'#202020':'rgba(12,81,73,.3)',color:'rgba(252,252,235,.8)',fontSize:12,zIndex:1}}>{loc.flag} {loc.name}</td>
+              {months.map(m=>{
+                const v=(byLoc[loc.id]||{})[m]||0;
+                return <td key={m} style={{padding:'5px',textAlign:'center',background:v>0?interp(v):'rgba(4,48,48,.5)'}}>
+                  <span style={{color:B.cream,fontSize:10,fontWeight:500}}>{v>0?fmtNum(v):'—'}</span>
+                </td>;
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── SHARED UI ────────────────────────────────────────────────────────────────
+function Section({title,children}){
+  return (
+    <section style={{marginBottom:40}}>
+      {title&&<h2 style={{fontFamily:'"Brygada 1918",serif',fontWeight:600,fontSize:22,color:B.cream,marginBottom:20}}>{title}</h2>}
+      {children}
+    </section>
+  );
+}
+
+function Card({children,style={}}){
+  return (
+    <div style={{background:B.midGreen,border:'1px solid rgba(7,135,128,.25)',borderRadius:12,padding:24,...style}}>{children}</div>
+  );
+}
+
+function useCountUp(target){
+  const [v,setV]=useState(0);
+  const raf=useRef(null),t0=useRef(null);
+  useEffect(()=>{
+    t0.current=null;
+    const anim=(ts)=>{
+      if(!t0.current) t0.current=ts;
+      const p=Math.min((ts-t0.current)/1200,1);
+      const e=1-Math.pow(1-p,3);
+      setV(Math.round(target*e));
+      if(p<1) raf.current=requestAnimationFrame(anim);
+    };
+    raf.current=requestAnimationFrame(anim);
+    return ()=>{if(raf.current) cancelAnimationFrame(raf.current);};
+  },[target]);
+  return v;
+}
+
+function KPICard({label,value,d,sparkData,delay=0}){
+  const count=useCountUp(value);
+  const dc=d>=0?B.sage:B.red;
+  return (
+    <div style={{background:B.midGreen,border:'1px solid rgba(7,135,128,.25)',borderRadius:12,padding:'20px 20px 16px',
+      display:'flex',flexDirection:'column',gap:6,minHeight:140,
+      animation:`fadeUp .4s ease ${delay*.08}s both`,transition:'border-color .2s,box-shadow .2s'}}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor=B.teal;e.currentTarget.style.boxShadow='0 0 32px rgba(7,135,128,.12)';}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(7,135,128,.25)';e.currentTarget.style.boxShadow='none';}}>
+      <p style={{fontFamily:'Montserrat',fontSize:11,fontWeight:500,letterSpacing:'.08em',textTransform:'uppercase',color:'rgba(252,252,235,.5)',margin:0}}>{label}</p>
+      <p style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:36,color:B.cream,margin:0,lineHeight:1,letterSpacing:'-.02em'}}>{fmtNum(count)}</p>
+      <p style={{fontFamily:'Montserrat',fontSize:12,color:dc,margin:0,fontWeight:500}}>{d>=0?'↑':'↓'} {fmtDelta(Math.abs(d))} vs sem. anterior</p>
+      {sparkData&&sparkData.length>1&&<div style={{marginTop:'auto',opacity:.8}}><SparkLine data={sparkData}/></div>}
+    </div>
+  );
+}
+
+function PodiumCard({rank,loc,value,d,label}){
+  const styles={
+    1:{border:B.teal,bg:B.midGreen},
+    2:{border:'rgba(7,135,128,.5)',bg:B.deepGreen},
+    3:{border:'rgba(7,135,128,.25)',bg:B.deepGreen},
+  };
+  const s=styles[rank];
+  return (
+    <div style={{background:s.bg,border:`1px solid ${s.border}`,borderRadius:12,padding:20,position:'relative',overflow:'hidden'}}>
+      <span style={{position:'absolute',top:10,right:14,fontFamily:'"Brygada 1918",serif',fontSize:34,fontWeight:700,color:'rgba(7,135,128,.15)',lineHeight:1}}>{rank}°</span>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+        <span style={{fontSize:20}}>{loc.flag}</span>
+        <div>
+          <p style={{fontFamily:'"Brygada 1918",serif',fontSize:17,fontWeight:600,color:B.cream,margin:0}}>{loc.name}</p>
+          <p style={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.5)',margin:0}}>{loc.country}</p>
+        </div>
+      </div>
+      <TierBadge tier={loc.tier} small/>
+      <p style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:26,color:B.cream,margin:'10px 0 0',lineHeight:1}}>{fmtNum(value)}</p>
+      <p style={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.4)',textTransform:'uppercase',letterSpacing:'.06em',margin:'2px 0 6px'}}>{label}</p>
+      <p style={{fontFamily:'Montserrat',fontSize:12,fontWeight:500,color:d>=0?B.sage:B.red,margin:0}}>{d>=0?'↑':'↓'} {fmtDelta(Math.abs(d))} SoS</p>
+    </div>
+  );
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function Sidebar({page,setPage,locExpanded,setLocExpanded}){
+  const navItems=[
+    {section:'VISÃO GERAL',items:[{id:'global',label:'Rede Global',icon:'◉'},{id:'heatmap',label:'Mapa de Calor',icon:'▦'}]},
+    {section:'MÉTRICAS',items:METRICS.map(m=>({id:`metric-${m.id}`,label:m.label,icon:'▸'}))},
+    {section:'ANÁLISE',items:[{id:'rates',label:'Taxas Estratégicas',icon:'◎'},{id:'ranking',label:'Ranking Crescimento',icon:'▲'}]},
+  ];
+
+  return (
+    <aside style={{width:240,minWidth:240,background:B.deepGreen,borderRight:'1px solid rgba(7,135,128,.2)',display:'flex',flexDirection:'column',height:'100%',position:'relative',overflow:'hidden'}}>
+      <div style={{padding:'20px 20px 16px',borderBottom:'1px solid rgba(7,135,128,.2)'}}>
+        <ZionLogo size={34}/>
+      </div>
+      <nav style={{flex:1,overflowY:'auto',padding:'12px 10px'}}>
+        {navItems.map(g=>(
+          <div key={g.section} style={{marginBottom:20}}>
+            <p style={{padding:'0 10px',marginBottom:6,fontFamily:'Montserrat',fontSize:10,fontWeight:600,letterSpacing:'.1em',color:'rgba(252,252,235,.3)',textTransform:'uppercase'}}>{g.section}</p>
+            {g.items.map(item=>{
+              const active=page===item.id;
+              return (
+                <button key={item.id} onClick={()=>setPage(item.id)} style={{
+                  display:'flex',alignItems:'center',gap:10,width:'100%',padding:'7px 10px',
+                  borderRadius:8,border:'none',cursor:'pointer',textAlign:'left',marginBottom:2,
+                  background:active?B.teal:'transparent',color:active?B.cream:'rgba(252,252,235,.5)',
+                  fontFamily:'Montserrat',fontSize:13,fontWeight:active?600:400,transition:'all .15s'}}
+                  onMouseEnter={e=>{if(!active){e.currentTarget.style.background=B.midGreen;e.currentTarget.style.color=B.cream;}}}
+                  onMouseLeave={e=>{if(!active){e.currentTarget.style.background='transparent';e.currentTarget.style.color='rgba(252,252,235,.5)';}}}
+                >
+                  <span style={{fontSize:12,opacity:.7}}>{item.icon}</span>
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+
+        <div style={{marginBottom:20}}>
+          <button onClick={()=>setLocExpanded(v=>!v)} style={{padding:'0 10px',marginBottom:6,fontFamily:'Montserrat',fontSize:10,fontWeight:600,letterSpacing:'.1em',color:'rgba(252,252,235,.3)',textTransform:'uppercase',background:'none',border:'none',cursor:'pointer',width:'100%',textAlign:'left'}}>
+            LOCALIDADES {locExpanded?'▾':'▸'}
+          </button>
+          {locExpanded&&LOCATIONS.map(loc=>(
+            <button key={loc.id} onClick={()=>setPage(`loc-${loc.id}`)} style={{
+              display:'flex',alignItems:'center',gap:8,width:'100%',padding:'6px 10px',
+              borderRadius:8,border:'none',cursor:'pointer',textAlign:'left',marginBottom:1,
+              background:page===`loc-${loc.id}`?B.teal:'transparent',
+              color:page===`loc-${loc.id}`?B.cream:'rgba(252,252,235,.5)',
+              fontFamily:'Montserrat',fontSize:12,transition:'all .15s'}}
+              onMouseEnter={e=>{if(page!==`loc-${loc.id}`){e.currentTarget.style.background=B.midGreen;e.currentTarget.style.color=B.cream;}}}
+              onMouseLeave={e=>{if(page!==`loc-${loc.id}`){e.currentTarget.style.background='transparent';e.currentTarget.style.color='rgba(252,252,235,.5)';}}}
+            >
+              <TierDot tier={loc.tier}/> {loc.flag} {loc.name}
+            </button>
+          ))}
+        </div>
+      </nav>
+      <div style={{position:'absolute',bottom:0,left:0,width:100,height:100,overflow:'hidden',pointerEvents:'none'}}>
+        <svg width="100" height="100" viewBox="0 0 100 100" fill="none" style={{opacity:.06}}>
+          <path d="M0 50 A50 50 0 0 1 50 0 L0 0 Z" fill={B.teal}/>
+          <circle cx="70" cy="70" r="35" fill={B.teal}/>
+        </svg>
+      </div>
+    </aside>
+  );
+}
+
+// ─── HEADER ──────────────────────────────────────────────────────────────────
+function Header({title,sem,setSem,locF,setLocF}){
+  const selStyle={appearance:'none',background:'rgba(7,135,128,.12)',border:'1px solid rgba(7,135,128,.35)',color:B.cream,fontFamily:'Montserrat',fontSize:13,fontWeight:500,padding:'6px 30px 6px 12px',borderRadius:8,cursor:'pointer',outline:'none'};
+  return (
+    <header style={{background:B.deepGreen,borderBottom:`1px solid ${B.midGreen}`,padding:'0 28px',display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:60,position:'sticky',top:0,zIndex:10,flexShrink:0}}>
+      <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:600,fontSize:21,color:B.cream,margin:0}}>{title}</h1>
+      <div style={{display:'flex',gap:10,alignItems:'center'}}>
+        <select value={sem} onChange={e=>setSem(e.target.value)} style={selStyle}>
+          {SEMESTERS.map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={locF} onChange={e=>setLocF(e.target.value)} style={selStyle}>
+          <option value="all">Todas as localidades</option>
+          {LOCATIONS.map(l=><option key={l.id} value={l.id}>{l.flag} {l.name}</option>)}
+        </select>
+      </div>
+    </header>
+  );
+}
+
+// ─── PAGES ────────────────────────────────────────────────────────────────────
+
+// REDE GLOBAL
+function PageGlobal({sem}){
+  const prev=getPrevSem(sem);
+
+  const kpis=useMemo(()=>{
+    return METRICS.map(m=>{
+      let curr=0,pv=0;
+      if(m.id==='presenca_digital'){
+        for(const loc of LOCATIONS){curr+=(DATA.ig[loc.id]||{})[sem]||0;curr+=(DATA.yt[loc.id]||{})[sem]||0;pv+=(DATA.ig[loc.id]||{})[prev]||0;}
+      } else {
+        const src={cultos:DATA.cultos,links:DATA.links,pessoas_links:DATA.pessoas,voluntarios:DATA.vol,raizes:DATA.raizes,batismo:DATA.bat,zao:DATA.zao}[m.id]||{};
+        for(const loc of LOCATIONS){curr+=(src[loc.id]||{})[sem]||0;pv+=(src[loc.id]||{})[prev]||0;}
+      }
+      const spark=[getPrevSem(prev),prev,sem].map(s=>{
+        let v=0;
+        if(m.id==='presenca_digital'){for(const loc of LOCATIONS){v+=(DATA.ig[loc.id]||{})[s]||0;}}
+        else {const src={cultos:DATA.cultos,links:DATA.links,pessoas_links:DATA.pessoas,voluntarios:DATA.vol,raizes:DATA.raizes,batismo:DATA.bat,zao:DATA.zao}[m.id]||{};for(const loc of LOCATIONS)v+=(src[loc.id]||{})[s]||0;}
+        return v;
+      });
+      return {id:m.id,label:m.label,value:curr,prev:pv,delta:delta(curr,pv),spark};
+    });
+  },[sem]);
+
+  const areaData=useMemo(()=>{
+    const map={};
+    for(const loc of LOCATIONS){
+      const monthly=DATA.monthly[loc.id]||{};
+      for(const [k,v] of Object.entries(monthly)){
+        if(!map[k]) map[k]={date:k.substring(0,7)};
+        map[k].total=(map[k].total||0)+(v.cultos||0);
+      }
+    }
+    return Object.values(map).sort((a,b)=>a.date.localeCompare(b.date)).slice(-18);
+  },[]);
+
+  const countryData=useMemo(()=>{
+    const m={};
+    for(const loc of LOCATIONS){
+      const v=(DATA.cultos[loc.id]||{})[sem]||0;
+      m[loc.country]=(m[loc.country]||0)+v;
+    }
+    return Object.entries(m).map(([name,value])=>({name,value}));
+  },[sem]);
+
+  const tableRows=useMemo(()=>{
+    return LOCATIONS.map(loc=>{
+      const c=(DATA.cultos[loc.id]||{})[sem]||0;
+      const p=(DATA.cultos[loc.id]||{})[prev]||0;
+      const d=delta(c,p);
+      const getMetricRow=(src)=>({
+        value:(src[loc.id]||{})[sem]||0,
+        status:delta((src[loc.id]||{})[sem]||0,(src[loc.id]||{})[prev]||0)
+      });
+      return {
+        ...loc, d,
+        cultos:{value:c,status:d},
+        links:getMetricRow(DATA.links),
+        raizes:getMetricRow(DATA.raizes),
+        batismo:getMetricRow(DATA.bat),
+        voluntarios:getMetricRow(DATA.vol),
+        zao:getMetricRow(DATA.zao),
+      };
+    });
+  },[sem]);
+
+  const colKeys=['cultos','links','raizes','batismo','voluntarios','zao'];
+  const colLabels={cultos:'Cultos',links:'Links',raizes:'Raízes',batismo:'Batismo',voluntarios:'Vol.',zao:'ZAO'};
+
+  return (
+    <div>
+      <div style={{position:'relative',overflow:'hidden',padding:'36px 32px',background:'linear-gradient(135deg,#043030 0%,#078780 60%,#043030 100%)'}}>
+        <HeroShapes/>
+        <p style={{fontFamily:'Montserrat',fontSize:11,textTransform:'uppercase',letterSpacing:'.12em',color:'rgba(252,252,235,.6)',marginBottom:8}}>Dashboard Global · {sem}</p>
+        <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:46,color:B.cream,margin:0,lineHeight:1.1}}>Rede Global</h1>
+        <p style={{fontFamily:'Montserrat',fontSize:14,color:'rgba(252,252,235,.6)',marginTop:8}}>16 localidades · Brasil, Portugal, Ecuador, Chile e EUA</p>
+      </div>
+
+      <div style={{padding:'32px 32px 48px'}}>
+        <Section title={null}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16}}>
+            {kpis.map((k,i)=><KPICard key={k.id} label={k.label} value={k.value} d={k.delta} sparkData={k.spark} delay={i}/>)}
+          </div>
+        </Section>
+
+        <Section title="Evolução de Cultos — Rede Global">
+          <Card style={{background:B.deepGreen}}>
+            <AreaChartZ data={areaData} series={[{key:'total',label:'Total da Rede',color:B.teal}]}/>
+          </Card>
+        </Section>
+
+        <Section title="Status da Rede">
+          <div style={{borderRadius:12,border:'1px solid rgba(7,135,128,.2)',overflow:'hidden'}}>
+            <div style={{overflowX:'auto'}}>
+              <table style={{borderCollapse:'collapse',width:'100%',fontFamily:'Montserrat',minWidth:700}}>
+                <thead>
+                  <tr style={{background:B.deepGreen}}>
+                    <th style={{padding:'10px 16px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em',position:'sticky',left:0,background:B.deepGreen,zIndex:1}}>Localidade</th>
+                    <th style={{padding:'10px 12px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Tier</th>
+                    {colKeys.map(k=><th key={k} style={{padding:'10px 12px',textAlign:'center',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>{colLabels[k]}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((r,i)=>(
+                    <tr key={r.id} style={{background:i%2===0?'transparent':'rgba(12,81,73,.2)',transition:'background .15s',cursor:'pointer'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(7,135,128,.08)'}
+                      onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'transparent':'rgba(12,81,73,.2)'}>
+                      <td style={{padding:'9px 16px',color:B.cream,fontSize:13,fontWeight:500,position:'sticky',left:0,background:i%2===0?'#202020':'rgba(12,81,73,.3)',zIndex:1}}>{r.flag} {r.name}</td>
+                      <td style={{padding:'9px 12px'}}><TierBadge tier={r.tier} small/></td>
+                      {colKeys.map(k=>(
+                        <td key={k} style={{padding:'9px 12px',textAlign:'center'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                            <StatusDot d={r[k].status}/>
+                            <span style={{fontSize:12,color:'rgba(252,252,235,.7)'}}>{fmtNum(r[k].value)}</span>
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Distribuição por País — Cultos">
+          <Card style={{background:B.deepGreen}}>
+            <DonutChartZ data={countryData}/>
+          </Card>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+// HEATMAP
+function PageHeatmap(){
+  const [metric,setMetric]=useState('cultos');
+  const [semSelected,setSemSelected]=useState('2026-S1');
+  const monthsBySem={'2025-S1':['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06'],'2025-S2':['2025-07','2025-08','2025-09','2025-10','2025-11','2025-12'],'2026-S1':['2026-01','2026-02','2026-03','2026-04']};
+  const months=monthsBySem[semSelected]||[];
+  const tabs=[{id:'cultos',label:'Cultos'},{id:'pessoas_links',label:'Pessoas em Links'},{id:'voluntarios',label:'Voluntários'}];
+  return (
+    <div>
+      <div style={{padding:'28px 32px',background:'linear-gradient(135deg,#043030 0%,#0C5149 100%)'}}>
+        <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:40,color:B.cream,margin:0}}>Mapa de Calor</h1>
+        <p style={{fontFamily:'Montserrat',fontSize:13,color:'rgba(252,252,235,.55)',marginTop:6}}>Intensidade por localidade e período</p>
+      </div>
+      <div style={{padding:'32px'}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:20}}>
+          {tabs.map(t=><button key={t.id} onClick={()=>setMetric(t.id)} style={{padding:'7px 16px',borderRadius:8,border:metric===t.id?`1px solid ${B.teal}`:'1px solid rgba(7,135,128,.3)',background:metric===t.id?B.teal:'transparent',color:B.cream,fontFamily:'Montserrat',fontSize:12,fontWeight:500,cursor:'pointer',transition:'all .15s'}}>{t.label}</button>)}
+        </div>
+        <div style={{display:'flex',gap:8,marginBottom:24}}>
+          {Object.keys(monthsBySem).map(s=><button key={s} onClick={()=>setSemSelected(s)} style={{padding:'5px 14px',borderRadius:6,border:semSelected===s?`1px solid ${B.ice}`:'1px solid rgba(252,252,235,.15)',background:semSelected===s?'rgba(157,222,220,.12)':'transparent',color:semSelected===s?B.ice:'rgba(252,252,235,.4)',fontFamily:'Montserrat',fontSize:11,cursor:'pointer'}}>{s}</button>)}
+        </div>
+        <Card style={{background:B.deepGreen,padding:0,overflow:'hidden'}}>
+          <HeatmapViz locId={metric} months={months}/>
+        </Card>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginTop:16}}>
+          <span style={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.4)'}}>Escala:</span>
+          <div style={{height:10,width:140,borderRadius:5,background:'linear-gradient(90deg,#043030 0%,#0C5149 50%,#078780 100%)'}}/>
+          <span style={{fontFamily:'Montserrat',fontSize:11,color:'rgba(252,252,235,.4)'}}>Baixo → Alto</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// METRIC PAGE
+function PageMetric({metricId,sem}){
+  const metric=METRICS.find(m=>m.id===metricId)||METRICS[0];
+  const prev=getPrevSem(sem);
+
+  const rows=useMemo(()=>{
+    const currData=getMetricData(metricId,sem);
+    const prevData=getMetricData(metricId,prev);
+    return LOCATIONS.map(loc=>({
+      ...loc, curr:currData[loc.id]||0, prev:prevData[loc.id]||0,
+      d:delta(currData[loc.id]||0,prevData[loc.id]||0)
+    })).sort((a,b)=>b.curr-a.curr);
+  },[metricId,sem]);
+
+  const total=rows.reduce((s,r)=>s+r.curr,0);
+  const prevTotal=rows.reduce((s,r)=>s+r.prev,0);
+  const totalDelta=delta(total,prevTotal);
+  const avg=total/rows.length;
+
+  const trendData=useMemo(()=>{
+    const map={};
+    for(const loc of LOCATIONS){
+      const monthly=DATA.monthly[loc.id]||{};
+      for(const [k,v] of Object.entries(monthly)){
+        if(!map[k]) map[k]={date:k};
+        if(metricId==='cultos') map[k][loc.id]=(map[k][loc.id]||0)+(v.cultos||0);
+        else if(metricId==='pessoas_links') map[k][loc.id]=(map[k][loc.id]||0)+(v.pessoas_links||0);
+        else if(metricId==='voluntarios') map[k][loc.id]=(map[k][loc.id]||0)+(v.voluntarios||0);
+      }
+    }
+    if(!Object.keys(map).length) return [];
+    return Object.values(map).sort((a,b)=>a.date.localeCompare(b.date)).slice(-16);
+  },[metricId]);
+
+  const top3=rows.slice(0,3);
+  const rankData=rows.map(r=>({name:`${r.flag} ${r.name}`,value:r.curr,color:r.curr>=avg?B.teal:B.midGreen}));
+
+  const lineSeries=rows.slice(0,6).map((r,i)=>({key:r.id,label:`${r.flag} ${r.name}`,color:LINE_COLORS[i]}));
+  lineSeries.push({key:'_avg',label:'Média Rede',color:'rgba(252,252,235,.3)',dashed:true});
+
+  const trendWithAvg=trendData.map(row=>{
+    const vals=LOCATIONS.map(l=>row[l.id]||0).filter(v=>v>0);
+    return {...row,_avg:vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0};
+  });
+
+  return (
+    <div>
+      <div style={{padding:'28px 32px',background:'linear-gradient(135deg,#043030 0%,#078780 100%)',position:'relative',overflow:'hidden'}}>
+        <HeroShapes opacity={.06}/>
+        <p style={{fontFamily:'Montserrat',fontSize:11,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(252,252,235,.6)',marginBottom:6}}>Métrica</p>
+        <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:40,color:B.cream,margin:0}}>{metric.label}</h1>
+        <div style={{display:'flex',alignItems:'baseline',gap:16,marginTop:10}}>
+          <span style={{fontFamily:'"Brygada 1918",serif',fontSize:30,fontWeight:700,color:B.ice}}>{fmtNum(total)}</span>
+          <span style={{fontFamily:'Montserrat',fontSize:14,color:totalDelta>=0?B.sage:B.red,fontWeight:500}}>{totalDelta>=0?'↑':'↓'} {Math.abs(totalDelta).toFixed(1)}% SoS</span>
+        </div>
+      </div>
+
+      <div style={{padding:'32px 32px 48px'}}>
+        <Section title="Top 3 Localidades">
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:16}}>
+            {top3.map((r,i)=><PodiumCard key={r.id} rank={i+1} loc={r} value={r.curr} d={r.d} label={metric.label}/>)}
+          </div>
+        </Section>
+
+        {trendData.length>0&&(
+          <Section title="Tendência por Localidade">
+            <Card style={{background:B.deepGreen}}>
+              <LineChartZ data={trendWithAvg} series={lineSeries}/>
+            </Card>
+          </Section>
+        )}
+
+        <Section title={`Ranking — ${metric.label}`}>
+          <Card style={{background:B.deepGreen}}>
+            <BarChartZ data={rankData} horizontal avg={avg}/>
+          </Card>
+        </Section>
+
+        <Section title="Tabela Detalhada">
+          <div style={{borderRadius:12,border:'1px solid rgba(7,135,128,.2)',overflow:'hidden'}}>
+            <table style={{borderCollapse:'collapse',width:'100%',fontFamily:'Montserrat'}}>
+              <thead><tr style={{background:B.deepGreen}}>
+                <th style={{padding:'10px 16px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Localidade</th>
+                <th style={{padding:'10px 12px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Tier</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>{metric.label}</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Sem. Ant.</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Variação</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((r,i)=>(
+                  <tr key={r.id} style={{background:i%2===0?'transparent':'rgba(12,81,73,.2)',transition:'background .15s'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='rgba(7,135,128,.08)'}
+                    onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'transparent':'rgba(12,81,73,.2)'}>
+                    <td style={{padding:'9px 16px',color:B.cream,fontSize:13,fontWeight:500}}>{r.flag} {r.name}</td>
+                    <td style={{padding:'9px 12px'}}><TierBadge tier={r.tier} small/></td>
+                    <td style={{padding:'9px 12px',textAlign:'right',color:B.cream,fontSize:13,fontWeight:600}}>{fmtNum(r.curr)}</td>
+                    <td style={{padding:'9px 12px',textAlign:'right',color:'rgba(252,252,235,.5)',fontSize:12}}>{fmtNum(r.prev)}</td>
+                    <td style={{padding:'9px 12px',textAlign:'right',fontSize:12,fontWeight:500,color:r.d>=0?B.sage:B.red}}>{r.d>=0?'↑':'↓'} {fmtDelta(Math.abs(r.d))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+// LOCATION PAGE
+function PageLocation({locId,sem,setPage}){
+  const loc=LOCATIONS.find(l=>l.id===locId)||LOCATIONS[0];
+  const prev=getPrevSem(sem);
+
+  const kpis=useMemo(()=>[
+    {label:'Cultos',v:(DATA.cultos[locId]||{})[sem]||0,p:(DATA.cultos[locId]||{})[prev]||0},
+    {label:'Links',v:(DATA.links[locId]||{})[sem]||0,p:(DATA.links[locId]||{})[prev]||0},
+    {label:'Pessoas em Links',v:(DATA.pessoas[locId]||{})[sem]||0,p:(DATA.pessoas[locId]||{})[prev]||0},
+    {label:'Voluntários',v:(DATA.vol[locId]||{})[sem]||0,p:(DATA.vol[locId]||{})[prev]||0},
+    {label:'Raízes',v:(DATA.raizes[locId]||{})[sem]||0,p:(DATA.raizes[locId]||{})[prev]||0},
+    {label:'Batismo',v:(DATA.bat[locId]||{})[sem]||0,p:(DATA.bat[locId]||{})[prev]||0},
+    {label:'ZAO',v:(DATA.zao[locId]||{})[sem]||0,p:(DATA.zao[locId]||{})[prev]||0},
+    {label:'Instagram',v:(DATA.ig[locId]||{})[sem]||0,p:(DATA.ig[locId]||{})[prev]||0},
+  ].map(k=>({...k,d:delta(k.v,k.p)})),[locId,sem]);
+
+  const radarData=useMemo(()=>{
+    const mks=[{id:'cultos',label:'Cultos'},{id:'links',label:'Links'},{id:'pessoas_links',label:'P. Links'},{id:'voluntarios',label:'Vol.'},{id:'raizes',label:'Raízes'},{id:'batismo',label:'Batismo'},{id:'zao',label:'ZAO'}];
+    return mks.map(({id,label})=>{
+      const curr=getMetricData(id,sem);
+      const vals=Object.values(curr);
+      const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:1;
+      return {subject:label,location:avg>0?Math.round(((curr[locId]||0)/avg)*100):0,network:100};
+    });
+  },[locId,sem]);
+
+  const timelineData=useMemo(()=>{
+    const monthly=DATA.monthly[locId]||{};
+    return Object.entries(monthly).sort(([a],[b])=>a.localeCompare(b)).slice(-16)
+      .map(([k,v])=>({date:k,cultos:v.cultos||0,pessoasLinks:v.pessoas_links||0,voluntarios:v.voluntarios||0}));
+  },[locId]);
+
+  const rankings=useMemo(()=>[
+    {label:'Cultos',src:DATA.cultos},{label:'Links',src:DATA.links},{label:'Vol.',src:DATA.vol},{label:'Raízes',src:DATA.raizes},{label:'ZAO',src:DATA.zao}
+  ].map(({label,src})=>{
+    const vals=LOCATIONS.map(l=>({id:l.id,v:(src[l.id]||{})[sem]||0})).sort((a,b)=>b.v-a.v);
+    const rank=vals.findIndex(v=>v.id===locId)+1;
+    const myVal=(src[locId]||{})[sem]||0;
+    const maxV=vals[0]?.v||1;
+    return {label,rank,total:vals.length,value:myVal,pct:myVal/maxV};
+  }),[locId,sem]);
+
+  return (
+    <div>
+      <div style={{position:'relative',overflow:'hidden',padding:'36px 32px',background:'linear-gradient(135deg,#043030 0%,#078780 70%,#043030 100%)'}}>
+        <HeroShapes/>
+        <button onClick={()=>setPage('global')} style={{display:'flex',alignItems:'center',gap:6,marginBottom:20,fontFamily:'Montserrat',fontSize:12,color:'rgba(252,252,235,.5)',background:'none',border:'none',cursor:'pointer',padding:0}}>← Voltar</button>
+        <div style={{display:'flex',alignItems:'flex-start',gap:16}}>
+          <span style={{fontSize:40,lineHeight:1}}>{loc.flag}</span>
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
+              <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:44,color:B.cream,margin:0,lineHeight:1}}>{loc.name}</h1>
+              <TierBadge tier={loc.tier}/>
+            </div>
+            <p style={{fontFamily:'Montserrat',fontSize:14,color:'rgba(252,252,235,.55)',margin:0}}>{loc.country} · {sem}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{padding:'32px 32px 48px'}}>
+        <Section title={null}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14}}>
+            {kpis.map((k,i)=><KPICard key={k.label} label={k.label} value={k.v} d={k.d} delay={i}/>)}
+          </div>
+        </Section>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:24,marginBottom:40}}>
+          <Card style={{background:B.deepGreen}}>
+            <h2 style={{fontFamily:'"Brygada 1918",serif',fontSize:20,fontWeight:600,color:B.cream,marginBottom:16}}>Comparativo com a Rede</h2>
+            <RadarChartZ data={radarData} locName={loc.name}/>
+          </Card>
+          <Card style={{background:B.deepGreen}}>
+            <h2 style={{fontFamily:'"Brygada 1918",serif',fontSize:20,fontWeight:600,color:B.cream,marginBottom:16}}>Posição no Ranking</h2>
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              {rankings.map(r=>(
+                <div key={r.label}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontFamily:'Montserrat',fontSize:12,color:'rgba(252,252,235,.7)'}}>{r.label}</span>
+                    <span style={{fontFamily:'Montserrat',fontSize:12,color:B.ice,fontWeight:600}}>{r.rank}° de {r.total} · {fmtNum(r.value)}</span>
+                  </div>
+                  <div style={{background:'rgba(252,252,235,.08)',borderRadius:4,height:6,overflow:'hidden'}}>
+                    <div style={{height:'100%',borderRadius:4,background:r.rank<=4?B.sage:r.rank<=12?B.amber:B.red,width:`${r.pct*100}%`,transition:'width .8s ease'}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <Section title="Linha do Tempo">
+          <Card style={{background:B.deepGreen}}>
+            <LineChartZ data={timelineData} series={[{key:'cultos',label:'Cultos',color:B.teal},{key:'pessoasLinks',label:'Pessoas em Links',color:B.sage},{key:'voluntarios',label:'Voluntários',color:B.ice}]}/>
+          </Card>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+// STRATEGIC RATES
+function PageRates({sem}){
+  const prev=getPrevSem(sem);
+  const data=useMemo(()=>LOCATIONS.map(loc=>{
+    const c=(DATA.cultos[loc.id]||{})[sem]||1;
+    const l=(DATA.links[loc.id]||{})[sem]||1;
+    const p=(DATA.pessoas[loc.id]||{})[sem]||0;
+    const v=(DATA.vol[loc.id]||{})[sem]||0;
+    const r=(DATA.raizes[loc.id]||{})[sem]||0;
+    const b=(DATA.bat[loc.id]||{})[sem]||0;
+    return {...loc, conexao:p/c, formacao:r/c, servico:v/c, conversao:b/c, densidade:p/l};
+  }),[sem]);
+
+  const nets={conexao:data.reduce((s,d)=>s+d.conexao,0)/data.length, formacao:data.reduce((s,d)=>s+d.formacao,0)/data.length, servico:data.reduce((s,d)=>s+d.servico,0)/data.length, conversao:data.reduce((s,d)=>s+d.conversao,0)/data.length, densidade:data.reduce((s,d)=>s+d.densidade,0)/data.length};
+
+  const rateMeta=[
+    {id:'conexao',label:'Taxa de Conexão',desc:'Pessoas em Links ÷ Cultos'},
+    {id:'formacao',label:'Taxa de Formação',desc:'Raízes ÷ Cultos'},
+    {id:'servico',label:'Taxa de Serviço',desc:'Voluntários ÷ Cultos'},
+    {id:'conversao',label:'Taxa de Conversão',desc:'Batismo ÷ Cultos'},
+    {id:'densidade',label:'Densidade de Links',desc:'Pessoas ÷ Links'},
+  ];
+
+  function statusColor2(val,all){const s=[...all].sort((a,b)=>a-b);const q3=s[Math.floor(s.length*.75)];const q1=s[Math.floor(s.length*.25)];return val>=q3?B.sage:val>=q1?B.amber:B.red;}
+
+  return (
+    <div>
+      <div style={{padding:'28px 32px',background:'linear-gradient(135deg,#043030 0%,#0C5149 100%)'}}>
+        <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:40,color:B.cream,margin:0}}>Taxas Estratégicas</h1>
+        <p style={{fontFamily:'Montserrat',fontSize:13,color:'rgba(252,252,235,.55)',marginTop:6}}>Indicadores de saúde operacional · {sem}</p>
+      </div>
+      <div style={{padding:'32px 32px 48px'}}>
+        <Section title="Taxas da Rede">
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:16}}>
+            {rateMeta.map(rm=>(
+              <Card key={rm.id} style={{background:B.midGreen,textAlign:'center'}}>
+                <GaugeSVG value={Math.min(nets[rm.id],1)} label={rm.label}/>
+                <p style={{fontFamily:'Montserrat',fontSize:10,color:'rgba(252,252,235,.4)',marginTop:6}}>{rm.desc}</p>
+              </Card>
+            ))}
+          </div>
+        </Section>
+        <Section title="Comparativo por Localidade">
+          <div style={{borderRadius:12,border:'1px solid rgba(7,135,128,.2)',overflow:'hidden'}}>
+            <div style={{overflowX:'auto'}}>
+              <table style={{borderCollapse:'collapse',width:'100%',fontFamily:'Montserrat',minWidth:600}}>
+                <thead><tr style={{background:B.deepGreen}}>
+                  <th style={{padding:'10px 16px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Localidade</th>
+                  {rateMeta.map(rm=><th key={rm.id} style={{padding:'10px 14px',textAlign:'center',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.06em'}}>{rm.label}</th>)}
+                </tr></thead>
+                <tbody>
+                  {data.map((loc,i)=>(
+                    <tr key={loc.id} style={{background:i%2===0?'transparent':'rgba(12,81,73,.2)'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(7,135,128,.08)'} onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'transparent':'rgba(12,81,73,.2)'}>
+                      <td style={{padding:'9px 16px',color:B.cream,fontSize:13,fontWeight:500}}>{loc.flag} {loc.name}</td>
+                      {rateMeta.map(rm=>{
+                        const val=loc[rm.id]||0;
+                        const all=data.map(d=>d[rm.id]||0);
+                        const c=statusColor2(val,all);
+                        return <td key={rm.id} style={{padding:'9px 14px',textAlign:'center'}}>
+                          <span style={{display:'inline-flex',alignItems:'center',gap:4,fontFamily:'Montserrat',fontSize:12,fontWeight:600,color:c}}>
+                            <span style={{width:6,height:6,borderRadius:'50%',background:c,display:'inline-block'}}/>
+                            {`${(val*100).toFixed(1)}%`}
+                          </span>
+                        </td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+// GROWTH RANKING
+function PageRanking({sem}){
+  const [activeMetric,setActiveMetric]=useState('cultos');
+  const prev=getPrevSem(sem);
+
+  const rows=useMemo(()=>{
+    const curr=getMetricData(activeMetric,sem);
+    const pv=getMetricData(activeMetric,prev);
+    return LOCATIONS.map(loc=>({
+      ...loc, curr:curr[loc.id]||0, prev:pv[loc.id]||0,
+      gr:delta(curr[loc.id]||0,pv[loc.id]||0)
+    })).sort((a,b)=>b.gr-a.gr);
+  },[activeMetric,sem]);
+
+  const leader=rows[0];
+  const chartData=rows.map(r=>({name:`${r.flag} ${r.name}`,value:parseFloat(r.gr.toFixed(1)),color:r.gr>=0?B.sage:B.red}));
+
+  return (
+    <div>
+      <div style={{position:'relative',overflow:'hidden',padding:'28px 32px',background:'linear-gradient(135deg,#043030 0%,#078780 80%,#043030 100%)'}}>
+        <HeroShapes opacity={.07}/>
+        <h1 style={{fontFamily:'"Brygada 1918",serif',fontWeight:700,fontSize:40,color:B.cream,margin:0}}>Ranking de Crescimento</h1>
+        <p style={{fontFamily:'Montserrat',fontSize:13,color:'rgba(252,252,235,.55)',marginTop:6}}>Taxa de crescimento SoS — quem cresce mais rápido</p>
+      </div>
+      <div style={{padding:'32px 32px 48px'}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
+          {METRICS.slice(0,7).map(m=><button key={m.id} onClick={()=>setActiveMetric(m.id)} style={{padding:'7px 16px',borderRadius:8,border:activeMetric===m.id?`1px solid ${B.teal}`:'1px solid rgba(7,135,128,.3)',background:activeMetric===m.id?B.teal:'transparent',color:B.cream,fontFamily:'Montserrat',fontSize:12,fontWeight:500,cursor:'pointer',transition:'all .15s'}}>{m.label}</button>)}
+        </div>
+
+        {leader&&(
+          <div style={{position:'relative',overflow:'hidden',borderRadius:16,background:'linear-gradient(135deg,#043030 0%,#078780 100%)',padding:'26px 28px',marginBottom:28}}>
+            <HeroShapes opacity={.1}/>
+            <div style={{position:'relative',zIndex:1}}>
+              <p style={{fontFamily:'Montserrat',fontSize:11,textTransform:'uppercase',letterSpacing:'.1em',color:'rgba(252,252,235,.55)',marginBottom:8}}>Maior crescimento · {sem}</p>
+              <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+                <span style={{fontSize:36}}>{leader.flag}</span>
+                <div>
+                  <h2 style={{fontFamily:'"Brygada 1918",serif',fontSize:34,fontWeight:700,color:B.cream,margin:0}}>{leader.name}</h2>
+                  <TierBadge tier={leader.tier}/>
+                </div>
+                <div style={{marginLeft:'auto'}}>
+                  <p style={{fontFamily:'"Brygada 1918",serif',fontSize:46,fontWeight:700,color:B.cream,margin:0,lineHeight:1}}>+{leader.gr.toFixed(1)}%</p>
+                  <p style={{fontFamily:'Montserrat',fontSize:12,color:'rgba(252,252,235,.5)',margin:0}}>crescimento SoS</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Section title="Crescimento SoS por Localidade">
+          <Card style={{background:B.deepGreen}}>
+            <BarChartZ data={chartData} horizontal showDelta/>
+          </Card>
+        </Section>
+
+        <Section title={null}>
+          <div style={{borderRadius:12,border:'1px solid rgba(7,135,128,.2)',overflow:'hidden'}}>
+            <table style={{borderCollapse:'collapse',width:'100%',fontFamily:'Montserrat'}}>
+              <thead><tr style={{background:B.deepGreen}}>
+                <th style={{padding:'10px 16px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em',width:50}}>#</th>
+                <th style={{padding:'10px 12px',textAlign:'left',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Localidade</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Atual</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Anterior</th>
+                <th style={{padding:'10px 12px',textAlign:'right',fontSize:11,color:'rgba(252,252,235,.5)',textTransform:'uppercase',letterSpacing:'.08em'}}>Crescimento</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((r,i)=>(
+                  <tr key={r.id} style={{background:i%2===0?'transparent':'rgba(12,81,73,.2)',transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(7,135,128,.08)'} onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'transparent':'rgba(12,81,73,.2)'}>
+                    <td style={{padding:'10px 16px',color:i<3?B.ice:'rgba(252,252,235,.3)',fontSize:14,fontWeight:700,fontFamily:'"Brygada 1918",serif'}}>{i+1}</td>
+                    <td style={{padding:'10px 12px',color:B.cream,fontSize:13,fontWeight:500}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>{r.flag} {r.name} <TierBadge tier={r.tier} small/></div>
+                    </td>
+                    <td style={{padding:'10px 12px',textAlign:'right',color:'rgba(252,252,235,.7)',fontSize:12}}>{fmtNum(r.curr)}</td>
+                    <td style={{padding:'10px 12px',textAlign:'right',color:'rgba(252,252,235,.4)',fontSize:12}}>{fmtNum(r.prev)}</td>
+                    <td style={{padding:'10px 12px',textAlign:'right',fontSize:13,fontWeight:600,color:r.gr>=0?B.sage:B.red}}>{r.gr>=0?'↑':'↓'} {Math.abs(r.gr).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+function App(){
+  const [page,setPage]=useState('global');
+  const [locExpanded,setLocExpanded]=useState(true);
+  const [sem,setSem]=useState('2026-S1');
+  const [locF,setLocF]=useState('all');
+
+  const PAGE_TITLES={global:'Rede Global',heatmap:'Mapa de Calor',rates:'Taxas Estratégicas',ranking:'Ranking de Crescimento'};
+  const getTitle=()=>{
+    if(PAGE_TITLES[page]) return PAGE_TITLES[page];
+    if(page.startsWith('metric-')) return METRICS.find(m=>m.id===page.replace('metric-',''))?.label||'Métrica';
+    if(page.startsWith('loc-')) return LOCATIONS.find(l=>l.id===page.replace('loc-',''))?.name||'Localidade';
+    return 'Dashboard';
+  };
+
+  const renderPage=()=>{
+    if(page==='global') return <PageGlobal sem={sem}/>;
+    if(page==='heatmap') return <PageHeatmap/>;
+    if(page==='rates') return <PageRates sem={sem}/>;
+    if(page==='ranking') return <PageRanking sem={sem}/>;
+    if(page.startsWith('metric-')) return <PageMetric metricId={page.replace('metric-','')} sem={sem}/>;
+    if(page.startsWith('loc-')) return <PageLocation locId={page.replace('loc-','')} sem={sem} setPage={setPage}/>;
+    return <PageGlobal sem={sem}/>;
+  };
+
+  return (
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:B.black}}>
+      <Sidebar page={page} setPage={setPage} locExpanded={locExpanded} setLocExpanded={setLocExpanded}/>
+      <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
+        <Header title={getTitle()} sem={sem} setSem={setSem} locF={locF} setLocF={setLocF}/>
+        <main style={{flex:1,overflowY:'auto',background:B.black}}>
+          {renderPage()}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
