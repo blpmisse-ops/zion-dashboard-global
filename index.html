@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Zion Church — Dashboard Global</title>
+<link href="https://fonts.googleapis.com/css2?family=Brygada+1918:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.5.0/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;background:#043030;font-family:'Montserrat',sans-serif;color:#FCFCEB}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#021a1a}
+::-webkit-scrollbar-thumb{background:#078780;border-radius:3px}
+.serif{font-family:'Brygada 1918',serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo}=React;
+const {
+  ResponsiveContainer,AreaChart,Area,LineChart,Line,BarChart,Bar,
+  XAxis,YAxis,Tooltip,Legend,CartesianGrid,RadarChart,Radar,PolarGrid,
+  PolarAngleAxis,PolarRadiusAxis,Cell,ComposedChart,LabelList,ReferenceLine
+}=Recharts;
+
+/* ═══ BRAND */
+const C={deepGreen:'#043030',teal:'#078780',mid:'#0C5149',sage:'#439B6A',cream:'#FCFCEB'};
+const TIER_DEF=[
+  {name:'BLACK',   min:4001,color:'#1a1a1a',text:'#FCFCEB'},
+  {name:'DIAMOND', min:3001,color:'#89CFF0',text:'#043030'},
+  {name:'PLATINUM',min:2001,color:'#E5E4E2',text:'#043030'},
+  {name:'GOLD',    min:301, color:'#D4AF37',text:'#043030'},
+  {name:'SILVER',  min:1,   color:'#A8A9AD',text:'#043030'},
+  {name:'—',       min:0,   color:'#2a3a3a',text:'#FCFCEB'},
+];
+/* PÚBLICO: SILVER≤300 | GOLD 301-2000 | PLATINUM 2001-3000 | DIAMOND 3001-4000 | BLACK>4000 */
+function getTier(v){
+  if(v<=0)    return TIER_DEF[5];
+  if(v<=300)  return TIER_DEF[4];
+  if(v<=2000) return TIER_DEF[3];
+  if(v<=3000) return TIER_DEF[2];
+  if(v<=4000) return TIER_DEF[1];
+  return TIER_DEF[0];
+}
+/* PRÉDIO — tier é fixo por church (campo `tier` em PRED_DATA), não calculado por fórmula */
+const BLDG_TIER=[
+  {name:'BLACK',   color:'#1a1a1a',text:'#FCFCEB'},
+  {name:'DIAMOND', color:'#89CFF0',text:'#043030'},
+  {name:'PLATINUM',color:'#E5E4E2',text:'#043030'},
+  {name:'GOLD',    color:'#D4AF37',text:'#043030'},
+  {name:'SILVER',  color:'#A8A9AD',text:'#043030'},
+  {name:'HOTEL',   color:'#7B5C3E',text:'#FCFCEB'},
+  {name:'—',       color:'#2a3a3a',text:'#FCFCEB'},
+];
+function getBldgTierByName(name){return BLDG_TIER.find(t=>t.name===name)||BLDG_TIER[6];}
+function getBldgTier(seats){
+  if(seats<=0)    return BLDG_TIER[6];
+  if(seats<=300)  return BLDG_TIER[4];
+  if(seats<=500)  return BLDG_TIER[3];
+  if(seats<=750)  return BLDG_TIER[2];
+  if(seats<=1000) return BLDG_TIER[1];
+  return BLDG_TIER[0];
+}
+
+/* ═══ LOCATIONS — 19 campuses */
+const LOCS=[
+  {id:'São Paulo',       name:'São Paulo',       flag:'🇧🇷'},
+  {id:'Recife',          name:'Recife',           flag:'🇧🇷'},
+  {id:'Campinas',        name:'Campinas',         flag:'🇧🇷'},
+  {id:'Santos',          name:'Santos',           flag:'🇧🇷'},
+  {id:'Ribeirão Preto',  name:'Ribeirão Preto',   flag:'🇧🇷'},
+  {id:'Maceió',          name:'Maceió',           flag:'🇧🇷'},
+  {id:'Jundiaí',         name:'Jundiaí',          flag:'🇧🇷'},
+  {id:'Campo Grande',    name:'Campo Grande',     flag:'🇧🇷'},
+  {id:'Vale do Ribeira', name:'Vale do Ribeira',  flag:'🇧🇷'},
+  {id:'SJCampos',        name:'SJCampos',         flag:'🇧🇷'},
+  {id:'Vitória',         name:'Vitória',          flag:'🇧🇷'},
+  {id:'Lisboa',          name:'Lisboa',           flag:'🇵🇹'},
+  {id:'Porto',           name:'Porto',            flag:'🇵🇹'},
+  {id:'Cascais',         name:'Cascais',          flag:'🇵🇹'},
+  {id:'Quito',           name:'Quito',            flag:'🇪🇨'},
+  {id:'Cuenca',          name:'Cuenca',           flag:'🇪🇨'},
+  {id:'Santiago',        name:'Santiago',         flag:'🇨🇱'},
+  {id:'Miami',           name:'Miami',            flag:'🇺🇸'},
+  {id:'Orlando',         name:'Orlando',          flag:'🇺🇸'},
+];
+/* ═══ PERIODS */
+const PERIODS={
+  '2023-S1':{label:'S1 2023',           months:['2023-01','2023-02','2023-03','2023-04','2023-05','2023-06']},
+  '2023-S2':{label:'S2 2023',           months:['2023-07','2023-08','2023-09','2023-10','2023-11','2023-12']},
+  '2024-Q1':{label:'T1 2024',           months:['2024-01','2024-02','2024-03']},
+  '2024-Q2':{label:'T2 2024',           months:['2024-04','2024-05','2024-06']},
+  '2024-Q3':{label:'T3 2024',           months:['2024-07','2024-08','2024-09']},
+  '2024-Q4':{label:'T4 2024',           months:['2024-10','2024-11','2024-12']},
+  '2024-S1':{label:'S1 2024',           months:['2024-01','2024-02','2024-03','2024-04','2024-05','2024-06']},
+  '2024-S2':{label:'S2 2024',           months:['2024-07','2024-08','2024-09','2024-10','2024-11','2024-12']},
+  '2025-Q1':{label:'T1 2025',           months:['2025-01','2025-02','2025-03']},
+  '2025-Q2':{label:'T2 2025',           months:['2025-04','2025-05','2025-06']},
+  '2025-Q3':{label:'T3 2025',           months:['2025-07','2025-08','2025-09']},
+  '2025-Q4':{label:'T4 2025',           months:['2025-10','2025-11','2025-12']},
+  '2025-S1':{label:'S1 2025',           months:['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06']},
+  '2025-S2':{label:'S2 2025',           months:['2025-07','2025-08','2025-09','2025-10','2025-11','2025-12']},
+  '2026-Q1':{label:'T1 2026 (YTD)',     months:['2026-01','2026-02','2026-03']},
+  '2026-S1':{label:'S1 2026 (YTD)',     months:['2026-01','2026-02','2026-03']},
+  '2024':   {label:'2024 (Ano Completo)',months:['2024-01','2024-02','2024-03','2024-04','2024-05','2024-06','2024-07','2024-08','2024-09','2024-10','2024-11','2024-12']},
+  '2025':   {label:'2025 (Ano Completo)',months:['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12']},
+  '2026':   {label:'2026 (YTD)',         months:['2026-01','2026-02','2026-03']},
+};
+const YEARS=['2024','2025','2026'];
+function prevPeriod(p){
+  const map={
+    '2023-S1':null,'2023-S2':'2023-S1',
+    '2024-Q1':null,'2024-Q2':'2024-Q1','2024-Q3':'2024-Q2','2024-Q4':'2024-Q3',
+    '2024-S1':'2023-S1','2024-S2':'2023-S2',
+    '2025-Q1':'2024-Q1','2025-Q2':'2024-Q2','2025-Q3':'2024-Q3','2025-Q4':'2024-Q4',
+    '2025-S1':'2024-S1','2025-S2':'2024-S2',
+    '2026-Q1':'2025-Q1','2026-S1':'2025-S1',
+    '2024':null,'2025':'2024','2026':'2025-S1',
+  };
+  return map[p]||null;
+}
+function pMonths(p){return PERIODS[p]?.months||[];}
+
+/* ═══ REAL DATA — extracted from Data Base - Dashboard Global (3).xlsx */
+const DATA = {
+  "Campinas": {
+    "2023-01": {"bap": 0, "raiz": 17, "vol": 10, "ig": 1800},
+    "2023-02": {"bap": 0, "raiz": 0, "vol": 10, "ig": 2466},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 10, "ig": 3500},
+    "2023-04": {"bap": 0, "raiz": 0, "vol": 20, "ig": 4005},
+    "2023-05": {"bap": 0, "raiz": 0, "vol": 30, "ig": 4908},
+    "2023-06": {"bap": 0, "raiz": 49, "vol": 50, "ig": 5300},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 70, "ig": 5723},
+    "2023-08": {"bap": 0, "raiz": 38, "vol": 90, "ig": 6153},
+    "2023-09": {"bap": 0, "raiz": 0, "vol": 101, "links": 7, "plinks": 100, "ig": 6924, "sunS": 955, "sunN": 3},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 120, "links": 8, "plinks": 101, "ig": 7300, "sunS": 1422, "sunN": 5},
+    "2023-11": {"bap": 0, "raiz": 0, "vol": 120, "links": 8, "plinks": 101, "ig": 7760, "sunS": 965, "sunN": 3},
+    "2023-12": {"bap": 0, "raiz": 0, "vol": 120, "links": 8, "plinks": 101, "ig": 7900, "sunS": 600, "sunN": 2},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 126, "zao": 106, "links": 8, "plinks": 101, "ig": 8068, "yt": 459, "sunS": 1451, "sunN": 3},
+    "2024-02": {"bap": 20, "raiz": 0, "vol": 133, "zao": 106, "links": 19, "plinks": 140, "ig": 8814, "yt": 805, "sunS": 1573, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 76, "vol": 264, "zao": 106, "links": 19, "plinks": 182, "ig": 9915, "yt": 1200, "sunS": 2211, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 110, "zao": 106, "links": 27, "plinks": 243, "ig": 10678, "yt": 1730, "sunS": 2412, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 147, "zao": 84, "links": 27, "plinks": 264, "ig": 10912, "yt": 1800, "sunS": 1667, "sunN": 3},
+    "2024-06": {"bap": 19, "raiz": 0, "vol": 178, "zao": 84, "links": 27, "plinks": 292, "ig": 11300, "yt": 1913, "sunS": 3161, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 274, "ig": 12061, "yt": 2144, "sunS": 2555, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 274, "links": 39, "plinks": 494, "ig": 12960, "yt": 2610, "sunS": 2889, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 274, "links": 40, "plinks": 494, "ig": 13272, "yt": 2717, "sunS": 3479, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 323, "zao": 160, "links": 39, "plinks": 457, "ig": 14015, "yt": 2960, "sunS": 2871, "sunN": 4},
+    "2024-11": {"bap": 26, "raiz": 26, "vol": 323, "zao": 160, "links": 39, "plinks": 457, "ig": 14845, "yt": 3200, "sunS": 3365, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 369, "zao": 160, "links": 39, "plinks": 457, "ig": 15375, "yt": 3370, "sunS": 3376, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 369, "zao": 253, "links": 35, "plinks": 571, "ig": 16800, "yt": 3812, "sunS": 3334, "sunN": 3},
+    "2025-02": {"bap": 17, "raiz": 0, "vol": 374, "zao": 253, "links": 35, "plinks": 571, "ig": 17598, "yt": 4100, "sunS": 4117, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 374, "zao": 253, "links": 35, "plinks": 571, "ig": 17769, "yt": 4180, "sunS": 5098, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 374, "zao": 253, "links": 35, "plinks": 571, "ig": 18400, "yt": 4670, "sunS": 4307, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 60, "vol": 374, "zao": 253, "links": 35, "plinks": 571, "ig": 18484, "yt": 4720, "sunS": 2942, "sunN": 3},
+    "2025-06": {"bap": 23, "raiz": 0, "vol": 374, "zao": 32, "links": 35, "plinks": 571, "ig": 19000, "yt": 4940, "sunS": 4814, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 374, "zao": 32, "links": 35, "plinks": 571, "ig": 19400, "yt": 5160, "sunS": 3633, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 61, "vol": 347, "zao": 46, "links": 45, "plinks": 571, "ig": 20000, "yt": 5470, "sunS": 4831, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 347, "zao": 77, "links": 45, "plinks": 549, "ig": 20500, "yt": 5690, "sunS": 3891, "sunN": 4},
+    "2025-10": {"bap": 15, "raiz": 0, "vol": 347, "links": 45, "plinks": 549, "ig": 21190, "yt": 5900, "sunS": 3903, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 347, "links": 45, "plinks": 549, "ig": 21410, "yt": 6050, "sunS": 4758, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 99, "vol": 347, "links": 45, "plinks": 549, "ig": 21647, "yt": 6170, "sunS": 2675, "sunN": 3},
+    "2026-01": {"bap": 0, "raiz": 0, "vol": 347, "zao": 419, "ig": 23700, "yt": 7140, "sunS": 3680, "sunN": 3},
+    "2026-02": {"vol": 347, "zao": 419, "links": 42, "plinks": 205, "ig": 24600, "yt": 7520, "sunS": 2910, "sunN": 3},
+    "2026-03": {"bap": 18, "links": 42},
+  },
+  "Campo Grande": {
+    "2024-01": {"bap": 0, "raiz": 0, "links": 1, "plinks": 21},
+    "2024-02": {"bap": 0, "raiz": 0, "links": 1, "plinks": 26, "sunS": 60, "sunN": 1},
+    "2024-03": {"bap": 0, "raiz": 0, "links": 2, "plinks": 28, "sunS": 117, "sunN": 2},
+    "2024-04": {"bap": 0, "raiz": 0, "links": 2, "plinks": 25, "sunS": 50, "sunN": 1},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 10, "links": 2, "plinks": 25, "sunS": 85, "sunN": 2},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 10, "links": 2, "plinks": 25, "ig": 485, "sunS": 288, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 20, "links": 3, "plinks": 30, "sunS": 256, "sunN": 4},
+    "2024-08": {"bap": 5, "raiz": 5, "vol": 17, "links": 4, "plinks": 35, "ig": 905, "sunS": 232, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 20, "links": 4, "plinks": 51, "sunS": 356, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 20, "links": 4, "plinks": 55, "ig": 1045, "sunS": 303, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 20, "links": 4, "plinks": 60, "ig": 1300, "sunS": 279, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 20, "links": 4, "plinks": 60, "ig": 1370, "sunS": 225, "sunN": 3},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 20, "links": 4, "plinks": 60, "ig": 1566, "sunS": 270, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 32, "zao": 30, "links": 4, "plinks": 60, "ig": 1732, "sunS": 411, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 32, "zao": 30, "links": 4, "plinks": 62, "ig": 1978, "sunS": 483, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 40, "zao": 30, "links": 4, "plinks": 70, "ig": 2050, "sunS": 466, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 40, "zao": 32, "links": 4, "plinks": 70, "ig": 2308, "sunS": 330, "sunN": 3},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 40, "zao": 32, "links": 4, "plinks": 70, "ig": 2383, "sunS": 598, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 45, "zao": 38, "links": 4, "plinks": 70, "ig": 2604},
+    "2025-08": {"bap": 0, "raiz": 65, "vol": 45, "zao": 38, "links": 7, "plinks": 98},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 45, "zao": 29, "links": 8, "plinks": 93, "ig": 3098, "sunS": 528, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 45, "zao": 29, "links": 8, "plinks": 95, "ig": 3334, "sunS": 521, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 45, "zao": 29, "links": 8, "plinks": 56, "ig": 3394, "sunS": 674, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 45, "zao": 29, "links": 8, "plinks": 56, "ig": 3454, "sunS": 411, "sunN": 3},
+    "2026-01": {"vol": 20, "ig": 3803, "sunS": 373, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 20, "links": 8, "plinks": 43, "ig": 4002, "sunS": 563, "sunN": 4},
+    "2026-03": {"links": 8, "sunS": 920, "sunN": 5},
+  },
+  "Campo grande": {
+    "2025-07": {"sunS": 474, "sunN": 4},
+    "2025-08": {"sunS": 737, "sunN": 5},
+  },
+  "Cascais": {
+    "2026-03": {"sunS": 513, "sunN": 3},
+  },
+  "Cuenca": {
+    "2026-01": {"vol": 36, "zao": 34, "ig": 1700, "sunS": 148, "sunN": 2},
+    "2026-02": {"vol": 36, "zao": 35, "links": 4, "plinks": 59, "ig": 1900, "sunS": 437, "sunN": 4},
+    "2026-03": {"vol": 36, "zao": 32, "links": 4, "plinks": 68, "sunS": 617, "sunN": 5},
+  },
+  "Jundia\u00ed": {
+    "2024-01": {"bap": 0, "raiz": 0},
+    "2024-02": {"bap": 0, "raiz": 0},
+    "2024-03": {"bap": 0, "raiz": 0},
+    "2024-04": {"bap": 0, "raiz": 0},
+    "2024-05": {"bap": 0, "raiz": 0},
+    "2024-06": {"bap": 0, "raiz": 0},
+    "2024-07": {"bap": 0, "raiz": 0},
+    "2024-08": {"bap": 0, "raiz": 0},
+    "2024-09": {"raiz": 0},
+    "2024-10": {"bap": 0, "raiz": 0},
+    "2024-11": {"bap": 0, "raiz": 0},
+    "2024-12": {"bap": 0, "raiz": 0},
+    "2025-01": {"bap": 0, "raiz": 0, "links": 13, "sunS": 475, "sunN": 1},
+    "2025-02": {"bap": 0, "raiz": 0, "links": 13, "sunS": 331, "sunN": 1},
+    "2025-03": {"bap": 0, "raiz": 0, "links": 13, "sunS": 264, "sunN": 1},
+    "2025-04": {"bap": 0, "raiz": 0, "links": 13, "plinks": 130, "sunS": 320, "sunN": 1},
+    "2025-05": {"bap": 0, "raiz": 0, "links": 13, "plinks": 136, "ig": 2848, "sunS": 243, "sunN": 1},
+    "2025-06": {"bap": 0, "raiz": 0, "links": 11, "plinks": 113, "ig": 3116, "sunS": 497, "sunN": 2},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 29, "links": 10, "plinks": 113, "ig": 3368, "sunS": 436, "sunN": 2},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 43, "links": 10, "plinks": 113, "ig": 3546, "sunS": 400, "sunN": 2},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 43, "links": 10, "plinks": 113, "ig": 3834},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 44, "links": 10, "plinks": 122, "ig": 3946, "sunS": 863, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 21, "vol": 42, "links": 10, "plinks": 69, "ig": 4403, "sunS": 868, "sunN": 5},
+    "2025-12": {"bap": 6, "raiz": 0, "vol": 86, "links": 10, "plinks": 61, "ig": 4503, "sunS": 484, "sunN": 3},
+    "2026-01": {"vol": 86, "ig": 4826, "sunS": 586, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 90, "links": 10, "plinks": 85, "ig": 5369, "sunS": 794, "sunN": 4},
+    "2026-03": {"links": 11, "sunS": 747, "sunN": 2},
+  },
+  "Lisboa": {
+    "2023-01": {"bap": 0, "raiz": 0, "vol": 71, "links": 9, "plinks": 140, "ig": 15115, "yt": 2443},
+    "2023-02": {"bap": 0, "raiz": 0, "vol": 71, "zao": 30, "links": 9, "plinks": 140, "ig": 15600, "yt": 2700},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 71, "zao": 30, "links": 10, "plinks": 155, "ig": 16063, "yt": 2797},
+    "2023-04": {"bap": 17, "raiz": 70, "vol": 71, "links": 10, "plinks": 155, "ig": 16503, "yt": 2860},
+    "2023-05": {"bap": 0, "raiz": 0, "vol": 71, "links": 11, "plinks": 168, "ig": 16967, "yt": 2968},
+    "2023-06": {"bap": 0, "raiz": 0, "vol": 115, "links": 13, "plinks": 208, "ig": 17462, "yt": 3043},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 115, "zao": 156, "links": 13, "plinks": 208, "ig": 17914, "yt": 3163},
+    "2023-08": {"bap": 0, "raiz": 0, "vol": 115, "zao": 156, "links": 13, "plinks": 208, "ig": 18405, "yt": 3330},
+    "2023-09": {"bap": 0, "raiz": 0, "vol": 115, "zao": 156, "links": 13, "plinks": 208, "ig": 18998, "yt": 3506, "sunS": 2290, "sunN": 4},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 115, "zao": 156, "links": 13, "plinks": 208, "ig": 19566, "yt": 3818, "sunS": 2179, "sunN": 4},
+    "2023-11": {"bap": 0, "raiz": 100, "vol": 115, "zao": 156, "links": 13, "plinks": 208, "ig": 20181, "yt": 4097, "sunS": 2199, "sunN": 4},
+    "2023-12": {"bap": 16, "raiz": 0, "vol": 115, "zao": 156, "links": 13, "plinks": 212, "ig": 20747, "yt": 4210, "sunS": 1811, "sunN": 3},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 146, "zao": 162, "links": 14, "plinks": 215, "ig": 21355, "yt": 4694, "sunS": 2068, "sunN": 3},
+    "2024-02": {"bap": 23, "raiz": 0, "vol": 146, "zao": 162, "links": 15, "plinks": 215, "ig": 21965, "yt": 5231, "sunS": 2416, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 0, "vol": 146, "zao": 162, "links": 15, "plinks": 215, "ig": 22511, "yt": 5424, "sunS": 3324, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 70, "vol": 154, "zao": 122, "links": 15, "plinks": 280, "ig": 23000, "yt": 5618, "sunS": 2491, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 175, "zao": 122, "links": 15, "plinks": 280, "ig": 23000, "yt": 5821, "sunS": 1775, "sunN": 3},
+    "2024-06": {"bap": 18, "raiz": 0, "vol": 184, "zao": 122, "links": 20, "plinks": 20, "ig": 24102, "yt": 6026, "sunS": 3143, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 212, "zao": 122, "links": 20, "plinks": 280, "ig": 24447, "yt": 6568, "sunS": 2576, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 212, "ig": 25110, "yt": 6780, "sunS": 2630, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 212, "zao": 169, "links": 21, "plinks": 295, "ig": 25623, "yt": 7245, "sunS": 4128, "sunN": 5},
+    "2024-10": {"bap": 27, "raiz": 27, "vol": 197, "zao": 169, "links": 22, "plinks": 310, "ig": 25967, "yt": 7023, "sunS": 3530, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 212, "zao": 169, "links": 22, "plinks": 310, "ig": 26029, "yt": 7129, "sunS": 3496, "sunN": 4},
+    "2024-12": {"bap": 24, "raiz": 24, "vol": 218, "zao": 169, "links": 22, "plinks": 310, "ig": 29357, "yt": 7931, "sunS": 2399, "sunN": 3},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 153, "links": 22, "plinks": 317, "ig": 26555, "yt": 8998, "sunS": 1992, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 286, "zao": 151, "links": 27, "plinks": 325, "ig": 27536, "yt": 9230, "sunS": 3220, "sunN": 4},
+    "2025-03": {"bap": 26, "raiz": 0, "vol": 384, "zao": 151, "links": 26, "plinks": 347, "ig": 28948, "yt": 9541, "sunS": 3802, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 67, "vol": 347, "zao": 151, "links": 26, "plinks": 347, "ig": 29649, "yt": 9810, "sunS": 3227, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 220, "links": 26, "plinks": 347, "ig": 30019, "yt": 9980, "sunS": 2886, "sunN": 4},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 382, "links": 22, "plinks": 347, "ig": 30470, "yt": 10100, "sunS": 3512, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 326, "links": 22, "plinks": 347, "ig": 30956, "yt": 10300, "sunS": 3076, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 265, "links": 22, "plinks": 347, "ig": 31356, "yt": 10312, "sunS": 4490, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 265, "links": 22, "plinks": 347, "ig": 31714, "yt": 10600, "sunS": 3496, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 240, "links": 22, "plinks": 347, "ig": 32018, "yt": 10700, "sunS": 2864, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 240, "links": 22, "plinks": 350, "ig": 32062, "yt": 10800, "sunS": 3156, "sunN": 5},
+    "2025-12": {"bap": 22, "raiz": 0, "vol": 240, "links": 22, "plinks": 350, "ig": 32107, "yt": 10900, "sunS": 2039, "sunN": 3},
+  },
+  "Macei\u00f3": {
+    "2023-01": {"bap": 0, "raiz": 0, "vol": 10, "plinks": 21},
+    "2023-02": {"bap": 0, "raiz": 0, "vol": 10, "links": 3, "plinks": 21},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 15, "links": 3, "plinks": 20},
+    "2023-04": {"bap": 0, "raiz": 0, "vol": 15, "links": 3, "plinks": 28},
+    "2023-05": {"bap": 0, "raiz": 0, "vol": 21, "links": 3, "plinks": 33},
+    "2023-06": {"bap": 16, "raiz": 0, "vol": 21, "links": 3, "plinks": 35},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 31, "links": 3, "plinks": 38, "ig": 2918},
+    "2023-08": {"bap": 0, "raiz": 0, "vol": 31, "links": 3, "plinks": 39, "ig": 2918},
+    "2023-09": {"bap": 0, "raiz": 0, "vol": 31, "links": 3, "plinks": 44, "ig": 2918, "sunS": 265, "sunN": 4},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 31, "links": 3, "plinks": 45, "ig": 3051, "sunS": 442, "sunN": 5},
+    "2023-11": {"bap": 0, "raiz": 0, "vol": 31, "links": 3, "plinks": 50, "ig": 3302, "sunS": 436, "sunN": 4},
+    "2023-12": {"bap": 7, "raiz": 0, "vol": 31, "links": 3, "plinks": 50, "ig": 3807, "sunS": 354, "sunN": 3},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 30, "ig": 4212, "sunS": 560, "sunN": 4},
+    "2024-02": {"bap": 13, "raiz": 0, "vol": 30, "zao": 50, "links": 4, "plinks": 55, "ig": 4527, "sunS": 552, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 0, "vol": 41, "zao": 50, "links": 6, "plinks": 80, "ig": 4672, "sunS": 949, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 41, "links": 6, "plinks": 64, "ig": 4954, "sunS": 730, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 45, "zao": 62, "links": 6, "plinks": 70, "ig": 5149, "sunS": 337, "sunN": 2},
+    "2024-06": {"bap": 0, "raiz": 53, "vol": 45, "zao": 62, "links": 6, "plinks": 80, "ig": 5289, "sunS": 903, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 47, "zao": 62, "links": 6, "plinks": 90, "ig": 5463, "sunS": 805, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 45, "links": 6, "plinks": 92, "ig": 5600, "sunS": 732, "sunN": 4},
+    "2024-09": {"bap": 3, "raiz": 3, "vol": 47, "links": 8, "plinks": 95, "ig": 5834, "sunS": 994, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 34, "links": 8, "plinks": 95, "ig": 5970, "sunS": 774, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 38, "links": 8, "plinks": 97, "ig": 6175, "sunS": 770, "sunN": 4},
+    "2024-12": {"bap": 11, "raiz": 11, "vol": 79, "links": 8, "plinks": 97, "ig": 6280, "sunS": 949, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 80, "links": 8, "plinks": 97, "ig": 6657, "yt": 312, "sunS": 897, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 80, "zao": 59, "links": 9, "plinks": 133, "ig": 6820, "yt": 360, "sunS": 1040, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 80, "zao": 59, "links": 9, "plinks": 135, "ig": 6934, "yt": 392, "sunS": 1302, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 47, "vol": 80, "zao": 42, "links": 9, "plinks": 140, "ig": 7192, "yt": 445, "sunS": 1154, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 103, "zao": 42, "links": 11, "plinks": 151, "ig": 7357, "yt": 488, "sunS": 945, "sunN": 4},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 103, "zao": 42, "links": 11, "plinks": 151, "ig": 7771, "yt": 511, "sunS": 976, "sunN": 4},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 103, "links": 11, "plinks": 153, "ig": 8435, "yt": 541, "sunS": 1007, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 103, "zao": 30, "links": 11, "plinks": 153, "ig": 8579, "yt": 580, "sunS": 1271, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 103, "zao": 30, "links": 11, "plinks": 94, "ig": 8740, "yt": 632, "sunS": 1014, "sunN": 4},
+    "2025-10": {"bap": 15, "raiz": 0, "vol": 103, "links": 11, "plinks": 128, "ig": 8831, "yt": 657, "sunS": 921, "sunN": 4},
+    "2025-11": {"bap": 16, "raiz": 0, "vol": 106, "links": 11, "plinks": 64, "ig": 8904, "yt": 675, "sunS": 1098, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 106, "links": 11, "plinks": 52, "ig": 8977, "yt": 695, "sunS": 819, "sunN": 3},
+    "2026-01": {"raiz": 0, "vol": 90, "ig": 9270, "yt": 728, "sunS": 889, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 95, "zao": 81, "links": 14, "plinks": 25, "ig": 9362, "yt": 762, "sunS": 1040, "sunN": 4},
+    "2026-03": {"links": 14, "sunS": 605, "sunN": 2},
+  },
+  "Miami": {
+    "2024-01": {"bap": 0, "raiz": 0, "links": 2, "plinks": 46},
+    "2024-02": {"bap": 0, "raiz": 0, "links": 2, "plinks": 58, "sunS": 84, "sunN": 1},
+    "2024-03": {"bap": 0, "raiz": 0, "links": 2, "plinks": 69, "sunS": 97, "sunN": 1},
+    "2024-04": {"bap": 0, "raiz": 0, "links": 2, "plinks": 87, "sunS": 68, "sunN": 1},
+    "2024-05": {"bap": 12, "raiz": 0, "vol": 10, "links": 4, "plinks": 93, "sunS": 114, "sunN": 1},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 10, "links": 5, "plinks": 99, "ig": 1683, "sunS": 117, "sunN": 1},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 37, "links": 5, "plinks": 100, "ig": 1862, "sunS": 118, "sunN": 1},
+    "2024-08": {"bap": 5, "raiz": 0, "vol": 25, "links": 5, "plinks": 100, "ig": 2198, "sunS": 105, "sunN": 1},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 37, "links": 5, "plinks": 92, "ig": 2311, "sunS": 160, "sunN": 1},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 45, "links": 6, "plinks": 99, "ig": 2499, "sunS": 147, "sunN": 1},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 44, "links": 6, "plinks": 97, "ig": 2650, "sunS": 135, "sunN": 1},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 44, "links": 6, "plinks": 118, "ig": 2766, "sunS": 113, "sunN": 1},
+    "2025-01": {"bap": 0, "raiz": 0, "links": 2, "plinks": 25, "ig": 3265, "sunS": 89, "sunN": 1},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 21, "links": 2, "plinks": 41, "ig": 3745, "sunS": 213, "sunN": 3},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 37, "links": 2, "plinks": 33, "ig": 4136, "sunS": 283, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 46, "zao": 35, "links": 2, "plinks": 35, "ig": 4492, "sunS": 329, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 46, "zao": 35, "links": 3, "plinks": 42, "ig": 4721, "sunS": 272, "sunN": 4},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 46, "zao": 35, "links": 3, "plinks": 42, "ig": 4913, "sunS": 272, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 34, "links": 3, "plinks": 42, "ig": 5086, "sunS": 243, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 15, "vol": 37, "links": 2, "plinks": 40, "ig": 5279, "yt": 285, "sunS": 435, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 43, "zao": 35, "links": 3, "plinks": 45, "ig": 5430, "yt": 306, "sunS": 297, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 50, "links": 3, "plinks": 48, "ig": 5742, "yt": 337, "sunS": 246, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 50, "links": 3, "plinks": 48, "ig": 5882, "yt": 354, "sunS": 305, "sunN": 5},
+    "2025-12": {"bap": 3, "raiz": 0, "vol": 50, "links": 3, "plinks": 48, "ig": 6022, "yt": 370, "sunS": 221, "sunN": 3},
+    "2026-01": {"bap": 0, "raiz": 0, "vol": 53, "ig": 6600, "yt": 403, "sunS": 167, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 53, "links": 2, "plinks": 32, "ig": 6725, "yt": 411, "sunS": 224, "sunN": 4},
+    "2026-03": {"links": 2, "sunS": 127, "sunN": 2},
+  },
+  "Orlando": {
+    "2025-01": {"bap": 0, "raiz": 0, "ig": 2750},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 43, "links": 6, "plinks": 62, "ig": 3003, "sunS": 158, "sunN": 1},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 49, "links": 6, "plinks": 73, "ig": 3363, "sunS": 130, "sunN": 1},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 46, "links": 6, "plinks": 98, "ig": 3531},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 50, "links": 6, "plinks": 91, "ig": 3719, "sunS": 140, "sunN": 1},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 49, "links": 6, "plinks": 91, "ig": 3897, "sunS": 230, "sunN": 2},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 47, "links": 6, "plinks": 91, "ig": 4279, "sunS": 248, "sunN": 2},
+    "2025-08": {"bap": 0, "raiz": 19, "vol": 48, "links": 7, "plinks": 117, "ig": 4631, "sunS": 761, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 49, "zao": 62, "links": 7, "plinks": 117, "ig": 4821, "sunS": 501, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 39, "links": 7, "plinks": 130, "ig": 5293, "sunS": 472, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 39, "links": 7, "plinks": 95, "ig": 5464, "sunS": 553, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 39, "links": 7, "plinks": 95, "ig": 5537},
+    "2026-01": {"bap": 0, "raiz": 0, "vol": 100, "plinks": 59, "ig": 6064, "sunS": 438, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 149, "links": 7, "plinks": 80, "ig": 6264, "sunS": 569, "sunN": 4},
+    "2026-03": {"links": 7},
+  },
+  "Porto": {
+    "2024-01": {"bap": 0, "raiz": 0, "links": 1, "plinks": 10},
+    "2024-02": {"bap": 0, "raiz": 0, "links": 2, "plinks": 10, "sunS": 271, "sunN": 3},
+    "2024-03": {"bap": 0, "raiz": 0, "vol": 7, "links": 2, "plinks": 12, "sunS": 376, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 10, "links": 2, "plinks": 11, "sunS": 272, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 15, "links": 2, "plinks": 14, "sunS": 196, "sunN": 3},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 20, "links": 5, "plinks": 26, "ig": 2137, "sunS": 306, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 30, "links": 4, "plinks": 30, "sunS": 280, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 27, "links": 4, "plinks": 46, "ig": 2510, "sunS": 407, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 30, "links": 4, "plinks": 46, "ig": 2622, "sunS": 345, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 30, "links": 5, "plinks": 48, "ig": 2800, "sunS": 317, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 30, "links": 5, "plinks": 46, "ig": 2900, "sunS": 329, "sunN": 4},
+    "2024-12": {"bap": 5, "raiz": 5, "vol": 29, "links": 5, "plinks": 46, "ig": 3000, "sunS": 318, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 30, "ig": 3155, "sunS": 157, "sunN": 2},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 30, "zao": 41, "links": 3, "plinks": 46, "ig": 3233, "sunS": 309, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 35, "zao": 41, "links": 5, "plinks": 41, "ig": 3389, "sunS": 437, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 35, "zao": 41, "links": 5, "plinks": 40, "ig": 3579, "sunS": 382, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 35, "zao": 53, "links": 5, "plinks": 40, "ig": 3750, "sunS": 345, "sunN": 4},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 35, "zao": 53, "links": 5, "plinks": 23, "ig": 3800, "sunS": 573, "sunN": 4},
+    "2025-07": {"bap": 0, "raiz": 34, "vol": 68, "zao": 53, "links": 5, "plinks": 41, "ig": 4036, "sunS": 492, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 68, "links": 5, "plinks": 41, "ig": 4211, "sunS": 645, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 68, "zao": 59, "links": 5, "plinks": 41, "ig": 4300, "sunS": 549, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 68, "zao": 59, "links": 7, "plinks": 70, "ig": 4485, "sunS": 524, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 68, "zao": 59, "links": 7, "plinks": 70, "ig": 4500, "sunS": 557, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 68, "zao": 59, "links": 7, "plinks": 70, "ig": 4546, "sunS": 290, "sunN": 3},
+    "2026-01": {"vol": 68, "ig": 4734, "sunS": 286, "sunN": 3},
+    "2026-02": {"vol": 33, "zao": 39, "links": 6, "plinks": 52, "ig": 4961, "sunS": 350, "sunN": 4},
+    "2026-03": {"links": 7, "sunS": 358, "sunN": 4},
+  },
+  "Quito": {
+    "2023-01": {"bap": 0, "raiz": 0, "vol": 80, "links": 12, "plinks": 91, "ig": 6247, "yt": 3252},
+    "2023-02": {"bap": 20, "raiz": 0, "vol": 80, "links": 12, "plinks": 91, "ig": 6368, "yt": 3350},
+    "2023-03": {"bap": 0, "raiz": 47, "vol": 80, "links": 13, "plinks": 171, "ig": 6491, "yt": 3535},
+    "2023-04": {"bap": 0, "raiz": 0, "vol": 100, "links": 13, "plinks": 173, "ig": 6664, "yt": 3536},
+    "2023-05": {"bap": 0, "raiz": 0, "vol": 100, "links": 12, "plinks": 136, "ig": 6828, "yt": 3650},
+    "2023-06": {"bap": 30, "raiz": 0, "vol": 100, "links": 12, "plinks": 161, "ig": 7081, "yt": 3837},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 115, "zao": 150, "links": 12, "plinks": 188, "ig": 7317, "yt": 3838},
+    "2023-08": {"bap": 0, "raiz": 0, "vol": 115, "zao": 150, "links": 12, "plinks": 188, "ig": 7536, "yt": 3950},
+    "2023-09": {"bap": 13, "raiz": 57, "vol": 115, "zao": 150, "links": 13, "plinks": 170, "ig": 7700, "yt": 4620, "sunS": 2929, "sunN": 4},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 147, "links": 13, "plinks": 190, "ig": 9256, "yt": 4627, "sunS": 3219, "sunN": 5},
+    "2023-11": {"bap": 0, "raiz": 37, "vol": 147, "links": 13, "plinks": 190, "ig": 9586, "yt": 4750, "sunS": 2708, "sunN": 4},
+    "2023-12": {"bap": 0, "raiz": 0, "vol": 147, "links": 15, "plinks": 200, "ig": 9664, "yt": 5126, "sunS": 2035, "sunN": 3},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 147, "ig": 10080, "yt": 5128, "sunS": 2240, "sunN": 3},
+    "2024-02": {"bap": 43, "raiz": 0, "vol": 147, "links": 14, "plinks": 109, "ig": 10218, "yt": 5287, "sunS": 2612, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 52, "vol": 147, "links": 15, "plinks": 165, "ig": 10265, "yt": 5400, "sunS": 3702, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 165, "links": 15, "plinks": 115, "ig": 10777, "yt": 5515, "sunS": 2863, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 165, "links": 23, "plinks": 131, "ig": 10777, "yt": 5584, "sunS": 1923, "sunN": 3},
+    "2024-06": {"bap": 30, "raiz": 0, "vol": 165, "links": 23, "plinks": 201, "ig": 10776, "yt": 5625, "sunS": 3608, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 211, "zao": 226, "links": 20, "plinks": 215, "ig": 10886, "yt": 5659, "sunS": 2768, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 165, "zao": 226, "links": 23, "plinks": 276, "ig": 10971, "yt": 5705, "sunS": 2790, "sunN": 4},
+    "2024-09": {"bap": 13, "raiz": 13, "vol": 211, "zao": 226, "links": 24, "plinks": 234, "ig": 11100, "yt": 5764, "sunS": 3813, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 211, "links": 29, "plinks": 244, "ig": 11233, "yt": 5822, "sunS": 3275, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 211, "links": 31, "plinks": 277, "ig": 11295, "yt": 5845, "sunS": 2993, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 211, "links": 31, "plinks": 250, "ig": 11309, "yt": 5897, "sunS": 3239, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 211, "links": 32, "plinks": 206, "ig": 11674, "yt": 6012, "sunS": 2540, "sunN": 3},
+    "2025-02": {"bap": 23, "raiz": 0, "vol": 211, "zao": 154, "links": 32, "plinks": 127, "ig": 11780, "yt": 6054, "sunS": 3334, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 82, "vol": 211, "zao": 154, "links": 32, "plinks": 120, "ig": 11924, "yt": 6106, "sunS": 4201, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 211, "zao": 153, "links": 32, "plinks": 203, "ig": 12061, "yt": 6134, "sunS": 3418, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 60, "vol": 211, "zao": 153, "links": 32, "plinks": 258, "ig": 12462, "yt": 6188, "sunS": 3159, "sunN": 4},
+    "2025-06": {"bap": 37, "raiz": 0, "vol": 211, "zao": 153, "links": 32, "plinks": 334, "ig": 12566, "yt": 6226, "sunS": 4479, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 211, "zao": 153, "links": 33, "plinks": 406, "ig": 12706, "yt": 6271, "sunS": 3537, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 51, "vol": 254, "zao": 135, "links": 33, "plinks": 406, "ig": 12800, "yt": 6335, "sunS": 4427, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 254, "zao": 135, "links": 34, "plinks": 426, "ig": 12930, "yt": 6381, "sunS": 4016, "sunN": 4},
+    "2025-10": {"bap": 45, "raiz": 0, "vol": 242, "zao": 135, "links": 35, "plinks": 363, "ig": 13018, "yt": 6446, "sunS": 4043, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 242, "zao": 132, "links": 40, "plinks": 187, "ig": 13174, "yt": 6500, "sunS": 4441, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 37, "vol": 242, "zao": 132, "links": 40, "plinks": 202, "ig": 13216, "yt": 6500, "sunS": 2634, "sunN": 3},
+    "2026-01": {"vol": 264, "ig": 13406, "yt": 6556, "sunS": 3230, "sunN": 3},
+    "2026-02": {"vol": 264, "zao": 138, "links": 40, "plinks": 200, "ig": 13500, "yt": 6610, "sunS": 3723, "sunN": 4},
+    "2026-03": {"bap": 47, "links": 40, "plinks": 200, "sunS": 4366, "sunN": 4},
+  },
+  "Recife": {
+    "2023-01": {"bap": 0, "raiz": 0, "vol": 176, "links": 16, "plinks": 220, "ig": 22518, "yt": 61},
+    "2023-02": {"bap": 11, "raiz": 0, "vol": 176, "zao": 75, "links": 16, "plinks": 220, "ig": 22743, "yt": 23},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 176, "zao": 75, "links": 16, "plinks": 220, "ig": 22991, "yt": 16},
+    "2023-04": {"bap": 0, "raiz": 0, "vol": 176, "zao": 74, "links": 16, "plinks": 220, "ig": 23219, "yt": 33},
+    "2023-05": {"bap": 18, "raiz": 0, "vol": 170, "zao": 74, "links": 16, "plinks": 220, "ig": 23460, "yt": 28},
+    "2023-06": {"bap": 0, "raiz": 0, "vol": 197, "zao": 74, "links": 16, "plinks": 220, "ig": 23696, "yt": 19},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 197, "zao": 46, "links": 16, "plinks": 220, "ig": 23937, "yt": 35},
+    "2023-08": {"bap": 11, "raiz": 0, "vol": 197, "zao": 46, "links": 16, "plinks": 220, "ig": 24186, "yt": 54},
+    "2023-09": {"bap": 0, "raiz": 0, "vol": 190, "zao": 46, "links": 14, "plinks": 220, "ig": 24417, "yt": 75, "sunS": 2650, "sunN": 4},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 190, "zao": 132, "links": 22, "plinks": 213, "ig": 24658, "yt": 200, "sunS": 2736, "sunN": 5},
+    "2023-11": {"bap": 10, "raiz": 0, "vol": 202, "zao": 132, "links": 28, "plinks": 263, "ig": 24897, "yt": 200, "sunS": 2290, "sunN": 4},
+    "2023-12": {"bap": 0, "raiz": 0, "vol": 202, "zao": 132, "links": 28, "plinks": 292, "ig": 25137, "yt": 3276, "sunS": 2167, "sunN": 3},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 208, "zao": 142, "ig": 25378, "yt": 3797, "sunS": 2037, "sunN": 3},
+    "2024-02": {"bap": 30, "raiz": 0, "vol": 208, "zao": 142, "links": 29, "plinks": 266, "ig": 25602, "yt": 3940, "sunS": 2346, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 55, "vol": 246, "zao": 142, "links": 29, "plinks": 277, "ig": 25847, "yt": 4042, "sunS": 3370, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 246, "zao": 106, "links": 29, "plinks": 277, "ig": 26274, "yt": 4115, "sunS": 2168, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 229, "zao": 106, "links": 29, "plinks": 300, "ig": 26568, "yt": 4177, "sunS": 1678, "sunN": 3},
+    "2024-06": {"bap": 0, "raiz": 41, "vol": 250, "zao": 106, "links": 29, "plinks": 332, "ig": 26925, "yt": 4274, "sunS": 3432, "sunN": 5},
+    "2024-07": {"bap": 34, "raiz": 34, "vol": 264, "zao": 140, "links": 29, "plinks": 350, "ig": 27403, "yt": 4376, "sunS": 3016, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 250, "links": 34, "plinks": 388, "ig": 29294, "yt": 4765, "sunS": 3836, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 264, "links": 34, "plinks": 397, "ig": 30652, "yt": 5234, "sunS": 5278, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 264, "links": 38, "plinks": 417, "ig": 31773, "yt": 5680, "sunS": 4851, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 264, "links": 40, "plinks": 441, "ig": 32972, "yt": 6064, "sunS": 3886, "sunN": 4},
+    "2024-12": {"bap": 49, "raiz": 49, "vol": 264, "links": 40, "plinks": 433, "ig": 33723, "yt": 6350, "sunS": 4383, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 277, "links": 40, "plinks": 433, "ig": 36200, "yt": 6815, "sunS": 3389, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 289, "zao": 162, "links": 43, "plinks": 438, "ig": 36895, "yt": 7005, "sunS": 4785, "sunN": 4},
+    "2025-03": {"bap": 32, "raiz": 60, "vol": 289, "zao": 162, "links": 49, "plinks": 495, "ig": 38496, "yt": 7332, "sunS": 5850, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 359, "zao": 138, "links": 49, "plinks": 505, "ig": 40136, "yt": 8325, "sunS": 5595, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 359, "zao": 155, "links": 50, "plinks": 522, "ig": 41240, "yt": 9180, "sunS": 5594, "sunN": 4},
+    "2025-06": {"bap": 37, "raiz": 0, "vol": 359, "zao": 155, "links": 50, "plinks": 531, "ig": 43720, "yt": 9830, "sunS": 5229, "sunN": 4},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 405, "zao": 170, "links": 51, "plinks": 531, "ig": 45357, "yt": 10108, "sunS": 4887, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 405, "zao": 170, "links": 50, "plinks": 531, "ig": 46083, "yt": 10350, "sunS": 5903, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 0, "vol": 390, "zao": 166, "links": 52, "plinks": 548, "ig": 47450, "yt": 10760, "sunS": 5436, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 83, "vol": 392, "zao": 162, "links": 53, "plinks": 554, "ig": 48650, "yt": 10870, "sunS": 4573, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 392, "zao": 138, "links": 54, "plinks": 310, "ig": 49000, "yt": 11000, "sunS": 5942, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 392, "zao": 138, "links": 54, "plinks": 270, "ig": 49456, "yt": 11000, "sunS": 3881, "sunN": 3},
+    "2026-01": {"vol": 392, "ig": 49530, "yt": 11150, "sunS": 3945, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 392, "zao": 153, "links": 56, "plinks": 91, "ig": 50950, "yt": 11450, "sunS": 7272, "sunN": 4},
+    "2026-03": {"raiz": 90, "links": 56, "plinks": 80, "sunS": 5481, "sunN": 4},
+  },
+  "Ribeir\u00e3o Preto": {
+    "2024-01": {"bap": 0, "raiz": 0},
+    "2024-02": {"bap": 0, "raiz": 0},
+    "2024-03": {"bap": 0, "raiz": 56, "links": 7, "plinks": 100, "sunS": 296, "sunN": 1},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 82, "zao": 123, "links": 10, "plinks": 121, "ig": 3702, "sunS": 721, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 94, "zao": 123, "links": 10, "plinks": 121, "ig": 4633, "sunS": 523, "sunN": 3},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 87, "zao": 123, "links": 10, "plinks": 121, "ig": 5036, "sunS": 929, "sunN": 5},
+    "2024-07": {"bap": 7, "raiz": 7, "vol": 130, "links": 11, "plinks": 125, "ig": 624, "sunS": 738, "sunN": 4},
+    "2024-08": {"bap": 18, "raiz": 18, "vol": 117, "zao": 122, "links": 13, "plinks": 135, "ig": 5852, "sunS": 889, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 130, "zao": 122, "links": 13, "plinks": 135, "sunS": 1378, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 142, "zao": 83, "links": 13, "plinks": 135, "ig": 6117, "sunS": 1025, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 166, "zao": 83, "links": 13, "plinks": 135, "ig": 6286, "yt": 178, "sunS": 1312, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 166, "zao": 83, "links": 13, "plinks": 135, "ig": 6430, "yt": 211, "sunS": 1267, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 166, "links": 13, "plinks": 135, "ig": 7046, "yt": 335, "sunS": 1482, "sunN": 3},
+    "2025-02": {"bap": 21, "raiz": 0, "vol": 166, "zao": 126, "links": 15, "plinks": 175, "ig": 7180, "yt": 394, "sunS": 1463, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 0, "vol": 168, "zao": 126, "links": 15, "plinks": 175, "ig": 7376, "yt": 429, "sunS": 1628, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 81, "vol": 168, "zao": 57, "links": 15, "plinks": 175, "ig": 7534, "yt": 458, "sunS": 1431, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 168, "zao": 57, "links": 16, "plinks": 221, "ig": 7713, "yt": 492, "sunS": 945, "sunN": 3},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 168, "zao": 57, "links": 16, "plinks": 221, "ig": 7848, "yt": 519, "sunS": 1812, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 203, "zao": 64, "links": 16, "plinks": 221, "ig": 8007, "yt": 650, "sunS": 1414, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 203, "zao": 64, "links": 17, "plinks": 200, "ig": 8284, "yt": 713, "sunS": 1480, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 77, "vol": 203, "zao": 64, "links": 17, "plinks": 209, "ig": 8499, "yt": 774, "sunS": 1510, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 203, "zao": 72, "links": 18, "plinks": 229, "ig": 8668, "yt": 818, "sunS": 989, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 204, "zao": 72, "links": 17, "plinks": 143, "ig": 8887, "yt": 835, "sunS": 1362, "sunN": 5},
+    "2025-12": {"bap": 9, "raiz": 0, "vol": 204, "zao": 72, "links": 17, "plinks": 142, "ig": 8922, "yt": 858, "sunS": 902, "sunN": 3},
+    "2026-01": {"vol": 204, "ig": 9202, "yt": 900, "sunS": 1092, "sunN": 3},
+    "2026-02": {"vol": 182, "zao": 33, "links": 15, "plinks": 128, "ig": 9434, "yt": 941, "sunS": 1130, "sunN": 4},
+    "2026-03": {"bap": 6, "links": 15, "sunS": 1684, "sunN": 5},
+  },
+  "SJCampos": {
+    "2026-01": {"ig": 1494},
+    "2026-02": {"links": 2, "plinks": 55, "sunS": 558, "sunN": 1},
+    "2026-03": {"links": 2, "sunS": 1100, "sunN": 2},
+  },
+  "Santiago": {
+    "2023-01": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-02": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-04": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-05": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-06": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-07": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-08": {"bap": 0, "raiz": 0, "vol": 10},
+    "2023-09": {"bap": 0, "raiz": 0, "vol": 10, "sunS": 63, "sunN": 1},
+    "2023-10": {"bap": 0, "raiz": 0, "vol": 10, "sunS": 56, "sunN": 1},
+    "2023-11": {"bap": 0, "raiz": 0, "vol": 10, "sunS": 51, "sunN": 1},
+    "2023-12": {"bap": 0, "raiz": 0, "vol": 10, "sunS": 55, "sunN": 1},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 10, "links": 3, "sunS": 52, "sunN": 1},
+    "2024-02": {"bap": 0, "raiz": 0, "vol": 10, "links": 3, "plinks": 30, "ig": 661, "sunS": 75, "sunN": 1},
+    "2024-03": {"bap": 0, "raiz": 0, "vol": 10, "links": 3, "plinks": 33, "ig": 852, "sunS": 290, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 10, "links": 3, "plinks": 30, "ig": 1224, "sunS": 278, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 12, "links": 4, "plinks": 34, "ig": 1282, "sunS": 149, "sunN": 3},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 12, "links": 4, "plinks": 30, "ig": 1566, "sunS": 368, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 25, "links": 3, "plinks": 19, "ig": 1718, "sunS": 322, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 24, "zao": 47, "links": 3, "ig": 1838, "sunS": 250, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 25, "zao": 47, "links": 4, "plinks": 40, "ig": 1902, "sunS": 355, "sunN": 5},
+    "2024-10": {"bap": 5, "raiz": 5, "vol": 24, "zao": 47, "links": 5, "plinks": 44, "ig": 2145, "sunS": 271, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 24, "zao": 47, "links": 6, "plinks": 48, "ig": 2327, "sunS": 309, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 24, "zao": 47, "links": 6, "plinks": 50, "ig": 2388, "sunS": 297, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 26, "ig": 2451, "sunS": 327, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 0, "vol": 28, "links": 6, "plinks": 52, "ig": 2763, "sunS": 250, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 18, "vol": 32, "zao": 55, "links": 7, "plinks": 59, "ig": 2919, "sunS": 309, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 9, "vol": 33, "zao": 51, "links": 7, "plinks": 59, "ig": 3094, "sunS": 353, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 33, "zao": 51, "links": 6, "plinks": 64, "ig": 3291, "sunS": 394, "sunN": 4},
+    "2025-06": {"bap": 0, "raiz": 0, "vol": 36, "zao": 38, "links": 6, "plinks": 64, "ig": 3369, "sunS": 435, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 44, "zao": 38, "links": 6, "plinks": 64, "ig": 3520, "sunS": 446, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 0, "vol": 45, "links": 6, "plinks": 52, "ig": 3590, "sunS": 394, "sunN": 5},
+    "2025-09": {"bap": 3, "raiz": 0, "vol": 35, "links": 6, "plinks": 51, "ig": 3700, "sunS": 347, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 18, "vol": 42, "zao": 57, "links": 6, "plinks": 55, "ig": 3868, "sunS": 388, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 50, "zao": 57, "links": 6, "plinks": 9, "ig": 3892, "sunS": 384, "sunN": 5},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 50, "zao": 57, "links": 6, "plinks": 19, "ig": 3914, "sunS": 205, "sunN": 3},
+    "2026-01": {"bap": 0, "raiz": 0, "vol": 32, "ig": 4000, "sunS": 160, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 32, "links": 7, "plinks": 23, "ig": 4120, "sunS": 283, "sunN": 4},
+    "2026-03": {"bap": 0, "links": 7, "plinks": 32, "sunS": 261, "sunN": 3},
+  },
+  "Santos": {
+    "2024-01": {"bap": 0, "raiz": 0},
+    "2024-02": {"bap": 0, "raiz": 0, "links": 1, "plinks": 25},
+    "2024-03": {"bap": 0, "raiz": 0, "links": 1, "plinks": 30},
+    "2024-04": {"bap": 0, "raiz": 0, "links": 1, "plinks": 35},
+    "2024-05": {"bap": 0, "raiz": 0, "links": 1, "plinks": 35},
+    "2024-06": {"bap": 0, "raiz": 0, "links": 1, "plinks": 35, "sunS": 422, "sunN": 2},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 28, "links": 1, "plinks": 35, "sunS": 583, "sunN": 4},
+    "2024-08": {"bap": 0, "raiz": 0, "vol": 28, "links": 1, "plinks": 35, "sunS": 594, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 28, "links": 6, "plinks": 86, "sunS": 889, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 37, "links": 7, "plinks": 112, "ig": 2491, "sunS": 640, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 33, "links": 7, "plinks": 120, "ig": 2997, "sunS": 724, "sunN": 4},
+    "2024-12": {"bap": 8, "raiz": 8, "vol": 37, "links": 7, "plinks": 120, "ig": 3111, "sunS": 675, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 41, "links": 7, "plinks": 122, "ig": 3505, "sunS": 622, "sunN": 3},
+    "2025-02": {"bap": 0, "raiz": 25, "vol": 51, "zao": 49, "links": 7, "plinks": 146, "ig": 3802, "sunS": 917, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 6, "vol": 69, "zao": 49, "links": 12, "plinks": 137, "ig": 4225, "sunS": 1061, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 0, "vol": 86, "zao": 49, "links": 12, "plinks": 168, "ig": 4580, "sunS": 827, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 86, "links": 12, "plinks": 201, "ig": 4895, "sunS": 546, "sunN": 3},
+    "2025-06": {"bap": 0, "raiz": 6, "vol": 86, "links": 12, "plinks": 179, "ig": 5172, "sunS": 1007, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 51, "zao": 23, "links": 14, "plinks": 144, "ig": 5444, "sunS": 803, "sunN": 4},
+    "2025-08": {"bap": 0, "raiz": 17, "vol": 64, "zao": 23, "links": 14, "plinks": 162, "ig": 5681, "sunS": 1063, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 6, "vol": 64, "zao": 43, "links": 14, "plinks": 172, "ig": 5956, "sunS": 879, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 64, "zao": 47, "links": 14, "plinks": 178, "ig": 6520, "sunS": 802, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 17, "vol": 64, "zao": 47, "links": 14, "plinks": 71, "ig": 6665, "sunS": 982, "sunN": 5},
+    "2025-12": {"bap": 14, "raiz": 0, "vol": 64, "zao": 47, "links": 14, "plinks": 71, "ig": 6818, "sunS": 649, "sunN": 3},
+    "2026-01": {"bap": 0, "vol": 80, "ig": 7739, "sunS": 1563, "sunN": 3},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 112, "links": 14, "plinks": 67, "ig": 8316, "sunS": 1087, "sunN": 4},
+    "2026-03": {"links": 14, "sunS": 1464, "sunN": 5},
+  },
+  "S\u00e3o Paulo": {
+    "2023-01": {"bap": 0, "raiz": 98, "vol": 545, "links": 122, "plinks": 1766, "ig": 220360, "yt": 358918},
+    "2023-02": {"bap": 0, "raiz": 105, "vol": 545, "zao": 297, "links": 122, "plinks": 1766, "ig": 223258, "yt": 363756},
+    "2023-03": {"bap": 0, "raiz": 0, "vol": 545, "zao": 297, "links": 122, "plinks": 1781, "ig": 225315, "yt": 365001},
+    "2023-04": {"bap": 90, "raiz": 0, "vol": 545, "zao": 281, "links": 122, "plinks": 1812, "ig": 226702, "yt": 367613},
+    "2023-05": {"bap": 0, "raiz": 112, "vol": 545, "zao": 281, "links": 122, "plinks": 1893, "ig": 228403, "yt": 368636},
+    "2023-06": {"bap": 111, "raiz": 281, "vol": 545, "zao": 281, "links": 133, "plinks": 1946, "ig": 230623, "yt": 369338},
+    "2023-07": {"bap": 0, "raiz": 116, "vol": 550, "zao": 315, "links": 133, "plinks": 2042, "ig": 232725, "yt": 370305},
+    "2023-08": {"bap": 0, "raiz": 107, "vol": 549, "zao": 315, "links": 134, "plinks": 1994, "ig": 235042, "yt": 371026},
+    "2023-09": {"bap": 81, "raiz": 0, "vol": 561, "zao": 315, "links": 137, "plinks": 2124, "ig": 236654, "yt": 373808, "sunS": 11856, "sunN": 4},
+    "2023-10": {"bap": 0, "raiz": 114, "vol": 576, "zao": 269, "links": 140, "plinks": 2171, "ig": 239794, "yt": 380049, "sunS": 17485, "sunN": 5},
+    "2023-11": {"bap": 75, "raiz": 139, "vol": 602, "zao": 269, "links": 143, "plinks": 2168, "ig": 241668, "yt": 384864, "sunS": 12133, "sunN": 4},
+    "2023-12": {"bap": 0, "raiz": 0, "vol": 595, "zao": 269, "links": 143, "plinks": 2157, "ig": 242209, "yt": 386830, "sunS": 10686, "sunN": 3},
+    "2024-01": {"bap": 0, "raiz": 0, "vol": 582, "zao": 504, "links": 141, "plinks": 1912, "ig": 245818, "yt": 392566, "sunS": 11695, "sunN": 3},
+    "2024-02": {"bap": 48, "raiz": 119, "vol": 583, "zao": 504, "links": 141, "plinks": 1912, "ig": 252199, "yt": 394745, "sunS": 13246, "sunN": 4},
+    "2024-03": {"bap": 0, "raiz": 133, "vol": 631, "zao": 504, "links": 140, "plinks": 1912, "ig": 252953, "yt": 395716, "sunS": 17505, "sunN": 5},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 623, "zao": 516, "links": 128, "plinks": 1924, "ig": 256005, "yt": 398338, "sunS": 10747, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 684, "zao": 516, "links": 131, "plinks": 1742, "ig": 261127, "yt": 403878, "sunS": 7735, "sunN": 3},
+    "2024-06": {"bap": 29, "raiz": 147, "vol": 707, "zao": 516, "links": 131, "plinks": 1972, "ig": 264080, "yt": 405725, "sunS": 14478, "sunN": 5},
+    "2024-07": {"bap": 18, "raiz": 18, "vol": 749, "zao": 498, "ig": 273487, "yt": 409000, "sunS": 11403, "sunN": 4},
+    "2024-08": {"bap": 51, "raiz": 51, "vol": 756, "zao": 498, "links": 159, "plinks": 2198, "ig": 276324, "yt": 410121, "sunS": 11250, "sunN": 4},
+    "2024-09": {"bap": 9, "raiz": 9, "vol": 749, "zao": 498, "links": 158, "plinks": 2112, "ig": 278216, "yt": 411617, "sunS": 14860, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 834, "links": 160, "plinks": 2222, "ig": 280088, "yt": 412393, "sunS": 13738, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 846, "links": 160, "plinks": 2196, "ig": 283527, "yt": 413537, "sunS": 13000, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 882, "links": 159, "plinks": 2345, "ig": 284875, "yt": 414792, "sunS": 12519, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 830, "zao": 601, "links": 160, "plinks": 2312, "ig": 288831, "yt": 416126, "sunS": 11914, "sunN": 3},
+    "2025-02": {"bap": 97, "raiz": 110, "vol": 685, "zao": 625, "links": 173, "plinks": 2594, "ig": 293127, "yt": 419344, "sunS": 14770, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 66, "vol": 685, "zao": 625, "links": 166, "plinks": 2686, "ig": 295047, "yt": 420000, "sunS": 17189, "sunN": 5},
+    "2025-04": {"bap": 0, "raiz": 87, "vol": 685, "zao": 495, "links": 173, "plinks": 2901, "ig": 297182, "yt": 421000, "sunS": 16607, "sunN": 4},
+    "2025-05": {"bap": 106, "raiz": 0, "vol": 685, "zao": 495, "links": 173, "plinks": 2937, "ig": 299732, "yt": 422000, "sunS": 9848, "sunN": 3},
+    "2025-06": {"bap": 0, "raiz": 148, "vol": 686, "zao": 495, "links": 173, "plinks": 2982, "ig": 301254, "yt": 424000, "sunS": 17334, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 686, "zao": 510, "links": 173, "plinks": 2982, "ig": 303708, "yt": 426000, "sunS": 13810, "sunN": 4},
+    "2025-08": {"bap": 69, "raiz": 138, "vol": 745, "zao": 510, "links": 207, "plinks": 3091, "ig": 309127, "yt": 427000, "sunS": 18984, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 109, "vol": 745, "zao": 510, "links": 209, "plinks": 3411, "ig": 315190, "yt": 429050, "sunS": 15547, "sunN": 4},
+    "2025-10": {"bap": 85, "raiz": 92, "vol": 745, "zao": 524, "links": 186, "plinks": 3447, "ig": 329439, "yt": 431085, "sunS": 17921, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 128, "vol": 745, "zao": 522, "links": 186, "plinks": 3447, "ig": 332493, "yt": 432000, "sunS": 18239, "sunN": 5},
+    "2025-12": {"bap": 54, "raiz": 0, "vol": 892, "zao": 522, "links": 186, "plinks": 3447, "ig": 333299, "yt": 432635, "sunS": 11474, "sunN": 3},
+    "2026-01": {"vol": 892, "ig": 342528, "yt": 435964, "sunS": 13608, "sunN": 3},
+    "2026-02": {"raiz": 91, "vol": 892, "zao": 465, "links": 184, "plinks": 682, "ig": 345406, "yt": 437903, "sunS": 15693, "sunN": 4},
+    "2026-03": {"bap": 64, "raiz": 72, "vol": 892, "zao": 465, "links": 189, "plinks": 569, "ig": 346310, "yt": 439267, "sunS": 12465, "sunN": 3},
+  },
+  "Vale do Ribeira": {
+    "2024-01": {"bap": 0, "raiz": 0},
+    "2024-02": {"bap": 0, "raiz": 0, "links": 8, "plinks": 83, "sunS": 234, "sunN": 2},
+    "2024-03": {"bap": 0, "raiz": 45, "links": 8, "plinks": 96, "sunS": 343, "sunN": 3},
+    "2024-04": {"bap": 0, "raiz": 0, "vol": 54, "links": 8, "plinks": 98, "sunS": 546, "sunN": 4},
+    "2024-05": {"bap": 0, "raiz": 0, "vol": 66, "links": 8, "plinks": 98, "sunS": 368, "sunN": 3},
+    "2024-06": {"bap": 0, "raiz": 0, "vol": 66, "links": 8, "plinks": 102, "sunS": 597, "sunN": 5},
+    "2024-07": {"bap": 0, "raiz": 0, "vol": 87, "sunS": 175, "sunN": 2},
+    "2024-08": {"bap": 3, "raiz": 3, "vol": 66, "zao": 123, "links": 8, "plinks": 116, "sunS": 598, "sunN": 4},
+    "2024-09": {"bap": 0, "raiz": 0, "vol": 87, "zao": 123, "links": 10, "plinks": 116, "sunS": 947, "sunN": 5},
+    "2024-10": {"bap": 0, "raiz": 0, "vol": 87, "zao": 181, "links": 10, "plinks": 140, "sunS": 712, "sunN": 4},
+    "2024-11": {"bap": 0, "raiz": 0, "vol": 87, "zao": 181, "links": 11, "plinks": 145, "sunS": 560, "sunN": 4},
+    "2024-12": {"bap": 0, "raiz": 0, "vol": 89, "zao": 181, "links": 11, "plinks": 145, "sunS": 571, "sunN": 4},
+    "2025-01": {"bap": 0, "raiz": 0, "vol": 89, "sunS": 303, "sunN": 2},
+    "2025-02": {"bap": 0, "raiz": 3, "vol": 124, "zao": 175, "links": 14, "plinks": 153, "sunS": 840, "sunN": 4},
+    "2025-03": {"bap": 0, "raiz": 24, "vol": 124, "zao": 175, "links": 14, "plinks": 155, "sunS": 1201, "sunN": 5},
+    "2025-04": {"bap": 1, "raiz": 4, "vol": 110, "links": 10, "plinks": 120, "sunS": 1523, "sunN": 4},
+    "2025-05": {"bap": 0, "raiz": 0, "vol": 80, "links": 10, "plinks": 120, "sunS": 501, "sunN": 3},
+    "2025-06": {"bap": 0, "raiz": 2, "vol": 84, "links": 10, "sunS": 911, "sunN": 5},
+    "2025-07": {"bap": 0, "raiz": 0, "vol": 110, "links": 10, "plinks": 120, "sunS": 100, "sunN": 1},
+    "2025-08": {"bap": 0, "raiz": 32, "vol": 108, "links": 17, "plinks": 185, "sunS": 1098, "sunN": 5},
+    "2025-09": {"bap": 0, "raiz": 16, "vol": 108, "links": 17, "plinks": 185, "sunS": 865, "sunN": 4},
+    "2025-10": {"bap": 0, "raiz": 0, "vol": 110, "links": 17, "plinks": 185, "sunS": 785, "sunN": 4},
+    "2025-11": {"bap": 0, "raiz": 0, "vol": 110, "links": 17, "plinks": 170, "sunS": 843, "sunN": 4},
+    "2025-12": {"bap": 0, "raiz": 0, "vol": 110, "links": 17, "plinks": 170, "sunS": 430, "sunN": 2},
+    "2026-01": {"bap": 0, "raiz": 0, "vol": 65, "sunS": 324, "sunN": 2},
+    "2026-02": {"bap": 0, "raiz": 0, "vol": 65, "zao": 123, "links": 15, "plinks": 56, "sunS": 336, "sunN": 3},
+    "2026-03": {"links": 15, "sunS": 1097, "sunN": 4},
+  },
+  "Vit\u00f3ria": {
+    "2026-01": {"ig": 3478},
+    "2026-02": {"links": 3, "plinks": 40},
+    "2026-03": {"links": 3, "sunS": 356, "sunN": 1},
+  },
+};
+
+/* ═══ CALC */
+function lastVal(locId,months,field){
+  const av=months.filter(m=>DATA[locId]?.[m]?.[field]!==undefined);
+  return av.length?DATA[locId][av[av.length-1]][field]||0:0;
+}
+function maxVal(locId,months,field){
+  const vals=months.map(m=>DATA[locId]?.[m]?.[field]||0).filter(v=>v>0);
+  return vals.length?Math.max(...vals):0;
+}
+function sumFlow(locId,months,field){
+  return months.reduce((s,m)=>s+(DATA[locId]?.[m]?.[field]||0),0);
+}
+function avgSunday(locId,months){
+  let t=0,c=0;
+  months.forEach(m=>{
+    const d=DATA[locId]?.[m];
+    if(d?.sunS&&d?.sunN){t+=d.sunS;c+=d.sunN;}
+  });
+  return c>0?Math.round(t/c):0;
+}
+function monthAvgSun(locId,ym){
+  const d=DATA[locId]?.[ym];
+  if(!d?.sunS||!d?.sunN) return 0;
+  return Math.round(d.sunS/d.sunN);
+}
+function globalForPeriod(period){
+  const months=pMonths(period);
+  let tSun=0,cSun=0,bap=0,raiz=0,links=0,plinks=0,vol=0,zao=0,ig=0,yt=0;
+  LOCS.forEach(loc=>{
+    months.forEach(m=>{
+      const d=DATA[loc.id]?.[m];if(d?.sunS&&d?.sunN){tSun+=d.sunS;cSun+=d.sunN;}
+      bap+=DATA[loc.id]?.[m]?.bap||0;
+      raiz+=DATA[loc.id]?.[m]?.raiz||0;
+    });
+    links+=lastVal(loc.id,months,'links');
+    plinks+=lastVal(loc.id,months,'plinks');
+    vol+=maxVal(loc.id,months,'vol');
+    zao+=maxVal(loc.id,months,'zao');
+    ig+=lastVal(loc.id,months,'ig');
+    yt+=lastVal(loc.id,months,'yt');
+  });
+  const avgSun=cSun>0?Math.round(tSun/cSun):0;
+  return{avgSun,bap,raiz,links,plinks,vol,zao,ig,yt,pessoasPerLink:links>0?Math.round(plinks/links*10)/10:0};
+}
+function delta(cur,prv){
+  if(!prv||prv===0)return null;
+  return Math.round((cur-prv)/prv*1000)/10;
+}
+
+/* ═══ FORMAT — no rounding of integers */
+function fmt(n){
+  if(n===null||n===undefined)return'—';
+  if(typeof n==='number'&&!Number.isInteger(n))return n.toFixed(1);
+  return Math.round(n).toLocaleString('pt-BR');
+}
+function fmtPct(n){return n===null?'':(n>0?'+':'')+n.toFixed(1)+'%';}
+function fmtMonth(ym){
+  const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const [y,m]=ym.split('-');
+  return MNAMES[parseInt(m)-1]+'/'+y.slice(2);
+}
+
+/* ═══ PRIMITIVES */
+function Card({children,style={}}){
+  return<div style={{background:'rgba(7,135,128,0.08)',border:'1px solid rgba(7,135,128,0.2)',borderRadius:12,padding:'16px 20px',...style}}>{children}</div>;
+}
+function KpiCard({label,value,d,unit=''}){
+  const pos=d===null?null:d>=0;
+  return(
+    <Card style={{textAlign:'center'}}>
+      <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>{label}</div>
+      <div className="serif" style={{fontSize:24,fontWeight:700,color:C.cream,lineHeight:1.1}}>{fmt(value)}{unit&&<span style={{fontSize:12}}> {unit}</span>}</div>
+      {d!==null&&<div style={{fontSize:11,marginTop:3,color:pos?C.sage:'#e05c5c'}}>{fmtPct(d)} vs período ant.</div>}
+    </Card>
+  );
+}
+function DeltaBadge({d}){
+  if(d===null)return<span style={{color:'#555'}}>—</span>;
+  return<span style={{color:d>=0?C.sage:'#e05c5c',fontSize:11,fontWeight:600}}>{fmtPct(d)}</span>;
+}
+const TTS={background:'#021a1a',border:'1px solid #078780',borderRadius:8,color:'#FCFCEB',fontSize:12,zIndex:100};
+function TT({active,payload,label}){
+  if(!active||!payload?.length)return null;
+  return(
+    <div style={TTS}>
+      <div style={{padding:'5px 10px',borderBottom:'1px solid #078780',color:C.teal,fontWeight:600}}>{label}</div>
+      {payload.map((p,i)=>(
+        <div key={i} style={{padding:'3px 10px'}}>
+          <span style={{color:p.color,marginRight:6}}>●</span>
+          {p.name}: <strong>{typeof p.value==='number'?p.value.toLocaleString('pt-BR'):p.value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+function ChartTitle({children}){
+  return<h4 style={{fontSize:15,color:C.teal,marginBottom:10,fontWeight:600}}>{children}</h4>;
+}
+
+/* ═══ PERIOD SELECTOR */
+function PeriodSelector({value,onChange}){
+  const isYear= value.length===4;
+  const isQ   = value.includes('-Q');
+  const isS   = value.includes('-S');
+  const year  = isYear?value:value.split(/[-Q]|-S/)[0];
+  const q     = isQ?value.split('-Q')[1]:null;
+  const sem   = isS?value.split('-S')[1]:null;
+  const btnStyle=(active)=>({
+    padding:'4px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,
+    background:active?C.teal:'rgba(7,135,128,0.15)',color:active?C.cream:C.teal,
+  });
+  const hasQ2 = year!=='2026';
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end'}}>
+      <div style={{display:'flex',gap:4}}>
+        {YEARS.map(y=>(
+          <button key={y} onClick={()=>onChange(y)} style={btnStyle(year===y)}>{y}</button>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
+        <button onClick={()=>onChange(year)} style={btnStyle(isYear)}>Ano</button>
+        <button onClick={()=>onChange(year+'-S1')} style={btnStyle(sem==='1')}>S1</button>
+        {hasQ2&&<button onClick={()=>onChange(year+'-S2')} style={btnStyle(sem==='2')}>S2</button>}
+        <span style={{borderLeft:'1px solid rgba(7,135,128,0.3)',margin:'0 2px'}}/>
+        <button onClick={()=>onChange(year+'-Q1')} style={btnStyle(q==='1')}>T1</button>
+        <button onClick={()=>onChange(year+'-Q2')} style={btnStyle(q==='2')}>T2</button>
+        {hasQ2&&<button onClick={()=>onChange(year+'-Q3')} style={btnStyle(q==='3')}>T3</button>}
+        {hasQ2&&<button onClick={()=>onChange(year+'-Q4')} style={btnStyle(q==='4')}>T4</button>}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ HEATMAP — normalized per ROW, sorted alphabetically */
+function HeatmapTable({locRows,months,getMonthVal,getSemVal}){
+  const sorted=[...locRows].sort((a,b)=>a.loc.name.localeCompare(b.loc.name));
+  return(
+    <div style={{overflowX:'auto'}}>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+        <thead>
+          <tr>
+            <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid #078780',whiteSpace:'nowrap'}}>Localidade</th>
+            {months.map(m=>(
+              <th key={m} style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid #078780',minWidth:64}}>{fmtMonth(m)}</th>
+            ))}
+            <th style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid #078780'}}>Total/Média</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map(({loc})=>{
+            const rowVals=months.map(m=>getMonthVal(loc.id,m));
+            const rMin=Math.min(...rowVals);
+            const rMax=Math.max(...rowVals,rMin+1);
+            return(
+              <tr key={loc.id}>
+                <td style={{padding:'5px 8px',color:C.cream,fontWeight:500,borderBottom:'1px solid rgba(7,135,128,0.08)',whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
+                {rowVals.map((v,mi)=>{
+                  const t=rMax>rMin?(v-rMin)/(rMax-rMin):0.5;
+                  const r=Math.round(4+(7-4)*t);
+                  const g=Math.round(48+(135-48)*t);
+                  const b=Math.round(48+(128-48)*t);
+                  return(
+                    <td key={mi} style={{background:`rgb(${r},${g},${b})`,color:t>0.55?'#021a1a':C.cream,textAlign:'center',padding:'5px 6px',fontWeight:600,border:'1px solid #021a1a',minWidth:64,fontSize:11}}>
+                      {fmt(v)}
+                    </td>
+                  );
+                })}
+                <td style={{textAlign:'center',padding:'5px 8px',fontWeight:700,color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.08)'}}>{fmt(getSemVal(loc.id))}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══ LOGIN */
+function Login({onLogin}){
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState(false);
+  const handle=e=>{
+    e.preventDefault();
+    if(pw==='zion2026')onLogin();
+    else{setErr(true);setTimeout(()=>setErr(false),1500);}
+  };
+  return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:32,background:`linear-gradient(135deg,${C.deepGreen} 0%,#021a1a 60%,${C.mid} 100%)`}}>
+      <div style={{textAlign:'center'}}>
+        <div className="serif" style={{fontSize:52,color:C.cream,fontWeight:700,letterSpacing:3}}>ZION</div>
+        <div style={{fontSize:12,color:C.teal,letterSpacing:6,textTransform:'uppercase',marginTop:4}}>Dashboard Global</div>
+      </div>
+      <form onSubmit={handle} style={{display:'flex',flexDirection:'column',gap:12,width:280}}>
+        <input type="password" placeholder="Senha de acesso" value={pw} onChange={e=>setPw(e.target.value)}
+          style={{padding:'12px 16px',borderRadius:8,border:`1px solid ${err?'#e05c5c':C.teal}`,background:'rgba(7,135,128,0.1)',color:C.cream,fontSize:14,outline:'none'}}/>
+        <button type="submit" style={{padding:'12px',borderRadius:8,border:'none',cursor:'pointer',background:C.teal,color:C.cream,fontSize:14,fontWeight:600,letterSpacing:1}}>ENTRAR</button>
+        {err&&<div style={{color:'#e05c5c',textAlign:'center',fontSize:12}}>Senha incorreta</div>}
+      </form>
+      <div style={{fontSize:11,color:'rgba(252,252,235,0.3)'}}>© 2026 Zion Church</div>
+    </div>
+  );
+}
+
+/* ═══ PAGE: RANKING DE LOCALIDADES */
+/* ═══ MULTI-LOCATION FILTER DROPDOWN */
+function LocMultiFilter({selected,onChange}){
+  const [open,setOpen]=useState(false);
+  const allSel=selected.length===LOCS.length;
+  function toggle(id){
+    if(selected.includes(id)){
+      const nx=selected.filter(x=>x!==id);
+      if(nx.length>0)onChange(nx);
+    } else onChange([...selected,id]);
+  }
+  const nSel=selected.length;
+  const labelText=allSel?'Todas as igrejas (19)':nSel===0?'Nenhuma':
+    nSel<=3?LOCS.filter(l=>selected.includes(l.id)).map(l=>l.name).join(', '):
+    nSel+' igrejas selecionadas';
+  const btnBorder=open?'1px solid '+C.teal:'1px solid rgba(7,135,128,0.3)';
+  return(
+    <div style={{position:'relative',display:'inline-block'}}>
+      <button onClick={()=>setOpen(function(o){return !o;})} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',borderRadius:8,border:btnBorder,background:'rgba(7,135,128,0.08)',color:C.cream,cursor:'pointer',fontSize:12,fontWeight:600,minWidth:220,justifyContent:'space-between'}}>
+        <span style={{color:allSel?C.teal:C.cream}}>⛪ {labelText}</span>
+        <span style={{color:C.teal,fontSize:10}}>{open?'▲':'▼'}</span>
+      </button>
+      {open&&(
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:999,background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:10,padding:'8px 0',minWidth:240,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+          <div style={{display:'flex',gap:6,padding:'6px 12px 8px',borderBottom:'1px solid rgba(7,135,128,0.15)'}}>
+            <button onClick={()=>onChange(LOCS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:'rgba(7,135,128,0.2)',color:allSel?C.cream:C.teal}}>Todas</button>
+            <button onClick={()=>onChange(LOCS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇧🇷</button>
+            <button onClick={()=>onChange(LOCS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇵🇹</button>
+            <button onClick={()=>onChange(LOCS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🌎</button>
+            <button onClick={()=>onChange(LOCS.filter(l=>l.id!=='São Paulo').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>Sem SP</button>
+          </div>
+          <div style={{maxHeight:320,overflowY:'auto',padding:'4px 0'}}>
+            {LOCS.map(l=>{
+              const ck=selected.includes(l.id);
+              const ckBg=ck?C.teal:'transparent';
+              const ckBorder=ck?'2px solid '+C.teal:'2px solid rgba(7,135,128,0.4)';
+              const ckRowBg=ck?'rgba(7,135,128,0.12)':'transparent';
+              return(
+                <div key={l.id} onClick={()=>toggle(l.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',cursor:'pointer',background:ckRowBg}}>
+                  <span style={{width:16,height:16,borderRadius:4,border:ckBorder,background:ckBg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,color:C.cream,lineHeight:1}}>{ck?'✓':''}</span>
+                  <span style={{fontSize:12,color:ck?C.cream:'#aaa'}}>{l.flag} {l.name}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{padding:'8px 12px 4px',borderTop:'1px solid rgba(7,135,128,0.15)',fontSize:10,color:'#666',textAlign:'right'}}>{nSel}/{LOCS.length} selecionadas</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageRanking(){
+  const [period,setPeriod]=useState('2026-S1');
+  const months=pMonths(period);
+  const prev=prevPeriod(period);
+  const prevMonths=prev?pMonths(prev):[];
+
+  const rows=LOCS.map(loc=>{
+    const avg=avgSunday(loc.id,months);
+    const prv=prev?avgSunday(loc.id,prevMonths):null;
+    return{loc,avg,tier:getTier(avg),d:prv!==null?delta(avg,prv):null,prv};
+  }).sort((a,b)=>b.avg-a.avg);
+
+  const tierGroups={};
+  TIER_DEF.forEach(t=>{tierGroups[t.name]=[];});
+  rows.forEach(r=>{tierGroups[r.tier.name].push(r);});
+
+  // Annual 2026-S1 absolute ranking vs 2025-S1
+  const rows2025=LOCS.map(loc=>{
+    const avg=avgSunday(loc.id,pMonths('2026-S1'));
+    const avg2024=avgSunday(loc.id,pMonths('2025-S1'));
+    return{loc,avg,d:avg2024?delta(avg,avg2024):null};
+  }).sort((a,b)=>b.avg-a.avg);
+
+  // Annual 2025 growth ranking
+  const rowsGrowth=[...rows2025].filter(r=>r.d!==null).sort((a,b)=>b.d-a.d);
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <h2 className="serif" style={{fontSize:22,color:C.cream}}>Ranking de Localidades</h2>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {TIER_DEF.filter(t=>t.name!=='—').map(t=>(
+          <div key={t.name} style={{background:t.color,color:t.text,padding:'3px 12px',borderRadius:20,fontSize:11,fontWeight:700,letterSpacing:1}}>
+            {t.name} ≥{t.min.toLocaleString('pt-BR')}/dom
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+        {/* Período atual */}
+        <Card>
+          <ChartTitle>Média de Pessoas por Domingo — {PERIODS[period]?.label}</ChartTitle>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {rows.map((r,i)=>(
+              <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:i===0?'rgba(7,135,128,0.18)':'rgba(7,135,128,0.05)'}}>
+                <span style={{color:C.teal,fontWeight:700,width:22,textAlign:'center',fontSize:12}}>{i+1}</span>
+                <span style={{flex:1,fontSize:12}}>{r.loc.flag} {r.loc.name}</span>
+                <div style={{background:r.tier.color,color:r.tier.text,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.tier.name}</div>
+                <span className="serif" style={{fontWeight:700,color:C.cream,fontSize:14,minWidth:56,textAlign:'right'}}>{fmt(r.avg)}</span>
+                <span style={{minWidth:52,textAlign:'right'}}><DeltaBadge d={r.d}/></span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {/* Tier groups */}
+          {TIER_DEF.filter(t=>tierGroups[t.name].length>0).map(t=>(
+            <Card key={t.name} style={{padding:'12px 16px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <div style={{background:t.color,color:t.text,padding:'2px 12px',borderRadius:10,fontSize:12,fontWeight:700,letterSpacing:1}}>{t.name}</div>
+                <span style={{fontSize:11,color:C.teal}}>{tierGroups[t.name].length} localidade{tierGroups[t.name].length>1?'s':''}</span>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {tierGroups[t.name].map(r=>(
+                  <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:4,background:'rgba(7,135,128,0.08)',borderRadius:6,padding:'3px 9px'}}>
+                    <span>{r.loc.flag}</span>
+                    <span style={{fontSize:11,color:C.cream}}>{r.loc.name}</span>
+                    <span style={{fontSize:11,color:C.teal,marginLeft:4}}>{fmt(r.avg)}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Annual 2025 rankings */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>Ranking 2026-S1 vs 2025-S1 — Média de Pessoas por Domingo (Número Absoluto)</ChartTitle>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {rows2025.map((r,i)=>(
+              <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderRadius:6,background:i===0?'rgba(7,135,128,0.18)':'rgba(7,135,128,0.04)'}}>
+                <span style={{color:C.teal,fontWeight:700,width:20,fontSize:11}}>{i+1}</span>
+                <span style={{flex:1,fontSize:11}}>{r.loc.flag} {r.loc.name}</span>
+                <div style={{background:getTier(r.avg).color,color:getTier(r.avg).text,padding:'1px 6px',borderRadius:8,fontSize:9,fontWeight:700}}>{getTier(r.avg).name}</div>
+                <span style={{fontWeight:700,color:C.cream,fontSize:13,minWidth:56,textAlign:'right'}}>{fmt(r.avg)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <ChartTitle>Ranking 2026-S1 — Taxa de Crescimento vs 2025-S1</ChartTitle>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {rowsGrowth.map((r,i)=>(
+              <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderRadius:6,background:i===0?'rgba(7,135,128,0.18)':'rgba(7,135,128,0.04)'}}>
+                <span style={{color:C.teal,fontWeight:700,width:20,fontSize:11}}>{i+1}</span>
+                <span style={{flex:1,fontSize:11}}>{r.loc.flag} {r.loc.name}</span>
+                <span style={{fontWeight:700,color:r.d>=0?C.sage:'#e05c5c',fontSize:13}}>{fmtPct(r.d)}</span>
+                <span style={{color:'#888',fontSize:11,minWidth:52,textAlign:'right'}}>{fmt(r.avg)}/dom</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Bar chart comparison annual */}
+      <Card>
+        <ChartTitle>Comparativo S1 2025 vs S1 2026 — Média de Pessoas por Domingo por Localidade</ChartTitle>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={rows2025.map(r=>({name:r.loc.name,y24:avgSunday(r.loc.id,pMonths('2025-S1')),y25:r.avg}))} margin={{top:22,right:10,bottom:40,left:0}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+            <Tooltip content={<TT/>}/>
+            <Legend wrapperStyle={{fontSize:12,color:C.cream,paddingTop:8}}/>
+            <Bar isAnimationActive={false} dataKey="y24" name="S1 2025" fill={C.mid} radius={[3,3,0,0]}>
+              <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+            <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={C.teal} radius={[3,3,0,0]}>
+              <LabelList dataKey="y25" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ PAGE: VISÃO GLOBAL */
+function PageGlobal(){
+  const [period,setPeriod]=useState('2026-S1');
+  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const months=pMonths(period);
+  const prev=prevPeriod(period);
+
+  function filtGlobal(ms){
+    let s=0,n=0,bap=0,raiz=0,links=0,plinks=0,vol=0,zao=0;
+    filtLocs.forEach(loc=>{
+      const ms2=ms||[];
+      let ls=0,ln=0;
+      ms2.forEach(m=>{const d=DATA[loc.id]?.[m];if(d&&d.sunN>0){ls+=d.sunS;ln+=d.sunN;}});
+      s+=ls;n+=ln;
+      bap+=sumFlow(loc.id,ms2,'bap');
+      raiz+=sumFlow(loc.id,ms2,'raiz');
+      links+=lastVal(loc.id,ms2,'links');
+      plinks+=lastVal(loc.id,ms2,'plinks');
+      vol+=maxVal(loc.id,ms2,'vol');
+      zao+=maxVal(loc.id,ms2,'zao');
+    });
+    const avgSun=n>0?Math.round(s/n):0;
+    return{avgSun,bap,raiz,links,plinks,vol,zao,pessoasPerLink:links>0?+(plinks/links).toFixed(1):0};
+  }
+  const cur=filtGlobal(months);
+  const prv=prev?filtGlobal(pMonths(prev)):null;
+
+  const kpis=[
+    {label:'Média de Pessoas por Domingo',value:cur.avgSun,  d:prv?delta(cur.avgSun,prv.avgSun):null},
+    {label:'Total de Batismos',            value:cur.bap,     d:prv?delta(cur.bap,prv.bap):null},
+    {label:'Total de Raízes',              value:cur.raiz,    d:prv?delta(cur.raiz,prv.raiz):null},
+    {label:'Links Ativos',                 value:cur.links,   d:prv?delta(cur.links,prv.links):null},
+    {label:'Pessoas em Links',             value:cur.plinks,  d:prv?delta(cur.plinks,prv.plinks):null},
+    {label:'Voluntários Ativos',           value:cur.vol,     d:prv?delta(cur.vol,prv.vol):null},
+    {label:'Matrículas ZAO',               value:cur.zao,     d:prv?delta(cur.zao,prv.zao):null},
+    {label:'Média Pessoas por Link',       value:cur.pessoasPerLink,d:prv?delta(cur.pessoasPerLink,prv.pessoasPerLink):null},
+  ];
+
+  const allLocSun=filtLocs.map(loc=>({name:loc.name,flag:loc.flag,val:avgSunday(loc.id,months)})).sort((a,b)=>b.val-a.val);
+  const allLocBap=filtLocs.map(loc=>({name:loc.name,val:sumFlow(loc.id,months,'bap')})).sort((a,b)=>b.val-a.val);
+  const allLocLinks=filtLocs.map(loc=>({name:loc.name,val:lastVal(loc.id,months,'links')})).sort((a,b)=>b.val-a.val);
+  const allLocPlinks=filtLocs.map(loc=>({name:loc.name,val:lastVal(loc.id,months,'plinks')})).sort((a,b)=>b.val-a.val);
+  const allLocVol=filtLocs.map(loc=>({name:loc.name,val:lastVal(loc.id,months,'vol')})).sort((a,b)=>b.val-a.val);
+
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const trendData=allPeriods.map(p=>{const g=filtGlobal(pMonths(p));return{name:PERIODS[p].label,...g};});
+
+  function AllLocBar({data,dataKey,label,color}){
+    return(
+      <Card>
+        <ChartTitle>{label} — {selLocs.length===LOCS.length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={data} margin={{top:22,right:8,bottom:50,left:55}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
+            <YAxis domain={[0,'auto']} tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={55}/>
+            <Tooltip content={<TT/>}/>
+            <Bar isAnimationActive={false} dataKey={dataKey} name={label} fill={color||C.teal} radius={[3,3,0,0]} isAnimationActive={false}>
+              {data.map((_,i)=><Cell key={i} fill={i===0?C.sage:color||C.teal}/>)}
+              <LabelList dataKey={dataKey} position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+    );
+  }
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <h2 className="serif" style={{fontSize:22,color:C.cream}}>Visão Global — {PERIODS[period]?.label}</h2>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <PeriodSelector value={period} onChange={setPeriod}/>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:12}}>
+        {kpis.map(k=><KpiCard key={k.label} {...k}/>)}
+      </div>
+
+      {/* All-location charts */}
+      <AllLocBar data={allLocSun} dataKey="val" label="Média de Pessoas por Domingo" color={C.teal}/>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <AllLocBar data={allLocBap} dataKey="val" label="Total de Batismos" color={C.teal}/>
+        <AllLocBar data={allLocLinks} dataKey="val" label="Links Ativos" color={C.sage}/>
+        <AllLocBar data={allLocPlinks} dataKey="val" label="Pessoas em Links" color={C.teal}/>
+        <AllLocBar data={allLocVol} dataKey="val" label="Voluntários Ativos" color={C.sage}/>
+      </div>
+
+      {/* Semestral trend */}
+      <Card>
+        <ChartTitle>Evolução Semestral Global — Média de Pessoas por Domingo</ChartTitle>
+        <ResponsiveContainer width="100%" height={320}>
+          <AreaChart data={trendData} margin={{top:20,right:10,bottom:0,left:0}}>
+            <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.35}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+            <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+            <Tooltip content={<TT/>}/>
+            <Area isAnimationActive={false} type="monotone" dataKey="avgSun" name="Média de Pessoas por Domingo" stroke={C.teal} fill="url(#ga)" strokeWidth={2} dot={{r:3,fill:C.teal}}>
+              <LabelList dataKey="avgSun" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Area>
+          </AreaChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ PAGE: ZION LOCAL */
+function PageLocal(){
+  const [period,setPeriod]=useState('2026-S1');
+  const [locId,setLocId]=useState('São Paulo');
+  const months=pMonths(period);
+  const loc=LOCS.find(l=>l.id===locId);
+  const prev=prevPeriod(period);
+  const prevM=prev?pMonths(prev):[];
+
+  const s={
+    avgSun:avgSunday(locId,months),
+    bap:   sumFlow(locId,months,'bap'),
+    raiz:  sumFlow(locId,months,'raiz'),
+    links: lastVal(locId,months,'links'),
+    plinks:lastVal(locId,months,'plinks'),
+    vol:   maxVal(locId,months,'vol'),
+    zao:   maxVal(locId,months,'zao'),
+  };
+  const p=prev?{
+    avgSun:avgSunday(locId,prevM),
+    bap:   sumFlow(locId,prevM,'bap'),
+    raiz:  sumFlow(locId,prevM,'raiz'),
+    links: lastVal(locId,prevM,'links'),
+    plinks:lastVal(locId,prevM,'plinks'),
+    vol:   maxVal(locId,prevM,'vol'),
+    zao:   maxVal(locId,prevM,'zao'),
+  }:null;
+  const tier=getTier(s.avgSun);
+
+  // Monthly sunday average data
+  const sunData=months.filter(m=>DATA[locId]?.[m]?.sunS).map(m=>({name:fmtMonth(m),v:monthAvgSun(locId,m)}));
+
+  const stockData=months.map(m=>({name:fmtMonth(m),links:DATA[locId]?.[m]?.links||0,plinks:DATA[locId]?.[m]?.plinks||0,vol:DATA[locId]?.[m]?.vol||0,zao:DATA[locId]?.[m]?.zao||0}));
+  const flowData=months.map(m=>({name:fmtMonth(m),bap:DATA[locId]?.[m]?.bap||0,raiz:DATA[locId]?.[m]?.raiz||0}));
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <h2 className="serif" style={{fontSize:22,color:C.cream}}>Zion Local — {loc.name}</h2>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {LOCS.map(l=>(
+          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
+        ))}
+      </div>
+
+      <Card style={{display:'flex',alignItems:'center',gap:16}}>
+        <div style={{fontSize:36}}>{loc.flag}</div>
+        <div>
+          <div className="serif" style={{fontSize:22,color:C.cream,fontWeight:700}}>{loc.name}</div>
+        </div>
+        <div style={{marginLeft:'auto',textAlign:'right'}}>
+          <div style={{background:tier.color,color:tier.text,padding:'5px 16px',borderRadius:20,fontSize:13,fontWeight:700,letterSpacing:1}}>{tier.name}</div>
+          <div style={{fontSize:11,color:C.teal,marginTop:4}}>{fmt(s.avgSun)} pessoas/domingo</div>
+        </div>
+      </Card>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12}}>
+        {[
+          {label:'Média de Pessoas por Domingo',value:s.avgSun,d:p?delta(s.avgSun,p.avgSun):null},
+          {label:'Cultos Realizados',           value:months.reduce((a,m)=>a+(DATA[locId]?.[m]?.sunN||0),0),d:null},
+          {label:'Total de Batismos',           value:s.bap,   d:p?delta(s.bap,p.bap):null},
+          {label:'Links Ativos',                value:s.links, d:p?delta(s.links,p.links):null},
+          {label:'Pessoas em Links',            value:s.plinks,d:p?delta(s.plinks,p.plinks):null},
+          {label:'Voluntários Ativos',          value:s.vol,   d:p?delta(s.vol,p.vol):null},
+          {label:'Raízes Finalizados',          value:s.raiz,  d:p?delta(s.raiz,p.raiz):null},
+          {label:'Matrículas ZAO',              value:s.zao,   d:p?delta(s.zao,p.zao):null},
+        ].map(k=><KpiCard key={k.label} {...k}/>)}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>Média de Presença nos Cultos de Domingo — Mês a Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={sunData} margin={{top:20,right:8,bottom:30,left:0}}>
+              <defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.sage} stopOpacity={0.4}/><stop offset="95%" stopColor={C.sage} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} angle={-30} textAnchor="end" height={50} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="v" name="Presença no Culto" stroke={C.sage} fill="url(#gl)" strokeWidth={2} dot={{r:3,fill:C.sage}}>
+                <LabelList dataKey="v" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Links Ativos e Pessoas em Links — Mês a Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={stockData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis yAxisId="l" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis yAxisId="r" orientation="right" tick={{fill:C.sage,fontSize:11}} axisLine={false} tickLine={false}/>
+              <Tooltip content={<TT/>}/>
+              <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
+              <Bar isAnimationActive={false} yAxisId="l" dataKey="links" name="Links Ativos" fill={C.teal} radius={[3,3,0,0]}>
+                <LabelList dataKey="links" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+              <Line isAnimationActive={false} yAxisId="r" type="monotone" dataKey="plinks" name="Pessoas em Links" stroke={C.sage} strokeWidth={2} dot={{r:4,fill:C.sage}}>
+                <LabelList dataKey="plinks" position="top" style={{fill:C.sage,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Line>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Batismos — por Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={flowData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="bap" name="Total de Batismos" fill={C.teal} radius={[3,3,0,0]}>
+                <LabelList dataKey="bap" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Raízes Finalizados — por Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={flowData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="raiz" name="Raízes Finalizados" fill={C.sage} radius={[3,3,0,0]}>
+                <LabelList dataKey="raiz" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Voluntários Ativos — Mês a Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={stockData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <defs><linearGradient id="glvol" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.4}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="vol" name="Voluntários Ativos" stroke={C.teal} fill="url(#glvol)" strokeWidth={2} dot={{r:3,fill:C.teal}}>
+                <LabelList dataKey="vol" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Alunos ZAO — Mês a Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={stockData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <defs><linearGradient id="glzao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.sage} stopOpacity={0.4}/><stop offset="95%" stopColor={C.sage} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="zao" name="Matrículas ZAO" stroke={C.sage} fill="url(#glzao)" strokeWidth={2} dot={{r:3,fill:C.sage}}>
+                <LabelList dataKey="zao" position="top" style={{fill:C.sage,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ PAGE: CULTOS */
+function PageCultos(){
+  const [period,setPeriod]=useState('2026-S1');
+  const months=pMonths(period);
+  const prev=prevPeriod(period);
+  const prevM=prev?pMonths(prev):[];
+
+  const locRows=LOCS.map(loc=>{
+    const cur=avgSunday(loc.id,months);
+    const prv=prev?avgSunday(loc.id,prevM):null;
+    return{loc,cur,prv,d:prv!==null?delta(cur,prv):null};
+  }).sort((a,b)=>b.cur-a.cur);
+
+  let gSum=0; LOCS.forEach(l=>{gSum+=avgSunday(l.id,months);});
+  const gAvg=Math.round(gSum/LOCS.length);
+  let gPSum=0; if(prev)LOCS.forEach(l=>{gPSum+=avgSunday(l.id,prevM);});
+  const gPAvg=prev?Math.round(gPSum/LOCS.length):null;
+
+  // All periods trend
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const trendData=allPeriods.filter(p=>PERIODS[p]).map(p=>{let t=0;LOCS.forEach(l=>{t+=avgSunday(l.id,pMonths(p));});return{name:PERIODS[p].label,val:Math.round(t/LOCS.length)};});
+
+  // Monthly global attendance
+  const weeklyData=months.filter(m=>LOCS.some(l=>DATA[l.id]?.[m]?.sunS)).map(m=>{
+    let tot=0;
+    LOCS.forEach(l=>{const d=DATA[l.id]?.[m];if(d?.sunS&&d?.sunN)tot+=Math.round(d.sunS/d.sunN);});
+    return{name:fmtMonth(m),total:tot};
+  });
+
+  // Annual comparison
+  const annualComp=LOCS.map(loc=>({
+    name:loc.name,
+    y24:avgSunday(loc.id,pMonths('2025-S1')),
+    y25:avgSunday(loc.id,pMonths('2026-S1')),
+  })).sort((a,b)=>b.y25-a.y25);
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>Cultos — Domingos</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>Média de presença nos cultos de domingo — calculada pela média das semanas do período</p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:12}}>
+        <KpiCard label="Média Global por Domingo" value={gAvg} d={gPAvg?delta(gAvg,gPAvg):null}/>
+        {locRows.slice(0,3).map(r=><KpiCard key={r.loc.id} label={r.loc.name} value={r.cur} d={r.d}/>)}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>Média de Pessoas por Domingo — Evolução Semestral</ChartTitle>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={trendData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <defs><linearGradient id="gcu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.35}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="val" name="Média por Domingo" stroke={C.teal} fill="url(#gcu)" strokeWidth={2} dot={{r:3}}>
+                <LabelList dataKey="val" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Presença Total Global — Soma Mensal por Localidade</ChartTitle>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={weeklyData} margin={{top:20,right:8,bottom:35,left:0}}>
+              <defs><linearGradient id="gwk" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.sage} stopOpacity={0.4}/><stop offset="95%" stopColor={C.sage} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} angle={-30} textAnchor="end" height={50} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="total" name="Total de Presença Global" stroke={C.sage} fill="url(#gwk)" strokeWidth={2} dot={{r:3}}>
+                <LabelList dataKey="total" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card>
+          <ChartTitle>Ranking de Localidades por Domingo — {PERIODS[period]?.label}</ChartTitle>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={locRows.map(r=>({name:r.loc.name,val:r.cur}))} layout="vertical" margin={{top:5,right:60,bottom:5,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+              <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={88}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="val" name="Média por Domingo" radius={[0,3,3,0]}>
+                {locRows.map((_,i)=><Cell key={i} fill={i===0?C.sage:C.teal}/>)}
+                <LabelList dataKey="val" position="right" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card>
+          <ChartTitle>Tabela — Presença por Domingo com Selos e Variação</ChartTitle>
+          <div style={{overflowY:'auto',maxHeight:220}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+              <thead><tr>
+                <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Local</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Média Dom.</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Anterior</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Variação</th>
+                <th style={{textAlign:'center',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo</th>
+              </tr></thead>
+              <tbody>
+                {locRows.map(r=>{const t=getTier(r.cur);return(
+                  <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                    <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right'}}><DeltaBadge d={r.d}/></td>
+                    <td style={{padding:'4px 6px',textAlign:'center'}}><span style={{background:t.color,color:t.text,padding:'1px 6px',borderRadius:8,fontSize:9,fontWeight:700}}>{t.name}</span></td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Annual comparison chart */}
+      <Card>
+        <ChartTitle>Comparativo — Média de Pessoas por Domingo por Localidade (S1 2025 vs S1 2026)</ChartTitle>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+            <Tooltip content={<TT/>}/>
+            <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
+            <Bar isAnimationActive={false} dataKey="y24" name="S1 2025" fill={C.mid} radius={[3,3,0,0]}>
+              <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+            <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={C.teal} radius={[3,3,0,0]}>
+              <LabelList dataKey="y25" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card>
+        <ChartTitle>Heatmap — Média de Pessoas por Domingo por Localidade (ordem alfabética, escala por linha)</ChartTitle>
+        <HeatmapTable
+          locRows={locRows}
+          months={months}
+          getMonthVal={(locId,m)=>monthAvgSun(locId,m)}
+          getSemVal={(locId)=>avgSunday(locId,months)}
+        />
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ GENERIC METRIC PAGE */
+function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compTitle}){
+  color=color||C.teal;
+  const [period,setPeriod]=useState('2026-S1');
+  const [locFilter,setLocFilter]=useState('global');
+  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const months=pMonths(period);
+  const prev=prevPeriod(period);
+  const prevM=prev?pMonths(prev):[];
+
+  const isGlobal=locFilter==='global';
+  let gCur=0,gPrv=0;
+  if(isGlobal){
+    filtLocs.forEach(l=>{gCur+=aggFn(l.id,months,field);if(prev)gPrv+=aggFn(l.id,prevM,field);});
+  } else {
+    gCur=aggFn(locFilter,months,field);
+    if(prev)gPrv=aggFn(locFilter,prevM,field);
+  }
+  const gD=prev?delta(gCur,gPrv):null;
+
+  const locRows=filtLocs.map(loc=>{
+    const cur=aggFn(loc.id,months,field);
+    const prv=prev?aggFn(loc.id,prevM,field):null;
+    return{loc,cur,prv,d:prv!==null?delta(cur,prv):null};
+  }).sort((a,b)=>b.cur-a.cur);
+
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const trendData=allPeriods.map(p=>{
+    let v=0;
+    if(isGlobal){filtLocs.forEach(l=>{v+=aggFn(l.id,pMonths(p),field);});}
+    else{v=aggFn(locFilter,pMonths(p),field);}
+    return{name:PERIODS[p].label,val:v};
+  });
+
+  const monthlyData=months.map(m=>{
+    let v=0;
+    if(isGlobal){filtLocs.forEach(l=>{if(DATA[l.id]?.[m])v+=DATA[l.id][m][field]||0;});}
+    else{v=DATA[locFilter]?.[m]?.[field]||0;}
+    return{name:fmtMonth(m),val:v};
+  });
+
+  const annualComp=filtLocs.map(loc=>({
+    name:loc.name,
+    y24:aggFn(loc.id,pMonths('2025-S1'),field),
+    y25:aggFn(loc.id,pMonths('2026-S1'),field),
+  })).sort((a,b)=>b.y25-a.y25);
+
+  const curLoc=LOCS.find(l=>l.id===locFilter);
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>{pageTitle||title}</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>{description}</p>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          {isGlobal&&<LocMultiFilter selected={selLocs} onChange={setSelLocs}/>}
+          <PeriodSelector value={period} onChange={setPeriod}/>
+        </div>
+      </div>
+
+      {/* Drill-down filter: Global or single location */}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+        <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:'rgba(7,135,128,0.12)',color:isGlobal?C.cream:C.teal}}>🌍 Global</button>
+        {LOCS.map(l=>(
+          <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+        ))}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:12}}>
+        <KpiCard label={isGlobal?`Global — ${isStock?'Último mês':'Total período'}`:curLoc?.name||''} value={gCur} d={gD}/>
+        {isGlobal&&locRows.slice(0,3).map(r=><KpiCard key={r.loc.id} label={r.loc.name} value={r.cur} d={r.d}/>)}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>{compTitle||title} — Evolução Semestral (Global)</ChartTitle>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={trendData} margin={{top:22,right:8,bottom:0,left:0}}>
+              <defs><linearGradient id={`gf${field}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={color} stopOpacity={0.35}/><stop offset="95%" stopColor={color} stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="val" name={title} stroke={color} fill={`url(#gf${field})`} strokeWidth={2} dot={{r:3,fill:color}}>
+                <LabelList dataKey="val" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card>
+          <ChartTitle>{compTitle||title} — {PERIODS[period]?.label} por Mês</ChartTitle>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData} margin={{top:22,right:8,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="val" name={title} fill={color} radius={[4,4,0,0]}>
+                <LabelList dataKey="val" position="top" style={{fill:C.cream,fontSize:10}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card>
+          <ChartTitle>Ranking de Localidades — {PERIODS[period]?.label}</ChartTitle>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={locRows.map(r=>({name:r.loc.name,val:r.cur}))} layout="vertical" margin={{top:5,right:65,bottom:5,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+              <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={88}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="val" name={title} radius={[0,3,3,0]}>
+                {locRows.map((_,i)=><Cell key={i} fill={i===0?C.sage:color}/>)}
+                <LabelList dataKey="val" position="right" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card>
+          <ChartTitle>Tabela de Localidades com Variação</ChartTitle>
+          <div style={{overflowY:'auto',maxHeight:220}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+              <thead><tr>
+                <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Localidade</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Atual</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Anterior</th>
+                <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Variação</th>
+              </tr></thead>
+              <tbody>
+                {locRows.map(r=>(
+                  <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                    <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
+                    <td style={{padding:'4px 6px',textAlign:'right'}}><DeltaBadge d={r.d}/></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Annual comparison */}
+      <Card>
+        <ChartTitle>Comparativo — {compTitle||title} por Localidade (S1 2025 vs S1 2026)</ChartTitle>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+            <Tooltip content={<TT/>}/>
+            <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
+            <Bar isAnimationActive={false} dataKey="y24" name="S1 2025" fill={C.mid} radius={[3,3,0,0]}>
+              <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+            <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={color} radius={[3,3,0,0]}>
+              <LabelList dataKey="y25" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card>
+        <ChartTitle>Heatmap — {compTitle||title} por Localidade (escala por linha, ordem alfabética)</ChartTitle>
+        <HeatmapTable
+          locRows={locRows}
+          months={months}
+          getMonthVal={(locId,m)=>DATA[locId]?.[m]?.[field]||0}
+          getSemVal={(locId)=>aggFn(locId,months,field)}
+        />
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ PAGE: TAXAS */
+function PageTaxas(){
+  const [period,setPeriod]=useState('2026-S1');
+  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const months=pMonths(period);
+  const prev=prevPeriod(period);
+  const prevM=prev?pMonths(prev):[];
+  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+
+  function rates(locId,ms){
+    const sun=avgSunday(locId,ms);
+    const pl=lastVal(locId,ms,'plinks');
+    const vol=lastVal(locId,ms,'vol');
+    const links=lastVal(locId,ms,'links');
+    const zao=maxVal(locId,ms,'zao');
+    const bap=sumFlow(locId,ms,'bap');
+    /* Taxas */
+    const conexao  =sun>0?+(pl/sun*100).toFixed(1):0;          // % em links
+    const servico  =sun>0?+(vol/sun*100).toFixed(1):0;         // % servindo
+    const densidade=links>0?+(pl/links).toFixed(1):0;          // pessoas por link
+    const zaoRate  =sun>0?+(zao/sun*100).toFixed(1):0;         // % estudando no ZAO
+    const engajamento=sun>0?+((pl+vol)/sun*100).toFixed(1):0;  // % engajados (link OU servindo)
+    const batPer1k =sun>0?+(bap/(ms.length||1)/sun*1000).toFixed(1):0; // batismos por 1000 por mês
+    return{conexao,servico,densidade,zaoRate,engajamento,batPer1k,sun,pl,vol,links,zao,bap};
+  }
+
+  const locData=filtLocs.map(loc=>({loc,cur:rates(loc.id,months),prv:prev?rates(loc.id,prevM):null}));
+
+  /* Sort data for charts */
+  const conexData =[...locData].sort((a,b)=>b.cur.conexao -a.cur.conexao ).map(({loc,cur})=>({name:loc.name,val:cur.conexao}));
+  const densData  =[...locData].sort((a,b)=>b.cur.densidade-a.cur.densidade).map(({loc,cur})=>({name:loc.name,val:cur.densidade}));
+  const engData   =[...locData].sort((a,b)=>b.cur.engajamento-a.cur.engajamento).map(({loc,cur})=>({name:loc.name,val:cur.engajamento}));
+  const servicData=[...locData].sort((a,b)=>b.cur.servico-a.cur.servico).map(({loc,cur})=>({name:loc.name,val:cur.servico}));
+  const zaoData   =[...locData].sort((a,b)=>b.cur.zaoRate-a.cur.zaoRate).map(({loc,cur})=>({name:loc.name,val:cur.zaoRate}));
+
+  /* Global averages */
+  function globalAvg(key){
+    const vals=locData.map(d=>d.cur[key]).filter(v=>v>0);
+    return vals.length>0?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0;
+  }
+
+  const RATE_COLS=[
+    {key:'conexao',    label:'Conexão (Links %)',      fmt:v=>v.toFixed(1)+'%', good:v=>v>=30},
+    {key:'servico',    label:'Serviço (Vol %)',         fmt:v=>v.toFixed(1)+'%', good:v=>v>=15},
+    {key:'engajamento',label:'Engajamento (Links+Vol)',fmt:v=>v.toFixed(1)+'%', good:v=>v>=40},
+    {key:'densidade',  label:'Densidade (Pess/Link)',  fmt:v=>v.toFixed(1),     good:v=>v>=8},
+    {key:'zaoRate',    label:'ZAO (% Estudo)',          fmt:v=>v.toFixed(1)+'%', good:v=>v>=5},
+    {key:'batPer1k',   label:'Batismo /1k/mês',        fmt:v=>v.toFixed(1),     good:v=>v>=5},
+  ];
+
+  function RateBar({data,label,color,fmt}){
+    return(
+      <Card>
+        <ChartTitle>{label}</ChartTitle>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data} margin={{top:20,right:8,bottom:45,left:0}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+            <Tooltip content={<TT/>}/>
+            <Bar isAnimationActive={false} dataKey="val" name={label} fill={color||C.teal} radius={[4,4,0,0]}>
+              {data.map((_,i)=><Cell key={i} fill={i===0?C.sage:color||C.teal}/>)}
+              <LabelList dataKey="val" position="top" style={{fill:C.cream,fontSize:10}} formatter={fmt||((v)=>v.toFixed(1))}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+    );
+  }
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>Taxas Estratégicas</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>Indicadores de eficiência ministerial — relação entre as métricas de cada localidade</p>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <PeriodSelector value={period} onChange={setPeriod}/>
+        </div>
+      </div>
+
+      {/* KPI summary */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12}}>
+        {RATE_COLS.map(r=>(
+          <Card key={r.key} style={{textAlign:'center'}}>
+            <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5,whiteSpace:'pre-line',lineHeight:1.3}}>{r.label}</div>
+            <div className="serif" style={{fontSize:22,fontWeight:700,color:C.cream}}>{r.fmt(globalAvg(r.key))}</div>
+            <div style={{fontSize:10,color:'#666',marginTop:2}}>média rede</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Definitions */}
+      <div style={{background:'rgba(7,135,128,0.06)',border:'1px solid rgba(7,135,128,0.2)',borderRadius:10,padding:'12px 16px',fontSize:11,color:'#aaa',lineHeight:1.7}}>
+        <span style={{color:C.teal,fontWeight:700}}>Guia de leitura: </span>
+        <b style={{color:C.cream}}>Conexão</b> = Pessoas em Links ÷ Presença/Dom (%) &nbsp;|&nbsp;
+        <b style={{color:C.cream}}>Serviço</b> = Voluntários ÷ Presença/Dom (%) &nbsp;|&nbsp;
+        <b style={{color:C.cream}}>Engajamento</b> = (Links + Vol) ÷ Presença/Dom — % do púlpito engajado &nbsp;|&nbsp;
+        <b style={{color:C.cream}}>Densidade</b> = Pessoas ÷ Nº Links — qualidade dos links &nbsp;|&nbsp;
+        <b style={{color:C.cream}}>ZAO</b> = Matrículas ZAO ÷ Presença/Dom (%) &nbsp;|&nbsp;
+        <b style={{color:C.cream}}>Batismo/1k</b> = Batismos ÷ Presença × 1000 por mês
+      </div>
+
+      {/* Chart grid */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <RateBar data={conexData}  label="Taxa de Conexão — % do Público em Links"           color={C.teal}  fmt={v=>v.toFixed(1)+'%'}/>
+        <RateBar data={engData}    label="Taxa de Engajamento — % em Links OU Servindo"       color='#5b9bd5' fmt={v=>v.toFixed(1)+'%'}/>
+        <RateBar data={servicData} label="Taxa de Serviço — % do Público como Voluntários"    color={C.sage}  fmt={v=>v.toFixed(1)+'%'}/>
+        <RateBar data={densData}   label="Densidade de Links — Pessoas por Link Ativo"        color='#9b8fd5' fmt={v=>v.toFixed(1)}/>
+        <RateBar data={zaoData}    label="Taxa ZAO — % do Público Estudando"                  color='#d5a45b' fmt={v=>v.toFixed(1)+'%'}/>
+      </div>
+
+      {/* Detailed table */}
+      <Card>
+        <ChartTitle>Tabela Completa de Taxas por Localidade</ChartTitle>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>
+              <th style={{textAlign:'left',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>Localidade</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Dom/Sem</th>
+              {RATE_COLS.map(r=><th key={r.key} style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'pre-line',fontSize:10}}>{r.label}</th>)}
+            </tr></thead>
+            <tbody>
+              {locData.sort((a,b)=>b.cur.engajamento-a.cur.engajamento).map(({loc,cur,prv})=>(
+                <tr key={loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                  <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
+                  <td style={{padding:'5px 8px',textAlign:'right',color:'#aaa'}}>{fmt(cur.sun)}</td>
+                  {RATE_COLS.map(r=>{
+                    const v=cur[r.key];
+                    const isGood=r.good(v);
+                    return(
+                      <td key={r.key} style={{padding:'5px 8px',textAlign:'right',fontWeight:600,color:v>0?(isGood?'#6ee7b7':C.cream):'#444'}}>
+                        {v>0?r.fmt(v):'—'}
+                        {prv&&v>0&&<span style={{fontSize:10,color:v>=prv[r.key]?C.sage:'#e05c5c',marginLeft:4}}>{v>=prv[r.key]?'▲':'▼'}</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+/* ═══ PAGE: CONTROLE DE DADOS */
+function expectedSundays(ym){
+  const [y,m]=ym.split('-').map(Number);
+  const d=new Date(y,m-1,1);
+  let n=0;
+  while(d.getMonth()===m-1){if(d.getDay()===0)n++;d.setDate(d.getDate()+1);}
+  if(m===1) n=Math.max(0,n-1); /* primeira semana de janeiro = recesso */
+  return n;
+}
+function PageDataControl(){
+  const [period,setPeriod]=useState('2026-S1');
+  const [locFilter,setLocFilter]=useState('all');
+  const [monthFilter,setMonthFilter]=useState('all');
+  const allMonths=pMonths(period);
+  const months=monthFilter==='all'?allMonths:allMonths.filter(m=>m===monthFilter);
+  const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function mn(ym){return MNAMES[parseInt(ym.split('-')[1])-1];}
+
+  const METRIC_DEFS=[
+    {key:'sun',   label:'Presença em Culto', isSun:true},
+    {key:'links', label:'LINKs'},
+    {key:'plinks',label:'Pessoas em Links'},
+    {key:'raiz',  label:'Raízes'},
+    {key:'bap',   label:'Batismo nas Águas'},
+    {key:'vol',   label:'Voluntários'},
+    {key:'zao',   label:'I.B.ZAO'},
+    {key:'ig',    label:'Presença Digital'},
+  ];
+
+  function locStatus(locId){
+    const metRows=METRIC_DEFS.map(m=>{
+      if(m.isSun){
+        const monthDetails=months.map(mo=>{
+          const d=DATA[locId]?.[mo];
+          const filled=d?.sunN||0;
+          const expected=expectedSundays(mo);
+          const missing=Math.max(0,expected-filled);
+          return{mo,filled,expected,missing};
+        });
+        const totalFilled=monthDetails.reduce((s,r)=>s+r.filled,0);
+        const totalExpected=monthDetails.reduce((s,r)=>s+r.expected,0);
+        const ok=totalFilled>=totalExpected&&totalExpected>0;
+        const partial=totalFilled>0&&!ok;
+        const missingList=monthDetails.filter(r=>r.missing>0);
+        const tooltip=ok?null:
+          missingList.length===0?'Sem cultos esperados neste período':
+          'Faltam: '+missingList.map(r=>`${mn(r.mo)} (${r.missing} culto${r.missing>1?'s':''})`).join(' • ');
+        return{...m,monthDetails,totalFilled,totalExpected,ok,partial,
+          status:ok?'ok':partial?'partial':'pending',
+          label2:`${totalFilled}/${totalExpected} cultos`,tooltip};
+      } else {
+        const monthDetails=months.map(mo=>{
+          const val=DATA[locId]?.[mo]?.[m.key]||0;
+          return{mo,val,filled:val>0};
+        });
+        const filled=monthDetails.filter(r=>r.filled);
+        const missing=monthDetails.filter(r=>!r.filled);
+        const ok=missing.length===0&&filled.length>0;
+        const partial=filled.length>0&&!ok;
+        const totalVal=filled.reduce((s,r)=>s+r.val,0);
+        const tooltip=ok?null:
+          missing.length===months.length?'Pendente em todos os meses do período':
+          'Faltando em: '+missing.map(r=>mn(r.mo)).join(', ');
+        return{...m,monthDetails,ok,partial,
+          status:ok?'ok':partial?'partial':'pending',
+          label2:(ok||partial)&&totalVal>0?totalVal.toLocaleString('pt-BR'):null,
+          tooltip,missingMonths:missing};
+      }
+    });
+    const okCount=metRows.filter(r=>r.ok).length;
+    const partialCount=metRows.filter(r=>r.partial).length;
+    return{metRows,okCount,partialCount,total:METRIC_DEFS.length};
+  }
+
+  const locData=LOCS.map(loc=>({loc,...locStatus(loc.id)}));
+  const filtered=locFilter==='all'?locData:locData.filter(r=>r.loc.id===locFilter);
+  const totalOk=locData.filter(r=>r.okCount===r.total).length;
+  const totalPartial=locData.filter(r=>(r.okCount>0&&r.okCount<r.total)||r.partialCount>0).length;
+  const totalNone=locData.filter(r=>r.okCount===0&&r.partialCount===0).length;
+
+  function Badge({status,label2,tooltip}){
+    const cfg={
+      ok:     {bg:'rgba(67,155,106,0.2)',  color:'#439B6A',border:'rgba(67,155,106,0.4)', text:'Preenchido'},
+      partial:{bg:'rgba(212,175,55,0.15)', color:'#D4AF37',border:'rgba(212,175,55,0.35)',text:'Parcial'},
+      pending:{bg:'rgba(224,92,92,0.15)',  color:'#e05c5c',border:'rgba(224,92,92,0.3)', text:'Pendente'},
+    }[status]||{bg:'#222',color:'#555',border:'#333',text:'—'};
+    return(
+      <span title={tooltip||''} style={{display:'inline-flex',alignItems:'center',gap:5,cursor:tooltip?'help':'default'}}>
+        <span style={{background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.border}`,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{cfg.text}</span>
+        {label2&&<span style={{fontSize:11,color:'#888'}}>{label2}</span>}
+        {tooltip&&status!=='ok'&&<span style={{fontSize:10,color:'#555',cursor:'help'}} title={tooltip}>ⓘ</span>}
+      </span>
+    );
+  }
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>Controle de Dados</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>Status de preenchimento dos registros por campus — passe o mouse sobre o badge para ver o que falta</p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:'#439B6A',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Completos</div>
+          <div className="serif" style={{fontSize:36,color:'#439B6A',fontWeight:700,lineHeight:1}}>{totalOk}</div>
+          <div style={{fontSize:11,color:'#777',marginTop:4}}>campus 100% preenchidos</div>
+        </Card>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:'#D4AF37',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Parciais</div>
+          <div className="serif" style={{fontSize:36,color:'#D4AF37',fontWeight:700,lineHeight:1}}>{totalPartial}</div>
+          <div style={{fontSize:11,color:'#777',marginTop:4}}>com dados incompletos</div>
+        </Card>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:'#e05c5c',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Pendentes</div>
+          <div className="serif" style={{fontSize:36,color:'#e05c5c',fontWeight:700,lineHeight:1}}>{totalNone}</div>
+          <div style={{fontSize:11,color:'#777',marginTop:4}}>sem nenhum dado</div>
+        </Card>
+      </div>
+
+      {/* Filtros: Campus */}
+      <div>
+        <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Campus</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:'rgba(7,135,128,0.12)',color:locFilter==='all'?C.cream:C.teal}}>Todos</button>
+          {LOCS.map(l=>(
+            <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filtros: Mês */}
+      {allMonths.length>1&&(
+        <div>
+          <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Mês</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            <button onClick={()=>setMonthFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:monthFilter==='all'?C.teal:'rgba(7,135,128,0.12)',color:monthFilter==='all'?C.cream:C.teal}}>Todos os meses</button>
+            {allMonths.map(mo=>(
+              <button key={mo} onClick={()=>setMonthFilter(mo)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:monthFilter===mo?C.teal:'rgba(7,135,128,0.12)',color:monthFilter===mo?C.cream:C.teal}}>{mn(mo)}/{mo.split('-')[0].slice(2)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cards por campus */}
+      {filtered.map(({loc,metRows,okCount,partialCount,total})=>(
+        <div key={loc.id} style={{background:'rgba(7,135,128,0.06)',border:'1px solid rgba(7,135,128,0.18)',borderRadius:12,overflow:'hidden'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid rgba(7,135,128,0.15)',background:'rgba(7,135,128,0.08)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:20}}>{loc.flag}</span>
+              <span className="serif" style={{fontSize:17,fontWeight:700,color:C.cream}}>{loc.name}</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:120,height:6,background:'rgba(7,135,128,0.2)',borderRadius:3,overflow:'hidden'}}>
+                <div style={{width:`${Math.round(okCount/total*100)}%`,height:'100%',background:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',borderRadius:3}}/>
+              </div>
+              <span style={{fontSize:12,fontWeight:700,color:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',whiteSpace:'nowrap'}}>{okCount}/{total} preenchidos</span>
+            </div>
+          </div>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+                <th style={{textAlign:'left',padding:'8px 20px',color:C.teal,fontWeight:600,fontSize:11,width:'30%'}}>Tipo de Registro</th>
+                <th style={{textAlign:'left',padding:'8px 12px',color:C.teal,fontWeight:600,fontSize:11,width:'28%'}}>Status</th>
+                <th style={{textAlign:'right',padding:'8px 20px',color:C.teal,fontWeight:600,fontSize:11}}>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metRows.map((m,i)=>(
+                <tr key={m.key} style={{borderBottom:i<metRows.length-1?'1px solid rgba(7,135,128,0.08)':'none',background:i%2===0?'transparent':'rgba(7,135,128,0.03)'}}>
+                  <td style={{padding:'10px 20px',color:C.cream,fontWeight:500}}>{m.label}</td>
+                  <td style={{padding:'10px 12px'}}><Badge status={m.status} label2={m.isSun?m.label2:m.label2} tooltip={m.tooltip}/></td>
+                  <td style={{padding:'10px 20px',textAlign:'right'}}>
+                    {m.isSun?(
+                      <div style={{display:'flex',gap:5,justifyContent:'flex-end',flexWrap:'wrap'}}>
+                        {m.monthDetails.map(({mo,filled,expected,missing})=>{
+                          const ok2=filled>=expected&&expected>0;
+                          const partial2=filled>0&&!ok2;
+                          const tip=ok2?`${mn(mo)}: ${filled}/${expected} cultos ✓`:
+                            missing>0?`${mn(mo)}: ${filled}/${expected} — faltam ${missing} culto${missing>1?'s':''}`:
+                            `${mn(mo)}: sem cultos esperados`;
+                          return(
+                            <span key={mo} title={tip} style={{fontSize:10,padding:'2px 9px',borderRadius:10,fontWeight:600,cursor:'help',
+                              background:ok2?'rgba(67,155,106,0.2)':partial2?'rgba(212,175,55,0.15)':'rgba(224,92,92,0.1)',
+                              color:ok2?'#439B6A':partial2?'#D4AF37':'#e05c5c',
+                              border:`1px solid ${ok2?'rgba(67,155,106,0.35)':partial2?'rgba(212,175,55,0.3)':'rgba(224,92,92,0.3)'}`
+                            }}>
+                              {mn(mo)}: {filled}/{expected}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ):(
+                      <div style={{display:'flex',gap:5,justifyContent:'flex-end',flexWrap:'wrap'}}>
+                        {m.monthDetails.map(({mo,val,filled:mf})=>{
+                          const tip=mf?`${mn(mo)}: ${val.toLocaleString('pt-BR')}`:`${mn(mo)}: pendente`;
+                          return(
+                            <span key={mo} title={tip} style={{fontSize:10,padding:'2px 9px',borderRadius:10,fontWeight:600,cursor:'help',
+                              background:mf?'rgba(67,155,106,0.2)':'rgba(224,92,92,0.1)',
+                              color:mf?'#439B6A':'#e05c5c',
+                              border:`1px solid ${mf?'rgba(67,155,106,0.35)':'rgba(224,92,92,0.3)'}`
+                            }}>
+                              {mn(mo)}{mf?`: ${val.toLocaleString('pt-BR')}`:'—'}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ═══ PAGE: GERACIONAIS */
+const GER_DATA={
+  "Campinas":{
+    "2024-01":{lumenN:3,lumenS:147,voxN:2,voxS:281},
+    "2024-02":{lumenN:4,lumenS:216,riseN:4,riseS:161,voxN:4,voxS:533},
+    "2024-03":{lumenN:5,lumenS:303,riseN:5,riseS:221,voxN:5,voxS:830},
+    "2024-04":{lumenN:4,lumenS:262,riseN:4,riseS:168,voxN:4,voxS:1286},
+    "2024-05":{lumenN:3,lumenS:195,riseN:3,riseS:124,voxN:3,voxS:526},
+    "2024-06":{lumenN:5,lumenS:351,riseN:5,riseS:197,voxN:5,voxS:895},
+    "2024-07":{lumenN:4,lumenS:276,riseN:2,riseS:82,voxN:3,voxS:608},
+    "2024-08":{lumenN:4,lumenS:323,riseN:3,riseS:146,voxN:4,voxS:1309},
+    "2024-09":{lumenN:5,lumenS:423,riseN:5,riseS:288,voxN:5,voxS:1081},
+    "2024-10":{lumenN:4,lumenS:339,riseN:4,riseS:205,voxN:4,voxS:677},
+    "2024-11":{lumenN:4,lumenS:351,riseN:3,riseS:149,voxN:3,voxS:614},
+    "2024-12":{lumenN:4,lumenS:320,riseN:3,riseS:159,voxN:3,voxS:717},
+    "2025-01":{lumenN:2,lumenS:156,riseN:1,riseS:61,voxN:1,voxS:324},
+    "2025-02":{lumenN:4,lumenS:416,riseN:4,riseS:268,voxN:4,voxS:1103},
+    "2025-03":{lumenN:5,lumenS:432,riseN:4,riseS:233,voxN:5,voxS:1734},
+    "2025-04":{eklN:4,eklS:330,flowN:3,flowS:135,lumenN:4,lumenS:370,riseN:4,riseS:189,voxN:4,voxS:1427},
+    "2025-05":{eklN:3,eklS:204,flowN:3,flowS:124,lumenN:3,lumenS:222,riseN:3,riseS:140,voxN:3,voxS:583},
+  },
+  "Campo Grande":{
+    "2024-03":{voxN:1,voxS:50},"2024-04":{voxN:1,voxS:25},
+    "2024-05":{lumenN:2,lumenS:4,voxN:2,voxS:50},"2024-06":{lumenN:5,lumenS:22,voxN:5,voxS:132},
+    "2024-07":{lumenN:4,lumenS:19,voxN:4,voxS:98},"2024-08":{lumenN:4,lumenS:20,voxN:4,voxS:86},
+    "2024-09":{lumenN:5,lumenS:49,voxN:5,voxS:106},"2024-10":{lumenN:4,lumenS:27,voxN:4,voxS:106},
+    "2024-11":{lumenN:4,lumenS:40,voxN:3,voxS:59},"2024-12":{lumenN:3,lumenS:26,voxN:3,voxS:59},
+    "2025-01":{lumenN:3,lumenS:21,voxN:3,voxS:71},"2025-02":{lumenN:4,lumenS:47,voxN:4,voxS:93},
+    "2025-03":{lumenN:5,lumenS:53,voxN:5,voxS:171},"2025-04":{lumenN:4,lumenS:51,voxN:4,voxS:153},
+    "2025-05":{lumenN:3,lumenS:37,voxN:3,voxS:144},
+  },
+  "Jundiaí":{
+    "2025-02":{lumenN:1,lumenS:44},"2025-03":{lumenN:1,lumenS:34},
+    "2025-04":{lumenN:1,lumenS:39,voxN:2,voxS:141},"2025-05":{lumenN:1,lumenS:37,voxN:3,voxS:186},
+  },
+  "Lisboa":{
+    "2024-01":{flowN:3,flowS:99,lumenN:3,lumenS:179,voxN:2,voxS:199},
+    "2024-02":{flowN:4,flowS:155,lumenN:4,lumenS:331,voxN:4,voxS:374},
+    "2024-03":{flowN:5,flowS:204,lumenN:5,lumenS:478,voxN:4,voxS:442},
+    "2024-04":{flowN:4,flowS:126,lumenN:4,lumenS:341,voxN:3,voxS:267},
+    "2024-05":{flowN:3,flowS:112,lumenN:3,lumenS:255,voxN:3,voxS:293},
+    "2024-06":{flowN:3,flowS:143,lumenN:5,lumenS:429,voxN:4,voxS:408},
+    "2024-07":{flowN:4,flowS:177,lumenN:4,lumenS:345,voxN:4,voxS:435},
+    "2024-08":{flowN:4,flowS:163,lumenN:4,lumenS:355,voxN:4,voxS:491},
+    "2024-09":{flowN:5,flowS:239,lumenN:5,lumenS:514,voxN:4,voxS:570},
+    "2024-10":{flowN:3,flowS:268,lumenN:4,lumenS:473,voxN:4,voxS:458},
+    "2024-11":{flowN:4,flowS:397,lumenN:4,lumenS:424,voxN:3,voxS:338},
+    "2024-12":{lumenN:3,lumenS:252,voxN:1,voxS:93},
+    "2025-01":{flowN:1,flowS:66,lumenN:3,lumenS:219,voxN:1,voxS:136},
+    "2025-02":{flowN:4,flowS:222,lumenN:4,lumenS:370,voxN:4,voxS:504},
+    "2025-03":{flowN:5,flowS:397,lumenN:5,lumenS:446,riseN:5,riseS:232,voxN:5,voxS:710},
+    "2025-04":{flowN:4,flowS:108,lumenN:4,lumenS:371,riseN:4,riseS:88,voxN:4,voxS:517},
+    "2025-05":{flowN:4,flowS:102,lumenN:4,lumenS:385,riseN:4,riseS:86,voxN:3,voxS:453},
+  },
+  "Maceió":{
+    "2024-01":{lumenN:4,lumenS:111,riseN:2,riseS:22,voxN:2,voxS:77},
+    "2024-02":{lumenN:4,lumenS:81,riseN:4,riseS:60,voxN:4,voxS:190},
+    "2024-03":{lumenN:5,lumenS:127,riseN:5,riseS:90,voxN:5,voxS:263},
+    "2024-04":{lumenN:4,lumenS:79,riseN:4,riseS:60,voxN:4,voxS:326},
+    "2024-05":{lumenN:3,lumenS:80,riseN:3,riseS:40,voxN:3,voxS:189},
+    "2024-06":{lumenN:5,lumenS:80,riseN:4,riseS:55,voxN:4,voxS:277},
+    "2024-07":{lumenN:4,lumenS:106,riseN:3,riseS:35,voxN:4,voxS:278},
+    "2024-08":{lumenN:4,lumenS:76,riseN:4,riseS:76,voxN:4,voxS:230},
+    "2024-09":{lumenN:5,lumenS:93,riseN:4,riseS:73,voxN:3,voxS:361},
+    "2024-10":{lumenN:4,lumenS:71,riseN:4,riseS:76,voxN:3,voxS:160},
+    "2024-11":{lumenN:4,lumenS:81,riseN:1,riseS:27,voxN:4,voxS:189},
+    "2024-12":{lumenN:4,lumenS:111,riseN:2,riseS:56,voxN:3,voxS:215},
+    "2025-01":{flowN:1,flowS:35,lumenN:2,lumenS:54,riseN:1,riseS:35,voxN:1,voxS:57},
+    "2025-02":{flowN:4,flowS:120,lumenN:4,lumenS:112,riseN:4,riseS:121,voxN:4,voxS:227},
+    "2025-03":{flowN:5,flowS:240,lumenN:5,lumenS:152,riseN:5,riseS:240,voxN:5,voxS:312},
+    "2025-04":{flowN:4,flowS:179,lumenN:4,lumenS:99,riseN:4,riseS:179,voxN:3,voxS:171},
+    "2025-05":{flowN:3,flowS:230,lumenN:4,lumenS:101,riseN:4,riseS:192,voxN:3,voxS:230},
+  },
+  "Miami":{
+    "2024-03":{lumenN:1,lumenS:13},"2024-04":{lumenN:1,lumenS:10},"2024-05":{lumenN:1,lumenS:12},
+    "2024-06":{lumenN:1,lumenS:7},"2024-07":{lumenN:1,lumenS:15},"2024-08":{lumenN:1,lumenS:16},
+    "2024-09":{lumenN:1,lumenS:14},"2024-10":{lumenN:1,lumenS:15},"2024-11":{lumenN:1,lumenS:16},
+    "2024-12":{lumenN:1,lumenS:13},"2025-02":{lumenN:3,lumenS:35},"2025-03":{lumenN:5,lumenS:47},
+    "2025-04":{lumenN:4,lumenS:33},"2025-05":{lumenN:3,lumenS:32},
+  },
+  "Porto":{
+    "2024-03":{lumenN:5,lumenS:34},"2024-04":{lumenN:4,lumenS:30},"2024-05":{lumenN:3,lumenS:22},
+    "2024-06":{lumenN:5,lumenS:24},"2024-07":{lumenN:4,lumenS:21},
+    "2024-08":{lumenN:4,lumenS:50,voxN:1,voxS:71},"2024-09":{lumenN:5,lumenS:32,voxN:1,voxS:20},
+    "2024-10":{lumenN:4,lumenS:33,voxN:1,voxS:12},"2024-11":{lumenN:4,lumenS:39,voxN:1,voxS:12},
+    "2024-12":{lumenN:4,lumenS:28},"2025-01":{lumenN:3,lumenS:14},
+    "2025-02":{lumenN:4,lumenS:29,voxN:1,voxS:28},"2025-03":{lumenN:5,lumenS:46,voxN:1,voxS:27},
+    "2025-04":{lumenN:4,lumenS:32,voxN:1,voxS:37},"2025-05":{lumenN:1,lumenS:9,voxN:1,voxS:43},
+  },
+  "Quito":{
+    "2024-01":{lumenN:3,lumenS:219,riseN:1,riseS:53,voxN:1,voxS:127},
+    "2024-02":{eklN:2,eklS:236,lumenN:4,lumenS:214,riseN:4,riseS:234,voxN:4,voxS:435},
+    "2024-03":{eklN:2,eklS:148,lumenN:5,lumenS:314,riseN:5,riseS:272,voxN:5,voxS:483},
+    "2024-04":{eklN:2,eklS:230,lumenN:4,lumenS:273,riseN:4,riseS:237,voxN:4,voxS:331},
+    "2024-05":{lumenN:3,lumenS:181,riseN:3,riseS:150,voxN:3,voxS:269},
+    "2024-06":{eklN:3,eklS:322,lumenN:5,lumenS:291,riseN:5,riseS:213,voxN:5,voxS:448},
+    "2024-07":{eklN:2,eklS:158,lumenN:4,lumenS:178,riseN:4,riseS:169,voxN:4,voxS:334},
+    "2024-08":{lumenN:4,lumenS:187,riseN:4,riseS:182,voxN:4,voxS:379},
+    "2024-09":{eklN:3,eklS:244,lumenN:5,lumenS:311,riseN:5,riseS:254,voxN:5,voxS:390},
+    "2024-10":{eklN:1,eklS:113,lumenN:4,lumenS:270,riseN:4,riseS:261,voxN:4,voxS:392},
+    "2024-11":{eklN:2,eklS:131,lumenN:4,lumenS:242,riseN:4,riseS:212,voxN:4,voxS:355},
+    "2024-12":{lumenN:4,lumenS:252,riseN:2,riseS:98,voxN:2,voxS:187},
+    "2025-01":{eklN:1,eklS:85,lumenN:2,lumenS:144,riseN:1,riseS:76,voxN:1,voxS:137},
+    "2025-02":{eklN:2,eklS:151,lumenN:4,lumenS:267,riseN:4,riseS:288,voxN:4,voxS:572},
+    "2025-03":{lumenN:5,lumenS:416,riseN:3,riseS:117,voxN:3,voxS:213},
+    "2025-04":{eklN:1,eklS:74,lumenN:4,lumenS:342,riseN:4,riseS:261,voxN:4,voxS:404},
+    "2025-05":{eklN:2,eklS:145,lumenN:4,lumenS:313,riseN:3,riseS:179,voxN:3,voxS:278},
+  },
+  "Recife":{
+    "2024-01":{diamN:1,diamS:39,lumenN:4,lumenS:216,riseN:3,riseS:111,voxN:3,voxS:475},
+    "2024-02":{diamN:1,diamS:20,lumenN:4,lumenS:299,riseN:4,riseS:153,voxN:3,voxS:414},
+    "2024-03":{diamN:1,diamS:11,lumenN:5,lumenS:446,riseN:5,riseS:188,voxN:5,voxS:659},
+    "2024-04":{diamN:1,diamS:15,lumenN:4,lumenS:305,riseN:4,riseS:106,voxN:4,voxS:590},
+    "2024-05":{diamN:1,diamS:13,lumenN:3,lumenS:200,riseN:3,riseS:77,voxN:3,voxS:427},
+    "2024-06":{diamN:1,diamS:22,lumenN:5,lumenS:392,riseN:5,riseS:140,voxN:5,voxS:800},
+    "2024-07":{lumenN:4,lumenS:345,riseN:4,riseS:143,voxN:4,voxS:646},
+    "2024-08":{diamN:1,diamS:14,lumenN:4,lumenS:402,riseN:4,riseS:185,voxN:4,voxS:780},
+    "2024-09":{diamN:1,diamS:17,lumenN:5,lumenS:637,riseN:5,riseS:223,voxN:4,voxS:907},
+    "2024-10":{diamN:1,diamS:12,lumenN:4,lumenS:460,riseN:4,riseS:180,voxN:4,voxS:1390},
+    "2024-11":{lumenN:4,lumenS:459,riseN:3,riseS:117,voxN:4,voxS:1022},
+    "2024-12":{diamN:1,diamS:15,lumenN:4,lumenS:509,riseN:2,riseS:74,voxN:3,voxS:556},
+    "2025-01":{lumenN:3,lumenS:267,voxN:1,voxS:390},
+    "2025-02":{diamN:1,diamS:18,eklN:4,eklS:424,flowN:4,flowS:130,lumenN:4,lumenS:504,riseN:4,riseS:111,voxN:4,voxS:744},
+    "2025-03":{diamN:1,diamS:12,eklN:5,eklS:942,flowN:5,flowS:409,lumenN:5,lumenS:577,riseN:5,riseS:373,voxN:5,voxS:1289},
+    "2025-04":{diamN:1,diamS:16,eklN:4,eklS:519,flowN:4,flowS:313,lumenN:4,lumenS:551,riseN:4,riseS:278,voxN:4,voxS:812},
+    "2025-05":{diamN:1,diamS:11,eklN:4,eklS:382,flowN:4,flowS:132,lumenN:4,lumenS:623,riseN:4,riseS:89,voxN:4,voxS:1089},
+  },
+  "Ribeir\u00e3o Preto":{
+    "2024-03":{lumenN:1,lumenS:52},"2024-04":{lumenN:4,lumenS:173,voxN:1,voxS:85},
+    "2024-05":{lumenN:3,lumenS:137,voxN:3,voxS:115},
+    "2024-06":{lumenN:5,lumenS:234,riseN:5,riseS:81,voxN:5,voxS:149},
+    "2024-07":{lumenN:4,lumenS:157,riseN:4,riseS:56,voxN:4,voxS:175},
+    "2024-08":{lumenN:4,lumenS:175,riseN:4,riseS:57,voxN:4,voxS:190},
+    "2024-09":{lumenN:5,lumenS:197,riseN:5,riseS:113,voxN:5,voxS:317},
+    "2024-10":{lumenN:4,lumenS:133,riseN:4,riseS:86,voxN:4,voxS:172},
+    "2024-11":{lumenN:4,lumenS:214,riseN:3,riseS:58,voxN:3,voxS:140},
+    "2024-12":{lumenN:4,lumenS:207,riseN:3,riseS:51,voxN:3,voxS:129},
+    "2025-01":{lumenN:3,lumenS:158,riseN:1,riseS:23,voxN:1,voxS:50},
+    "2025-02":{lumenN:4,lumenS:234,riseN:4,riseS:129,voxN:4,voxS:237},
+    "2025-03":{lumenN:5,lumenS:270,riseN:4,riseS:92,voxN:5,voxS:352},
+    "2025-04":{lumenN:4,lumenS:231,riseN:4,riseS:77,voxN:4,voxS:301},
+    "2025-05":{lumenN:3,lumenS:188,riseN:3,riseS:82,voxN:3,voxS:215},
+  },
+  "Santiago":{
+    "2024-01":{lumenN:1,lumenS:12},"2024-02":{lumenN:1,lumenS:12},"2024-03":{lumenN:5,lumenS:56},
+    "2024-04":{lumenN:4,lumenS:49},"2024-05":{lumenN:3,lumenS:29},"2024-06":{lumenN:5,lumenS:54},
+    "2024-07":{lumenN:4,lumenS:58},"2024-08":{lumenN:4,lumenS:49,voxN:1,voxS:28},
+    "2024-09":{lumenN:5,lumenS:55},"2024-10":{lumenN:4,lumenS:59,voxN:1,voxS:28},
+    "2024-11":{lumenN:3,lumenS:50},"2024-12":{lumenN:4,lumenS:69,voxN:1,voxS:27},
+    "2025-01":{lumenN:3,lumenS:63},"2025-02":{lumenN:4,lumenS:31,voxN:1,voxS:32},
+    "2025-03":{lumenN:1,lumenS:6,voxN:3,voxS:59},"2025-04":{lumenN:4,lumenS:49,voxN:2,voxS:45},
+    "2025-05":{lumenN:4,lumenS:52,voxN:2,voxS:32},
+  },
+  "Santos":{
+    "2024-06":{lumenN:2,lumenS:48},"2024-07":{lumenN:4,lumenS:62},"2024-08":{lumenN:4,lumenS:52},
+    "2024-09":{lumenN:5,lumenS:99},"2024-10":{lumenN:4,lumenS:68},"2024-11":{lumenN:4,lumenS:84},
+    "2024-12":{lumenN:4,lumenS:87},"2025-01":{lumenN:3,lumenS:84,voxN:1,voxS:68},
+    "2025-02":{lumenN:4,lumenS:128,voxN:4,voxS:207},"2025-03":{lumenN:5,lumenS:162,voxN:5,voxS:272},
+    "2025-04":{lumenN:4,lumenS:120,voxN:3,voxS:164},"2025-05":{lumenN:3,lumenS:87,voxN:2,voxS:116},
+  },
+  "S\u00e3o Paulo":{
+    "2024-01":{eklN:2,eklS:873,flowN:2,flowS:216,lumenN:3,lumenS:1099,riseN:2,riseS:259,voxN:2,voxS:1691},
+    "2024-02":{diamN:1,diamS:57,eklN:4,eklS:1532,flowN:4,flowS:528,lumenN:4,lumenS:1889,riseN:4,riseS:555,voxN:4,voxS:2848},
+    "2024-03":{diamN:1,diamS:53,eklN:4,eklS:1305,flowN:5,flowS:853,lumenN:5,lumenS:2618,riseN:5,riseS:968,voxN:5,voxS:3799},
+    "2024-04":{diamN:1,diamS:93,eklN:4,eklS:1591,flowN:4,flowS:385,lumenN:4,lumenS:1519,riseN:4,riseS:577,voxN:4,voxS:2078},
+    "2024-05":{eklN:3,eklS:1280,flowN:3,flowS:378,lumenN:3,lumenS:1160,riseN:3,riseS:572,voxN:3,voxS:1821},
+    "2024-06":{diamN:1,diamS:80,eklN:4,eklS:1866,flowN:5,flowS:620,lumenN:5,lumenS:2006,riseN:5,riseS:795,voxN:4,voxS:2319},
+    "2024-07":{eklN:1,eklS:415,flowN:2,flowS:266,lumenN:4,lumenS:1576,riseN:2,riseS:237,voxN:1,voxS:657},
+    "2024-08":{diamN:1,diamS:90,eklN:4,eklS:1736,flowN:4,flowS:672,lumenN:4,lumenS:1688,riseN:4,riseS:587,voxN:3,voxS:1752},
+    "2024-09":{diamN:1,diamS:98,eklN:4,eklS:1819,flowN:5,flowS:1042,lumenN:5,lumenS:2255,riseN:5,riseS:1194,voxN:5,voxS:2818},
+    "2024-10":{diamN:1,diamS:82,eklN:4,eklS:1746,flowN:4,flowS:666,lumenN:4,lumenS:1582,riseN:4,riseS:735,voxN:4,voxS:2210},
+    "2024-11":{diamN:1,diamS:92,eklN:3,eklS:1234,flowN:3,flowS:539,lumenN:3,lumenS:527,riseN:3,riseS:527,voxN:3,voxS:1842},
+    "2024-12":{eklN:3,eklS:968,flowN:2,flowS:376,lumenN:2,lumenS:328,riseN:2,riseS:328,voxN:3,voxS:1734},
+    "2025-01":{eklN:1,eklS:556,flowN:1,flowS:208,lumenN:3,lumenS:1100,riseN:1,riseS:117,voxN:1,voxS:929},
+    "2025-02":{diamN:1,diamS:118,eklN:4,eklS:1915,flowN:4,flowS:869,lumenN:4,lumenS:1729,riseN:4,riseS:696,voxN:4,voxS:2707},
+    "2025-03":{diamN:1,diamS:110,eklN:5,eklS:2606,flowN:5,flowS:1145,lumenN:5,lumenS:2133,riseN:4,riseS:962,voxN:5,voxS:3158},
+    "2025-04":{diamN:1,diamS:110,eklN:4,eklS:1963,flowN:4,flowS:1087,lumenN:4,lumenS:1861,riseN:3,riseS:665,voxN:4,voxS:2578},
+    "2025-05":{diamN:1,diamS:105,eklN:3,eklS:1591,flowN:3,flowS:820,lumenN:3,lumenS:1154,riseN:3,riseS:665,voxN:3,voxS:1985},
+  },
+  "Vale do Ribeira":{
+    "2024-02":{lumenN:2,lumenS:16},"2024-03":{lumenN:3,lumenS:17},"2024-04":{lumenN:4,lumenS:23},
+    "2024-05":{lumenN:3,lumenS:23},"2024-06":{lumenN:5,lumenS:59},"2024-07":{lumenN:1,lumenS:16},
+    "2024-08":{lumenN:4,lumenS:46},"2024-09":{lumenN:5,lumenS:82},"2024-10":{lumenN:4,lumenS:65},
+    "2024-11":{lumenN:4,lumenS:47},"2024-12":{lumenN:4,lumenS:56},
+    "2025-01":{lumenN:3,lumenS:49,riseN:1,riseS:10,voxN:1,voxS:25},
+    "2025-02":{lumenN:4,lumenS:58,riseN:2,riseS:32,voxN:2,voxS:65},
+    "2025-03":{lumenN:5,lumenS:55,riseN:4,riseS:86,voxN:3,voxS:116},
+    "2025-04":{lumenN:4,lumenS:85,riseN:3,riseS:37,voxN:4,voxS:115},
+    "2025-05":{lumenN:3,lumenS:47,riseN:3,riseS:55,voxN:3,voxS:123},
+  },
+};
+const GEN_CATS=[
+  {key:'lumen',label:'Lumen/G5.2', color:'#5BC4BF'},
+  {key:'rise', label:'Rise',       color:'#78C47A'},
+  {key:'flow', label:'Flow',       color:'#D4AF37'},
+  {key:'vox',  label:'Vox',        color:'#078780'},
+  {key:'ekl',  label:'Eklektos',   color:'#A8A9AD'},
+  {key:'diam', label:'Diamantes',  color:'#89CFF0'},
+];
+function gerAvg(locId,months,cat){
+  let s=0,n=0;
+  months.forEach(m=>{const d=GER_DATA[locId]?.[m];if(d){s+=d[cat+'S']||0;n+=d[cat+'N']||0;}});
+  return n>0?Math.round(s/n):0;
+}
+function PageGeracionais(){
+  const [period,setPeriod]=useState('2025-S1');
+  const [locId,setLocId]=useState('São Paulo');
+  const months=pMonths(period);
+  const loc=LOCS.find(l=>l.id===locId);
+  const hasData=GER_DATA[locId]&&months.some(m=>GER_DATA[locId][m]);
+  const monthlyData=months.map(m=>{
+    const d=GER_DATA[locId]?.[m]||{};
+    const row={name:fmtMonth(m)};let tot=0;
+    GEN_CATS.forEach(c=>{const v=(d[c.key+'N']||0)>0?Math.round(d[c.key+'S']/d[c.key+'N']):0;row[c.key]=v;tot+=v;});
+    row.total=tot;return row;
+  });
+  /* média ponderada global por geracional (weighted avg, não soma bruta) */
+  const globalByGen=GEN_CATS.map(c=>{
+    let s=0,n=0;
+    LOCS.forEach(l=>{months.forEach(m=>{
+      const d=GER_DATA[l.id]?.[m];
+      if(d){s+=d[c.key+'S']||0;n+=d[c.key+'N']||0;}
+    });});
+    return{name:c.label,val:n>0?Math.round(s/n):0,color:c.color};
+  });
+  const kpiData=GEN_CATS.map(c=>({...c,val:gerAvg(locId,months,c.key)}));
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>Geracionais</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>Média de presença por domingo em cada geracional — por localidade e período</p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {LOCS.map(l=>(
+          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12}}>
+        {kpiData.map(c=>(
+          <Card key={c.key} style={{textAlign:'center'}}>
+            <div style={{fontSize:10,color:c.color,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>{c.label}</div>
+            <div className="serif" style={{fontSize:24,fontWeight:700,color:C.cream}}>{c.val>0?c.val.toLocaleString('pt-BR'):'—'}</div>
+            <div style={{fontSize:10,color:'#666',marginTop:2}}>méd/domingo</div>
+          </Card>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>Média por Domingo — {loc?.name} ({PERIODS[period]?.label})</ChartTitle>
+          {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para esta localidade no período selecionado</div>:(
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData} margin={{top:20,right:8,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
+              {GEN_CATS.map((c,i)=>(
+                <Bar isAnimationActive={false} key={c.key} dataKey={c.key} name={c.label} stackId="a" fill={c.color}>
+                  {i===GEN_CATS.length-1&&<LabelList dataKey="total" position="top" style={{fill:C.cream,fontSize:11,fontWeight:700}} formatter={v=>v>0?v.toLocaleString('pt-BR'):''}/>}
+                </Bar>
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+          )}
+        </Card>
+        <Card>
+          <ChartTitle>Média de Pessoas/Dom por Geracional — Global ({PERIODS[period]?.label})</ChartTitle>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={globalByGen} margin={{top:20,right:8,bottom:40,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-30} textAnchor="end" height={55} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+              <Tooltip content={<TT/>}/>
+              <Bar isAnimationActive={false} dataKey="val" name="Total" radius={[4,4,0,0]}>
+                {globalByGen.map((d,i)=><Cell key={i} fill={d.color}/>)}
+                <LabelList dataKey="val" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <Card>
+        <ChartTitle>Tabela — {loc?.name} ({PERIODS[period]?.label})</ChartTitle>
+        {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para esta localidade no período selecionado</div>:(
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>
+              <th style={{textAlign:'left',padding:'6px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Mês</th>
+              {GEN_CATS.map(c=><th key={c.key} style={{textAlign:'right',padding:'6px 8px',color:c.color,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{c.label}</th>)}
+              <th style={{textAlign:'right',padding:'6px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Total</th>
+            </tr></thead>
+            <tbody>
+              {monthlyData.filter(r=>r.total>0).map(r=>(
+                <tr key={r.name} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                  <td style={{padding:'5px 8px',color:C.cream,fontWeight:600}}>{r.name}</td>
+                  {GEN_CATS.map(c=>(
+                    <td key={c.key} style={{padding:'5px 8px',textAlign:'right',color:r[c.key]>0?C.cream:'#444'}}>
+                      {r[c.key]>0?r[c.key].toLocaleString('pt-BR'):'—'}
+                      {r.total>0&&r[c.key]>0&&<span style={{fontSize:9,color:'#666',marginLeft:3}}>{Math.round(r[c.key]/r.total*100)}%</span>}
+                    </td>
+                  ))}
+                  <td style={{padding:'5px 8px',textAlign:'right',fontWeight:700,color:C.teal}}>{r.total.toLocaleString('pt-BR')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ PAGE: PRÉDIOS VS PÚBLICO */
+/* tier = classificação oficial da rede (campo fixo, não calculado por fórmula de cadeiras)
+   HOTEL = campus que ainda não tem prédio próprio, funciona em hotel/espaço alugado */
+const PRED_DATA={
+  'São Paulo':      {seats:2500,cultos:4,tier:'DIAMOND', name:'Galpão São Paulo'},
+  'Recife':         {seats:900, cultos:4,tier:'GOLD',    name:'Sede Recife'},
+  'Campinas':       {seats:600, cultos:3,tier:'SILVER',  name:'Sede Campinas'},
+  'Santos':         {seats:400, cultos:1,tier:'GOLD',    name:'Sede Santos'},
+  'Ribeirão Preto': {seats:350, cultos:1,tier:'PLATINUM',name:'Sede Ribeirão Preto'},
+  'Maceió':         {seats:300, cultos:2,tier:'SILVER',  name:'Sede Maceió'},
+  'Jundiaí':        {seats:250, cultos:2,tier:'SILVER',  name:'Sede Jundiaí'},
+  'Campo Grande':   {seats:300, cultos:1,tier:'GOLD',    name:'Sede Campo Grande'},
+  'Vale do Ribeira':{seats:150, cultos:1,tier:'GOLD',    name:'Sede Vale do Ribeira'},
+  'SJCampos':       {seats:200, cultos:1,tier:'HOTEL',   name:'Sede SJCampos (mensal)'},
+  'Vitória':        {seats:200, cultos:1,tier:'HOTEL',   name:'Sede Vitória (mensal)'},
+  'Lisboa':         {seats:300, cultos:3,tier:'GOLD',    name:'Sede Lisboa'},
+  'Porto':          {seats:200, cultos:1,tier:'SILVER',  name:'Sede Porto'},
+  'Cascais':        {seats:150, cultos:1,tier:'HOTEL',   name:'Sede Cascais'},
+  'Quito':          {seats:250, cultos:3,tier:'GOLD',    name:'Sede Quito'},
+  'Cuenca':         {seats:150, cultos:1,tier:'SILVER',  name:'Sede Cuenca'},
+  'Santiago':       {seats:250, cultos:1,tier:'SILVER',  name:'Sede Santiago'},
+  'Miami':          {seats:200, cultos:1,tier:'SILVER',  name:'Sede Miami'},
+  'Orlando':        {seats:150, cultos:1,tier:'SILVER',  name:'Sede Orlando'},
+};
+/* cap total = seats × cultos */
+Object.values(PRED_DATA).forEach(d=>{d.cap=d.seats*d.cultos;});
+function PagePredios(){
+  const [period,setPeriod]=useState('2026-S1');
+  const months=pMonths(period);
+
+  const rows=LOCS.map(loc=>{
+    const pred=PRED_DATA[loc.id]||{seats:0,cultos:1,cap:0,name:loc.name,tier:'—'};
+    const people=avgSunday(loc.id,months);
+    const isHotel=pred.tier==='HOTEL';
+    const utilPct=(!isHotel&&pred.cap>0)?Math.round(people/pred.cap*100):0;
+    const buildTier=getBldgTierByName(pred.tier||'—');
+    const peopleTier=getTier(people);
+    return{loc,pred,people,utilPct,buildTier,peopleTier,isHotel};
+  }).sort((a,b)=>b.utilPct-a.utilPct);
+
+  const chartData=rows.map(r=>({name:r.loc.name,seats:r.pred.seats,cap:r.pred.cap,people:r.people,util:r.utilPct}));
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <div>
+          <h2 className="serif" style={{fontSize:22,color:C.cream}}>Prédio vs Público</h2>
+          <p style={{fontSize:12,color:C.teal,marginTop:2}}>Cadeiras do templo × cultos por domingo = capacidade total (Gold) | Presença de pessoas (Silver) — taxa de ocupação por campus</p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod}/>
+      </div>
+      <div style={{background:'rgba(123,92,62,0.15)',border:'1px solid rgba(123,92,62,0.4)',borderRadius:10,padding:'12px 16px',fontSize:12,color:'#c8a07a',display:'flex',gap:8,alignItems:'center'}}>
+        🏨 <span><b>HOTEL</b> = campus sem prédio próprio (SJCampos, Vitória, Cascais) — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12}}>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cadeiras (Templo)</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#D4AF37'}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+(r.pred.seats||0),0).toLocaleString('pt-BR')}</div>
+          <div style={{fontSize:10,color:'#777',marginTop:2}}>{rows.filter(r=>!r.isHotel).length} sedes próprias</div>
+        </Card>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cap. Total (×Cultos)</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#c8a020'}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+r.pred.cap,0).toLocaleString('pt-BR')}</div>
+          <div style={{fontSize:10,color:'#777',marginTop:2}}>assentos × cultos/dom</div>
+        </Card>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Presença Total</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#A8A9AD'}}>{rows.reduce((s,r)=>s+r.people,0).toLocaleString('pt-BR')}</div>
+          <div style={{fontSize:10,color:'#777',marginTop:2}}>média por domingo</div>
+        </Card>
+        <Card style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Ocupação Média</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:C.teal}}>
+            {(()=>{const ok=rows.filter(r=>!r.isHotel&&r.pred.cap>0);return ok.length>0?Math.round(ok.reduce((s,r)=>s+r.utilPct,0)/ok.length):0;})()}%
+          </div>
+          <div style={{fontSize:10,color:'#777',marginTop:2}}>sedes próprias</div>
+        </Card>
+      </div>
+      <Card>
+        <ChartTitle>Cadeiras / Cap.Total (×Cultos) / Presença — {PERIODS[period]?.label}</ChartTitle>
+        <ResponsiveContainer width="100%" height={380}>
+          <BarChart data={chartData} margin={{top:22,right:8,bottom:55,left:0}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
+            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
+            <Tooltip content={<TT/>}/>
+            <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
+            <Bar isAnimationActive={false} dataKey="seats" name="Cadeiras (templo)" fill="#8B6914" radius={[3,3,0,0]}/>
+            <Bar isAnimationActive={false} dataKey="cap" name="Cap. Total (×cultos)" fill="#D4AF37" radius={[3,3,0,0]}>
+              <LabelList dataKey="cap" position="top" style={{fill:'#D4AF37',fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+            <Bar isAnimationActive={false} dataKey="people" name="Presença/Dom (Silver)" fill="#A8A9AD" radius={[3,3,0,0]}>
+              <LabelList dataKey="people" position="top" style={{fill:C.cream,fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+      <Card>
+        <ChartTitle>Tabela — Prédio vs Pessoas com Selos e Taxa de Ocupação</ChartTitle>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>
+              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>Campus</th>
+              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Prédio</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#8B6914',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cadeiras</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cultos/Dom</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cap. Total</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo Prédio</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Pessoas/Dom</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo Pessoas</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Ocupação</th>
+            </tr></thead>
+            <tbody>
+              {rows.map(r=>(
+                <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                  <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{r.loc.flag} {r.loc.name}</td>
+                  <td style={{padding:'5px 8px',color:'#aaa',fontSize:10}}>{r.pred.name}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',color:'#8B6914',fontWeight:600}}>{(r.pred.seats||0).toLocaleString('pt-BR')}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',color:'#D4AF37',fontWeight:700}}>{r.pred.cultos||1}×</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:'#D4AF37'}}>{r.pred.cap.toLocaleString('pt-BR')}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center'}}>
+                    <span style={{background:r.buildTier.color,color:r.buildTier.text,padding:'1px 7px',borderRadius:8,fontSize:9,fontWeight:700}}>{r.buildTier.name}</span>
+                  </td>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:'#A8A9AD'}}>{r.people.toLocaleString('pt-BR')}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center'}}>
+                    <span style={{background:r.peopleTier.color,color:r.peopleTier.text,padding:'1px 7px',borderRadius:8,fontSize:9,fontWeight:700}}>{r.peopleTier.name}</span>
+                  </td>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:r.isHotel?'#7B5C3E':r.utilPct>=80?'#439B6A':r.utilPct>=50?'#D4AF37':'#e05c5c'}}>
+                    {r.isHotel?'🏨 —':r.utilPct+'%'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ═══ SIDEBAR */
+const PAGES=[
+  {id:'ranking',    label:'Ranking de Localidades', icon:'🏅'},
+  {id:'global',     label:'Visão Global',            icon:'🌍'},
+  {id:'local',      label:'Zion Local',              icon:'📍'},
+  {id:'cultos',     label:'Cultos — Domingos',       icon:'⛪'},
+  {id:'batismo',    label:'Batismo',                 icon:'💧'},
+  {id:'links',      label:'Links',                   icon:'🔗'},
+  {id:'plinks',     label:'Pessoas em Links',        icon:'👥'},
+  {id:'voluntarios',label:'Voluntários',             icon:'🙋'},
+  {id:'raizes',     label:'Raízes Finalizados',      icon:'🌱'},
+  {id:'zao',        label:'ZAO',                     icon:'📚'},
+  {id:'digital',    label:'Presença Digital',        icon:'📱'},
+  {id:'taxas',      label:'Taxas Estratégicas',      icon:'📊'},
+  {id:'geracionais',label:'Geracionais',             icon:'👶'},
+  {id:'predios',    label:'Prédio vs Público',       icon:'🏛️'},
+  {id:'dados',      label:'Controle de Dados',       icon:'✅'},
+];
+
+function Sidebar({page,setPage,collapsed,setCollapsed}){
+  return(
+    <aside style={{width:collapsed?52:222,minWidth:collapsed?52:222,background:'#021a1a',borderRight:'1px solid rgba(7,135,128,0.2)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto',overflowX:'hidden',transition:'width 0.22s,min-width 0.22s'}}>
+      <div style={{padding:collapsed?'14px 0':'14px 16px',borderBottom:'1px solid rgba(7,135,128,0.2)',display:'flex',alignItems:'center',justifyContent:collapsed?'center':'space-between',cursor:'pointer',minHeight:56,flexShrink:0}} onClick={()=>setCollapsed(!collapsed)}>
+        {!collapsed&&<div className="serif" style={{fontSize:19,fontWeight:700,color:C.cream,letterSpacing:2}}>ZION</div>}
+        <div style={{color:C.teal,fontSize:16,lineHeight:1}}>{collapsed?'▶':'◀'}</div>
+      </div>
+      <nav style={{flex:1,padding:'6px 0',overflowY:'auto'}}>
+        {PAGES.map(p=>(
+          <button key={p.id} onClick={()=>setPage(p.id)} title={collapsed?p.label:''} style={{width:'100%',padding:collapsed?'10px 0':'9px 14px',background:page===p.id?'rgba(7,135,128,0.22)':'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:9,color:page===p.id?C.cream:C.teal,fontSize:12,fontWeight:page===p.id?600:400,textAlign:'left',justifyContent:collapsed?'center':'flex-start',borderLeft:page===p.id?`3px solid ${C.teal}`:'3px solid transparent'}}>
+            <span style={{fontSize:15,minWidth:20,textAlign:'center'}}>{p.icon}</span>
+            {!collapsed&&<span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.label}</span>}
+          </button>
+        ))}
+      </nav>
+      {!collapsed&&<div style={{padding:'10px 14px',borderTop:'1px solid rgba(7,135,128,0.2)',fontSize:10,color:'rgba(7,135,128,0.4)',textAlign:'center',flexShrink:0}}>© 2026 Zion Church</div>}
+    </aside>
+  );
+}
+
+/* ═══ APP */
+function App(){
+  const [authed,setAuthed]=useState(false);
+  const [page,setPage]=useState('global');
+  const [collapsed,setCollapsed]=useState(false);
+  if(!authed)return<Login onLogin={()=>setAuthed(true)}/>;
+  function renderPage(){
+    switch(page){
+      case 'ranking':     return<PageRanking/>;
+      case 'global':      return<PageGlobal/>;
+      case 'local':       return<PageLocal/>;
+      case 'cultos':      return<PageCultos/>;
+      case 'batismo':     return<MetricPage title="Total de Batismos" pageTitle="Batismo" field="bap" isStock={false} aggFn={sumFlow} description="Total de batismos realizados no período — métrica de fluxo (soma acumulada dos meses)" color={C.teal} compTitle="Total de Batismos"/>;
+      case 'links':       return<MetricPage title="Links Ativos" pageTitle="Links" field="links" isStock={true} aggFn={lastVal} description="Quantidade de links ativos — valor do último mês do período selecionado (métrica de estoque)" color={C.teal} compTitle="Links Ativos"/>;
+      case 'plinks':      return<MetricPage title="Pessoas em Links" field="plinks" isStock={true} aggFn={lastVal} description="Pessoas participando de links — valor do último mês (métrica de estoque, não soma os meses)" color={C.sage} compTitle="Pessoas em Links"/>;
+      case 'voluntarios': return<MetricPage title="Voluntários Ativos" pageTitle="Voluntários" field="vol" isStock={true} aggFn={maxVal} description="Voluntários ativos — valor do último mês do período (métrica de estoque)" color={C.sage} compTitle="Voluntários Ativos"/>;
+      case 'raizes':      return<MetricPage title="Raízes Finalizados" pageTitle="Raízes Finalizados" field="raiz" isStock={false} aggFn={sumFlow} description="Raízes finalizados no período — métrica de fluxo (soma acumulada dos meses)" color={C.teal} compTitle="Raízes Finalizados"/>;
+      case 'zao':         return<MetricPage title="Matrículas ZAO" pageTitle="ZAO" field="zao" isStock={true} aggFn={maxVal} description="Matrículas ativas no ZAO — valor do último mês (métrica de estoque)" color={C.teal} compTitle="Matrículas ZAO"/>;
+      case 'digital':     return<MetricPage title="Seguidores Instagram" pageTitle="Presença Digital" field="ig" isStock={true} aggFn={lastVal} description="Seguidores no Instagram — valor do último mês do período (métrica de estoque)" color={C.sage} compTitle="Seguidores Instagram"/>;
+      case 'taxas':       return<PageTaxas/>;
+      case 'geracionais': return<PageGeracionais/>;
+      case 'predios':     return<PagePredios/>;
+      case 'dados':       return<PageDataControl/>;
+      default:            return<PageGlobal/>;
+    }
+  }
+  return(
+    <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+      <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
+      <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,#032525 0%,${C.deepGreen} 100%)`}}>
+        {renderPage()}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
