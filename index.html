@@ -130,7 +130,8 @@ function prevPeriod(p){
 function pMonths(p){return PERIODS[p]?.months||[];}
 
 /* ═══ REAL DATA — extracted from Data Base - Dashboard Global (6).xlsx */
-const DATA = {
+/* ═══ REAL DATA — extracted from Data Base - Dashboard Global (12).xlsx */
+const DATA={
   "Campinas":{
     "2023-01":{bap:0,raiz:17,vol:10,zao:0,ig:1800},
     "2023-02":{bap:0,raiz:0,vol:10,zao:0,ig:2466},
@@ -140,28 +141,28 @@ const DATA = {
     "2023-06":{bap:0,raiz:49,vol:50,zao:0,ig:5300},
     "2023-07":{bap:0,raiz:0,vol:70,zao:0,ig:5723},
     "2023-08":{bap:0,raiz:38,vol:90,zao:0,ig:6153},
-    "2023-09":{sunS:955,sunN:4,bap:0,raiz:0,vol:101,zao:0,links:7,plinks:100,ig:6924},
+    "2023-09":{sunS:1343,sunN:4,bap:0,raiz:0,vol:101,zao:0,links:7,plinks:100,ig:6924},
     "2023-10":{sunS:1422,sunN:5,bap:0,raiz:0,vol:120,zao:0,links:8,plinks:101,ig:7300},
-    "2023-11":{sunS:965,sunN:4,bap:0,raiz:0,vol:120,zao:0,links:8,plinks:101,ig:7760},
-    "2023-12":{sunS:600,sunN:3,bap:0,raiz:0,vol:120,zao:0,links:8,plinks:101,ig:7900},
-    "2024-01":{sunS:1451,sunN:3,bap:0,raiz:0,vol:126,zao:106,links:8,plinks:101,ig:8068,yt:459},
-    "2024-02":{sunS:1573,sunN:4,bap:20,raiz:0,vol:133,zao:106,links:19,plinks:140,ig:8814,yt:805},
-    "2024-03":{sunS:2211,sunN:5,bap:0,raiz:76,vol:264,zao:106,links:19,plinks:182,ig:9915,yt:1200},
-    "2024-04":{sunS:2412,sunN:4,bap:0,raiz:0,vol:110,zao:106,links:27,plinks:243,ig:10678,yt:1730},
-    "2024-05":{sunS:1667,sunN:4,bap:0,raiz:0,vol:147,zao:84,links:27,plinks:264,ig:10912,yt:1800},
-    "2024-06":{sunS:3161,sunN:5,bap:19,raiz:0,vol:178,zao:84,links:27,plinks:292,ig:11300,yt:1913},
-    "2024-07":{sunS:2555,sunN:4,bap:0,raiz:0,vol:240,zao:0,ig:12061,yt:2144},
-    "2024-08":{sunS:2889,sunN:4,bap:0,raiz:0,vol:274,zao:0,links:39,plinks:494,ig:12960,yt:2610},
-    "2024-09":{sunS:3479,sunN:5,bap:0,raiz:0,vol:274,zao:0,links:40,plinks:494,ig:13272,yt:2717},
-    "2024-10":{sunS:2871,sunN:4,bap:0,raiz:0,vol:323,zao:160,links:39,plinks:457,ig:14015,yt:2960},
-    "2024-11":{sunS:3365,sunN:4,bap:26,raiz:26,vol:323,zao:160,links:39,plinks:457,ig:14845,yt:3200},
+    "2023-11":{sunS:1287,sunN:4,bap:0,raiz:0,vol:120,zao:0,links:8,plinks:101,ig:7760},
+    "2023-12":{sunS:900,sunN:3,bap:0,raiz:0,vol:120,zao:0,links:8,plinks:101,ig:7900},
+    "2024-01":{sunS:484,sunN:1,bap:0,raiz:0,vol:126,zao:106,links:8,plinks:101,ig:8068,yt:459},
+    "2024-02":{sunS:393,sunN:1,bap:20,raiz:0,vol:133,zao:106,links:19,plinks:140,ig:8814,yt:805},
+    "2024-03":{sunS:442,sunN:1,bap:0,raiz:76,vol:264,zao:106,links:19,plinks:182,ig:9915,yt:1200},
+    "2024-04":{sunS:603,sunN:1,bap:0,raiz:0,vol:110,zao:106,links:27,plinks:243,ig:10678,yt:1730},
+    "2024-05":{sunS:556,sunN:1,bap:0,raiz:0,vol:147,zao:84,links:27,plinks:264,ig:10912,yt:1800},
+    "2024-06":{sunS:3160,sunN:5,bap:19,raiz:0,vol:178,zao:84,links:27,plinks:292,ig:11300,yt:1913},
+    "2024-07":{sunS:2556,sunN:4,bap:0,raiz:0,vol:240,zao:0,ig:12061,yt:2144},
+    "2024-08":{sunS:2888,sunN:4,bap:0,raiz:0,vol:274,zao:0,links:39,plinks:494,ig:12960,yt:2610},
+    "2024-09":{sunS:3480,sunN:5,bap:0,raiz:0,vol:274,zao:0,links:40,plinks:494,ig:13272,yt:2717},
+    "2024-10":{sunS:2872,sunN:4,bap:0,raiz:0,vol:323,zao:160,links:39,plinks:457,ig:14015,yt:2960},
+    "2024-11":{sunS:3364,sunN:4,bap:26,raiz:26,vol:323,zao:160,links:39,plinks:457,ig:14845,yt:3200},
     "2024-12":{sunS:3376,sunN:4,bap:0,raiz:0,vol:369,zao:160,links:39,plinks:457,ig:15375,yt:3370},
     "2025-01":{sunS:3334,sunN:3,bap:0,raiz:0,vol:369,zao:253,links:35,plinks:571,ig:16800,yt:3812},
     "2025-02":{sunS:4117,sunN:4,bap:17,raiz:0,vol:374,zao:253,links:35,plinks:571,ig:17598,yt:4100},
     "2025-03":{sunS:5098,sunN:5,bap:0,raiz:0,vol:374,zao:253,links:35,plinks:571,ig:17769,yt:4180},
     "2025-04":{sunS:4307,sunN:4,bap:0,raiz:0,vol:374,zao:253,links:35,plinks:571,ig:18400,yt:4670},
-    "2025-05":{sunS:2942,sunN:4,bap:0,raiz:60,vol:374,zao:253,links:35,plinks:571,ig:18484,yt:4720},
-    "2025-06":{sunS:4814,sunN:5,bap:23,raiz:0,vol:374,zao:32,links:35,plinks:571,ig:19000,yt:4940},
+    "2025-05":{sunS:2942,sunN:3,bap:0,raiz:60,vol:374,zao:253,links:35,plinks:571,ig:18484,yt:4720},
+    "2025-06":{sunS:4815,sunN:5,bap:23,raiz:0,vol:374,zao:32,links:35,plinks:571,ig:19000,yt:4940},
     "2025-07":{sunS:3633,sunN:4,bap:0,raiz:0,vol:374,zao:32,links:35,plinks:571,ig:19400,yt:5160},
     "2025-08":{sunS:4831,sunN:5,bap:0,raiz:61,vol:347,zao:46,links:45,plinks:571,ig:20000,yt:5470},
     "2025-09":{sunS:3891,sunN:4,bap:0,raiz:0,vol:347,zao:77,links:45,plinks:549,ig:20500,yt:5690},
@@ -170,29 +171,29 @@ const DATA = {
     "2025-12":{sunS:2675,sunN:3,bap:0,raiz:99,vol:347,zao:0,links:45,plinks:549,ig:21647,yt:6170},
     "2026-01":{sunS:3680,sunN:3,bap:0,raiz:0,vol:347,zao:419,ig:23700,yt:7140},
     "2026-02":{sunS:2910,sunN:3,vol:347,zao:419,links:42,plinks:231,ig:24600,yt:7520},
-    "2026-03":{bap:18}
+    "2026-03":{bap:18},
   },
   "Campo Grande":{
-    "2024-01":{bap:0,raiz:0,zao:0,links:1,plinks:21},
-    "2024-02":{sunS:60,sunN:4,bap:0,raiz:0,zao:0,links:1,plinks:26},
-    "2024-03":{sunS:117,sunN:5,bap:0,raiz:0,zao:0,links:2,plinks:28},
-    "2024-04":{sunS:50,sunN:4,bap:0,raiz:0,zao:0,links:2,plinks:25},
-    "2024-05":{sunS:85,sunN:4,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:25},
-    "2024-06":{sunS:288,sunN:5,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:25,ig:485},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:21},
+    "2024-02":{sunS:60,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:1,plinks:26},
+    "2024-03":{sunS:58,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:28},
+    "2024-04":{sunS:50,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:25},
+    "2024-05":{sunS:43,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:25},
+    "2024-06":{sunS:290,sunN:5,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:25,ig:485},
     "2024-07":{sunS:256,sunN:4,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:30},
     "2024-08":{sunS:232,sunN:4,bap:5,raiz:5,vol:17,zao:0,links:4,plinks:35,ig:905},
-    "2024-09":{sunS:356,sunN:5,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:51},
-    "2024-10":{sunS:303,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:55,ig:1045},
-    "2024-11":{sunS:279,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:60,ig:1300},
-    "2024-12":{sunS:225,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:60,ig:1370},
+    "2024-09":{sunS:355,sunN:5,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:51},
+    "2024-10":{sunS:304,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:55,ig:1045},
+    "2024-11":{sunS:280,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:60,ig:1300},
+    "2024-12":{sunS:300,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:60,ig:1370},
     "2025-01":{sunS:270,sunN:3,bap:0,raiz:0,vol:20,zao:0,links:4,plinks:60,ig:1566},
     "2025-02":{sunS:411,sunN:4,bap:0,raiz:0,vol:32,zao:30,links:4,plinks:60,ig:1732},
     "2025-03":{sunS:483,sunN:5,bap:0,raiz:0,vol:32,zao:30,links:4,plinks:62,ig:1978},
     "2025-04":{sunS:466,sunN:4,bap:0,raiz:0,vol:40,zao:30,links:4,plinks:70,ig:2050},
-    "2025-05":{sunS:330,sunN:4,bap:0,raiz:0,vol:40,zao:32,links:4,plinks:70,ig:2308},
+    "2025-05":{sunS:330,sunN:3,bap:0,raiz:0,vol:40,zao:32,links:4,plinks:70,ig:2308},
     "2025-06":{sunS:598,sunN:5,bap:0,raiz:0,vol:40,zao:32,links:4,plinks:70,ig:2383},
-    "2025-07":{sunS:474,sunN:4,bap:0,raiz:0,vol:45,zao:38,links:4,plinks:70,ig:2604},
-    "2025-08":{sunS:737,sunN:5,bap:0,raiz:65,vol:45,zao:38,links:7,plinks:98},
+    "2025-07":{bap:0,raiz:0,vol:45,zao:38,links:4,plinks:70,ig:2604},
+    "2025-08":{bap:0,raiz:65,vol:45,zao:38,links:7,plinks:98},
     "2025-09":{sunS:528,sunN:4,bap:0,raiz:0,vol:45,zao:29,links:8,plinks:93,ig:3098},
     "2025-10":{sunS:521,sunN:4,bap:0,raiz:0,vol:45,zao:29,links:8,plinks:95,ig:3334},
     "2025-11":{sunS:674,sunN:5,bap:0,raiz:0,vol:45,zao:29,links:8,plinks:56,ig:3394},
@@ -201,49 +202,49 @@ const DATA = {
     "2026-02":{sunS:563,sunN:4,bap:0,raiz:0,vol:20,zao:0,links:8,plinks:59,ig:4002},
     "2026-03":{sunS:920,sunN:5,vol:40,zao:33,ig:3900},
     "2026-04":{sunS:871,sunN:4,vol:40,zao:33,ig:4600},
-    "2026-05":{sunS:625,sunN:3}
+    "2026-05":{sunS:625,sunN:3},
   },
   "Cascais":{
     "2026-03":{sunS:513,sunN:3},
     "2026-04":{sunS:510,sunN:4},
-    "2026-05":{sunS:170,sunN:2}
+    "2026-05":{sunS:170,sunN:2},
   },
   "Cuenca":{
     "2026-01":{sunS:148,sunN:2,vol:36,zao:34,ig:1700},
     "2026-02":{sunS:437,sunN:4,vol:36,zao:35,links:4,plinks:70,ig:1900},
     "2026-03":{sunS:617,sunN:5,vol:36,zao:32,links:4,plinks:57,ig:2027},
-    "2026-04":{sunS:453,sunN:4,bap:24,vol:36,zao:29,links:4,plinks:61,ig:2080},
-    "2026-05":{sunS:104,sunN:1,bap:22,vol:58,zao:0}
+    "2026-04":{sunS:453,sunN:4,bap:12,vol:36,zao:29,links:4,plinks:61,ig:2080},
+    "2026-05":{sunS:104,sunN:1,bap:22,vol:58,zao:0},
   },
   "Jundiaí":{
-    "2024-01":{bap:0,raiz:0,zao:0},
-    "2024-02":{bap:0,raiz:0,zao:0},
-    "2024-03":{bap:0,raiz:0,zao:0},
-    "2024-04":{bap:0,raiz:0,zao:0},
-    "2024-05":{bap:0,raiz:0,zao:0},
-    "2024-06":{bap:0,raiz:0,zao:0},
-    "2024-07":{bap:0,raiz:0,zao:0},
-    "2024-08":{bap:0,raiz:0,zao:0},
-    "2024-09":{raiz:0},
-    "2024-10":{bap:0,raiz:0,zao:0},
-    "2024-11":{bap:0,raiz:0,zao:0},
-    "2024-12":{bap:0,raiz:0,zao:0},
-    "2025-01":{sunS:475,sunN:3,bap:0,raiz:0,zao:0,links:13},
-    "2025-02":{sunS:331,sunN:4,bap:0,raiz:0,zao:0,links:13},
-    "2025-03":{sunS:264,sunN:5,bap:0,raiz:0,zao:0,links:13},
-    "2025-04":{sunS:320,sunN:4,bap:0,raiz:0,zao:0,links:13,plinks:130},
-    "2025-05":{sunS:243,sunN:4,bap:0,raiz:0,zao:0,links:13,plinks:136,ig:2848},
-    "2025-06":{sunS:497,sunN:5,bap:0,raiz:0,zao:0,links:11,plinks:113,ig:3116},
-    "2025-07":{sunS:436,sunN:4,bap:0,raiz:0,vol:29,zao:0,links:10,plinks:113,ig:3368},
-    "2025-08":{sunS:400,sunN:5,bap:0,raiz:0,vol:43,zao:0,links:10,plinks:113,ig:3546},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-02":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-03":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-04":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-05":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-06":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-07":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-08":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-09":{raiz:0,vol:0},
+    "2024-10":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-11":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-12":{bap:0,raiz:0,vol:0,zao:0},
+    "2025-01":{sunS:475,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:13},
+    "2025-02":{sunS:331,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:13},
+    "2025-03":{sunS:264,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:13},
+    "2025-04":{sunS:320,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:13,plinks:130},
+    "2025-05":{sunS:243,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:13,plinks:136,ig:2848},
+    "2025-06":{sunS:1245,sunN:5,bap:0,raiz:0,vol:0,zao:0,links:11,plinks:113,ig:3116},
+    "2025-07":{sunS:872,sunN:4,bap:0,raiz:0,vol:29,zao:0,links:10,plinks:113,ig:3368},
+    "2025-08":{sunS:1000,sunN:5,bap:0,raiz:0,vol:43,zao:0,links:10,plinks:113,ig:3546},
     "2025-09":{bap:0,raiz:0,vol:43,zao:0,links:10,plinks:113,ig:3834},
     "2025-10":{sunS:863,sunN:4,bap:0,raiz:0,vol:44,links:10,plinks:122,ig:3946},
-    "2025-11":{sunS:692,sunN:4,bap:0,raiz:21,vol:42,links:10,plinks:69,ig:4403},
+    "2025-11":{sunS:694,sunN:4,bap:0,raiz:21,vol:42,links:10,plinks:69,ig:4403},
     "2025-12":{sunS:484,sunN:3,bap:6,raiz:0,vol:86,links:10,plinks:61,ig:4503},
     "2026-01":{sunS:586,sunN:3,vol:86,ig:4826},
     "2026-02":{sunS:794,sunN:4,bap:0,raiz:0,vol:90,links:11,plinks:113,ig:5369},
-    "2026-03":{sunS:1498,sunN:5},
-    "2026-04":{sunS:900,sunN:3}
+    "2026-03":{sunS:1406,sunN:5},
+    "2026-04":{sunS:900,sunN:3},
   },
   "Lisboa":{
     "2023-01":{bap:0,raiz:0,vol:71,zao:0,links:9,plinks:140,ig:15115,yt:2443},
@@ -255,27 +256,27 @@ const DATA = {
     "2023-07":{bap:0,raiz:0,vol:115,zao:156,links:13,plinks:208,ig:17914,yt:3163},
     "2023-08":{bap:0,raiz:0,vol:115,zao:156,links:13,plinks:208,ig:18405,yt:3330},
     "2023-09":{sunS:2290,sunN:4,bap:0,raiz:0,vol:115,zao:156,links:13,plinks:208,ig:18998,yt:3506},
-    "2023-10":{sunS:2179,sunN:5,bap:0,raiz:0,vol:115,zao:156,links:13,plinks:208,ig:19566,yt:3818},
+    "2023-10":{sunS:2724,sunN:5,bap:0,raiz:0,vol:115,zao:156,links:13,plinks:208,ig:19566,yt:3818},
     "2023-11":{sunS:2199,sunN:4,bap:0,raiz:100,vol:115,zao:156,links:13,plinks:208,ig:20181,yt:4097},
     "2023-12":{sunS:1811,sunN:3,bap:16,raiz:0,vol:115,zao:156,links:13,plinks:212,ig:20747,yt:4210},
-    "2024-01":{sunS:2068,sunN:3,bap:0,raiz:0,vol:146,zao:162,links:14,plinks:215,ig:21355,yt:4694},
-    "2024-02":{sunS:2416,sunN:4,bap:23,raiz:0,vol:146,zao:162,links:15,plinks:215,ig:21965,yt:5231},
-    "2024-03":{sunS:3324,sunN:5,bap:0,raiz:0,vol:146,zao:162,links:15,plinks:215,ig:22511,yt:5424},
-    "2024-04":{sunS:2491,sunN:4,bap:0,raiz:70,vol:154,zao:122,links:15,plinks:280,ig:23000,yt:5618},
-    "2024-05":{sunS:1775,sunN:4,bap:0,raiz:0,vol:175,zao:122,links:15,plinks:280,ig:23000,yt:5821},
-    "2024-06":{sunS:3143,sunN:5,bap:18,raiz:0,vol:184,zao:122,links:20,plinks:20,ig:24102,yt:6026},
+    "2024-01":{sunS:689,sunN:1,bap:0,raiz:0,vol:146,zao:162,links:14,plinks:215,ig:21355,yt:4694},
+    "2024-02":{sunS:604,sunN:1,bap:23,raiz:0,vol:146,zao:162,links:15,plinks:215,ig:21965,yt:5231},
+    "2024-03":{sunS:665,sunN:1,bap:0,raiz:0,vol:146,zao:162,links:15,plinks:215,ig:22511,yt:5424},
+    "2024-04":{sunS:623,sunN:1,bap:0,raiz:70,vol:154,zao:122,links:15,plinks:280,ig:23000,yt:5618},
+    "2024-05":{sunS:592,sunN:1,bap:0,raiz:0,vol:175,zao:122,links:15,plinks:280,ig:23000,yt:5821},
+    "2024-06":{sunS:3145,sunN:5,bap:18,raiz:0,vol:184,zao:122,links:20,plinks:20,ig:24102,yt:6026},
     "2024-07":{sunS:2576,sunN:4,bap:0,raiz:0,vol:206,zao:122,links:20,plinks:280,ig:24447,yt:6568},
-    "2024-08":{sunS:2630,sunN:4,bap:0,raiz:0,vol:212,zao:0,ig:25110,yt:6780},
-    "2024-09":{sunS:4128,sunN:5,bap:0,raiz:0,vol:212,zao:169,links:21,plinks:295,ig:25623,yt:7245},
-    "2024-10":{sunS:3530,sunN:4,bap:27,raiz:27,vol:197,zao:169,links:22,plinks:310,ig:25967,yt:7023},
+    "2024-08":{sunS:2628,sunN:4,bap:0,raiz:0,vol:212,zao:0,ig:25110,yt:6780},
+    "2024-09":{sunS:4130,sunN:5,bap:0,raiz:0,vol:212,zao:169,links:21,plinks:295,ig:25623,yt:7245},
+    "2024-10":{sunS:3532,sunN:4,bap:27,raiz:27,vol:197,zao:169,links:22,plinks:310,ig:25967,yt:7023},
     "2024-11":{sunS:3496,sunN:4,bap:0,raiz:0,vol:212,zao:169,links:22,plinks:310,ig:26029,yt:7129},
-    "2024-12":{sunS:2399,sunN:4,bap:24,raiz:24,vol:218,zao:169,links:22,plinks:310,ig:29357,yt:7931},
+    "2024-12":{sunS:3200,sunN:4,bap:24,raiz:24,vol:218,zao:169,links:22,plinks:310,ig:29357,yt:7931},
     "2025-01":{sunS:1992,sunN:3,bap:0,raiz:0,vol:153,zao:0,links:22,plinks:317,ig:26555,yt:8998},
     "2025-02":{sunS:3220,sunN:4,bap:0,raiz:0,vol:286,zao:151,links:27,plinks:325,ig:27536,yt:9230},
     "2025-03":{sunS:3802,sunN:5,bap:26,raiz:0,vol:384,zao:151,links:26,plinks:347,ig:28948,yt:9541},
     "2025-04":{sunS:3227,sunN:4,bap:0,raiz:67,vol:347,zao:151,links:26,plinks:347,ig:29649,yt:9810},
     "2025-05":{sunS:2886,sunN:4,bap:0,raiz:0,vol:220,zao:0,links:26,plinks:347,ig:30019,yt:9980},
-    "2025-06":{sunS:3512,sunN:5,bap:0,raiz:0,vol:382,zao:0,links:22,plinks:347,ig:30470,yt:10100},
+    "2025-06":{sunS:3510,sunN:5,bap:0,raiz:0,vol:382,zao:0,links:22,plinks:347,ig:30470,yt:10100},
     "2025-07":{sunS:3076,sunN:4,bap:0,raiz:0,vol:326,zao:0,links:22,plinks:347,ig:30956,yt:10300},
     "2025-08":{sunS:4490,sunN:5,bap:0,raiz:0,vol:265,zao:0,links:22,plinks:347,ig:31356,yt:10312},
     "2025-09":{sunS:3496,sunN:4,bap:0,raiz:0,vol:265,zao:0,links:22,plinks:347,ig:31714,yt:10600},
@@ -286,7 +287,7 @@ const DATA = {
     "2026-02":{sunS:2367,sunN:4},
     "2026-03":{sunS:3247,sunN:5,bap:17,vol:425},
     "2026-04":{sunS:2540,sunN:4,bap:44,vol:318},
-    "2026-05":{sunS:1036,sunN:2}
+    "2026-05":{sunS:1036,sunN:2},
   },
   "Maceió":{
     "2023-01":{bap:0,raiz:0,vol:10,zao:0,plinks:21},
@@ -301,24 +302,24 @@ const DATA = {
     "2023-10":{sunS:442,sunN:5,bap:0,raiz:0,vol:31,zao:0,links:3,plinks:45,ig:3051},
     "2023-11":{sunS:436,sunN:4,bap:0,raiz:0,vol:31,zao:0,links:3,plinks:50,ig:3302},
     "2023-12":{sunS:354,sunN:3,bap:7,raiz:0,vol:31,zao:0,links:3,plinks:50,ig:3807},
-    "2024-01":{sunS:560,sunN:4,bap:0,raiz:0,vol:30,zao:0,ig:4212},
-    "2024-02":{sunS:552,sunN:4,bap:13,raiz:0,vol:30,zao:50,links:4,plinks:55,ig:4527},
-    "2024-03":{sunS:949,sunN:5,bap:0,raiz:0,vol:41,zao:50,links:6,plinks:80,ig:4672},
-    "2024-04":{sunS:730,sunN:4,bap:0,raiz:0,vol:41,zao:0,links:6,plinks:64,ig:4954},
-    "2024-05":{sunS:337,sunN:4,bap:0,raiz:0,vol:45,zao:62,links:6,plinks:70,ig:5149},
-    "2024-06":{sunS:903,sunN:5,bap:0,raiz:53,vol:45,zao:62,links:6,plinks:80,ig:5289},
-    "2024-07":{sunS:805,sunN:4,bap:0,raiz:0,vol:44,zao:62,links:6,plinks:90,ig:5463},
+    "2024-01":{sunS:138,sunN:1,bap:0,raiz:0,vol:30,zao:0,ig:4212},
+    "2024-02":{sunS:141,sunN:1,bap:13,raiz:0,vol:30,zao:50,links:4,plinks:55,ig:4527},
+    "2024-03":{sunS:180,sunN:1,bap:0,raiz:0,vol:41,zao:50,links:6,plinks:80,ig:4672},
+    "2024-04":{sunS:180,sunN:1,bap:0,raiz:0,vol:41,zao:0,links:6,plinks:64,ig:4954},
+    "2024-05":{sunS:176,sunN:1,bap:0,raiz:0,vol:45,zao:62,links:6,plinks:70,ig:5149},
+    "2024-06":{sunS:905,sunN:5,bap:0,raiz:53,vol:45,zao:62,links:6,plinks:80,ig:5289},
+    "2024-07":{sunS:804,sunN:4,bap:0,raiz:0,vol:44,zao:62,links:6,plinks:90,ig:5463},
     "2024-08":{sunS:732,sunN:4,bap:0,raiz:0,vol:45,zao:0,links:6,plinks:92,ig:5600},
-    "2024-09":{sunS:994,sunN:5,bap:3,raiz:3,vol:47,zao:0,links:8,plinks:95,ig:5834},
-    "2024-10":{sunS:774,sunN:4,bap:0,raiz:0,vol:34,zao:0,links:8,plinks:95,ig:5970},
-    "2024-11":{sunS:770,sunN:4,bap:0,raiz:0,vol:38,zao:0,links:8,plinks:97,ig:6175},
-    "2024-12":{sunS:949,sunN:4,bap:11,raiz:11,vol:79,zao:0,links:8,plinks:97,ig:6280},
+    "2024-09":{sunS:995,sunN:5,bap:3,raiz:3,vol:47,zao:0,links:8,plinks:95,ig:5834},
+    "2024-10":{sunS:772,sunN:4,bap:0,raiz:0,vol:34,zao:0,links:8,plinks:95,ig:5970},
+    "2024-11":{sunS:772,sunN:4,bap:0,raiz:0,vol:38,zao:0,links:8,plinks:97,ig:6175},
+    "2024-12":{sunS:948,sunN:4,bap:11,raiz:11,vol:79,zao:0,links:8,plinks:97,ig:6280},
     "2025-01":{sunS:897,sunN:3,bap:0,raiz:0,vol:80,zao:0,links:8,plinks:97,ig:6657,yt:312},
     "2025-02":{sunS:1040,sunN:4,bap:0,raiz:0,vol:80,zao:59,links:9,plinks:133,ig:6820,yt:360},
     "2025-03":{sunS:1302,sunN:5,bap:0,raiz:0,vol:80,zao:59,links:9,plinks:135,ig:6934,yt:392},
     "2025-04":{sunS:1154,sunN:4,bap:0,raiz:47,vol:80,zao:42,links:9,plinks:140,ig:7192,yt:445},
     "2025-05":{sunS:945,sunN:4,bap:0,raiz:0,vol:103,zao:42,links:11,plinks:151,ig:7357,yt:488},
-    "2025-06":{sunS:976,sunN:5,bap:0,raiz:0,vol:103,zao:42,links:11,plinks:151,ig:7771,yt:511},
+    "2025-06":{sunS:1220,sunN:5,bap:0,raiz:0,vol:103,zao:42,links:11,plinks:151,ig:7771,yt:511},
     "2025-07":{sunS:1007,sunN:4,bap:0,raiz:0,vol:103,zao:0,links:11,plinks:153,ig:8435,yt:541},
     "2025-08":{sunS:1271,sunN:5,bap:0,raiz:0,vol:103,zao:30,links:11,plinks:153,ig:8579,yt:580},
     "2025-09":{sunS:1014,sunN:4,bap:0,raiz:0,vol:103,zao:30,links:11,plinks:94,ig:8740,yt:632},
@@ -328,23 +329,23 @@ const DATA = {
     "2026-01":{sunS:889,sunN:3,raiz:0,vol:90,ig:9270,yt:728},
     "2026-02":{sunS:1040,sunN:4,bap:0,raiz:0,vol:95,zao:81,links:14,plinks:29,ig:9362,yt:762},
     "2026-03":{sunS:605,sunN:2,bap:23,raiz:23},
-    "2026-04":{sunS:506,sunN:2}
+    "2026-04":{sunS:506,sunN:2},
   },
   "Miami":{
-    "2024-01":{bap:0,raiz:0,zao:0,links:2,plinks:46},
-    "2024-02":{sunS:84,sunN:4,bap:0,raiz:0,zao:0,links:2,plinks:58},
-    "2024-03":{sunS:97,sunN:5,bap:0,raiz:0,zao:0,links:2,plinks:69},
-    "2024-04":{sunS:68,sunN:4,bap:0,raiz:0,zao:0,links:2,plinks:87},
-    "2024-05":{sunS:114,sunN:4,bap:12,raiz:0,vol:10,zao:0,links:4,plinks:93},
-    "2024-06":{sunS:117,sunN:5,bap:0,raiz:0,vol:10,zao:0,links:5,plinks:99,ig:1683},
-    "2024-07":{sunS:118,sunN:4,bap:0,raiz:0,vol:28,zao:0,links:5,plinks:100,ig:1862},
-    "2024-08":{sunS:105,sunN:4,bap:5,raiz:0,vol:25,zao:0,links:5,plinks:100,ig:2198},
-    "2024-09":{sunS:160,sunN:5,bap:0,raiz:0,vol:37,zao:0,links:5,plinks:92,ig:2311},
-    "2024-10":{sunS:147,sunN:4,bap:0,raiz:0,vol:45,zao:0,links:6,plinks:99,ig:2499},
-    "2024-11":{sunS:135,sunN:4,bap:0,raiz:0,vol:44,zao:0,links:6,plinks:97,ig:2650},
-    "2024-12":{sunS:113,sunN:4,bap:0,raiz:0,vol:44,zao:0,links:6,plinks:118,ig:2766},
-    "2025-01":{sunS:89,sunN:3,bap:0,raiz:0,zao:0,links:2,plinks:25,ig:3265},
-    "2025-02":{sunS:213,sunN:4,bap:0,raiz:0,vol:21,zao:0,links:2,plinks:41,ig:3745},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0,links:2,plinks:46},
+    "2024-02":{sunS:84,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:58},
+    "2024-03":{sunS:97,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:69},
+    "2024-04":{sunS:68,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:87},
+    "2024-05":{sunS:114,sunN:1,bap:12,raiz:0,vol:10,zao:0,links:4,plinks:93},
+    "2024-06":{sunS:585,sunN:5,bap:0,raiz:0,vol:10,zao:0,links:5,plinks:99,ig:1683},
+    "2024-07":{sunS:472,sunN:4,bap:0,raiz:0,vol:28,zao:0,links:5,plinks:100,ig:1862},
+    "2024-08":{sunS:420,sunN:4,bap:5,raiz:0,vol:25,zao:0,links:5,plinks:100,ig:2198},
+    "2024-09":{sunS:800,sunN:5,bap:0,raiz:0,vol:37,zao:0,links:5,plinks:92,ig:2311},
+    "2024-10":{sunS:588,sunN:4,bap:0,raiz:0,vol:45,zao:0,links:6,plinks:99,ig:2499},
+    "2024-11":{sunS:540,sunN:4,bap:0,raiz:0,vol:44,zao:0,links:6,plinks:97,ig:2650},
+    "2024-12":{sunS:452,sunN:4,bap:0,raiz:0,vol:44,zao:0,links:6,plinks:118,ig:2766},
+    "2025-01":{sunS:89,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:25,ig:3265},
+    "2025-02":{sunS:213,sunN:3,bap:0,raiz:0,vol:21,zao:0,links:2,plinks:41,ig:3745},
     "2025-03":{sunS:283,sunN:5,bap:0,raiz:0,vol:37,zao:0,links:2,plinks:33,ig:4136},
     "2025-04":{sunS:329,sunN:4,bap:0,raiz:0,vol:46,zao:35,links:2,plinks:35,ig:4492},
     "2025-05":{sunS:272,sunN:4,bap:0,raiz:0,vol:46,zao:35,links:3,plinks:42,ig:4721},
@@ -355,18 +356,18 @@ const DATA = {
     "2025-10":{sunS:246,sunN:4,bap:0,raiz:0,vol:50,links:3,plinks:48,ig:5742,yt:337},
     "2025-11":{sunS:305,sunN:5,bap:0,raiz:0,vol:50,links:3,plinks:48,ig:5882,yt:354},
     "2025-12":{sunS:221,sunN:3,bap:3,raiz:0,vol:50,links:3,plinks:48,ig:6022,yt:370},
-    "2026-01":{sunS:167,sunN:3,bap:0,raiz:0,vol:53,zao:0,links:2,plinks:32,ig:6600,yt:403},
+    "2026-01":{sunS:167,sunN:3,bap:0,raiz:0,vol:53,zao:0,ig:6600,yt:403},
     "2026-02":{sunS:224,sunN:4,bap:0,raiz:0,vol:53,zao:0,links:2,plinks:32,ig:6725,yt:411},
-    "2026-03":{sunS:127,sunN:2}
+    "2026-03":{sunS:127,sunN:2},
   },
   "Orlando":{
-    "2025-01":{bap:0,raiz:0,zao:0,ig:2750},
+    "2025-01":{bap:0,raiz:0,vol:0,zao:0,ig:2750},
     "2025-02":{sunS:158,sunN:4,bap:0,raiz:0,vol:43,zao:0,links:6,plinks:62,ig:3003},
     "2025-03":{sunS:130,sunN:5,bap:0,raiz:0,vol:49,zao:0,links:6,plinks:73,ig:3363},
     "2025-04":{bap:0,raiz:0,vol:46,zao:0,links:6,plinks:98,ig:3531},
     "2025-05":{sunS:140,sunN:4,bap:0,raiz:0,vol:50,zao:0,links:6,plinks:91,ig:3719},
-    "2025-06":{sunS:115,sunN:5,bap:0,raiz:0,vol:49,zao:0,links:6,plinks:91,ig:3897},
-    "2025-07":{sunS:248,sunN:4,bap:0,raiz:0,vol:47,zao:0,links:6,plinks:91,ig:4279},
+    "2025-06":{sunS:115,sunN:1,bap:0,raiz:0,vol:49,zao:0,links:6,plinks:91,ig:3897},
+    "2025-07":{sunS:496,sunN:4,bap:0,raiz:0,vol:47,zao:0,links:6,plinks:91,ig:4279},
     "2025-08":{sunS:761,sunN:5,bap:0,raiz:19,vol:48,zao:0,links:7,plinks:117,ig:4631},
     "2025-09":{sunS:501,sunN:4,bap:0,raiz:0,vol:49,zao:62,links:7,plinks:117,ig:4821},
     "2025-10":{sunS:472,sunN:4,bap:0,raiz:0,vol:39,links:7,plinks:130,ig:5293},
@@ -376,32 +377,27 @@ const DATA = {
     "2026-02":{sunS:569,sunN:4,bap:0,raiz:0,vol:64,zao:0,links:7,plinks:78,ig:6264},
     "2026-03":{sunS:692,sunN:5,bap:0,raiz:0,vol:68,zao:0,links:7,plinks:87,ig:6437},
     "2026-04":{sunS:585,sunN:4,bap:0,raiz:0,vol:63,zao:45,links:7,plinks:81,ig:6515},
-    "2026-05":{zao:45}
-  },
-  "Portimão":{
-    "2026-03":{sunS:76,sunN:2},
-    "2026-04":{sunS:209,sunN:4},
-    "2026-05":{sunS:91,sunN:2}
+    "2026-05":{zao:45},
   },
   "Porto":{
-    "2024-01":{bap:0,raiz:0,zao:0,links:1,plinks:10},
-    "2024-02":{sunS:271,sunN:4,bap:0,raiz:0,zao:0,links:2,plinks:10},
-    "2024-03":{sunS:376,sunN:5,bap:0,raiz:0,vol:7,zao:0,links:2,plinks:12},
-    "2024-04":{sunS:272,sunN:4,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:11},
-    "2024-05":{sunS:196,sunN:4,bap:0,raiz:0,vol:15,zao:0,links:2,plinks:14},
-    "2024-06":{sunS:306,sunN:5,bap:0,raiz:0,vol:20,zao:0,links:5,plinks:26,ig:2137},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:10},
+    "2024-02":{sunS:90,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:2,plinks:10},
+    "2024-03":{sunS:75,sunN:1,bap:0,raiz:0,vol:7,zao:0,links:2,plinks:12},
+    "2024-04":{sunS:68,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:2,plinks:11},
+    "2024-05":{sunS:65,sunN:1,bap:0,raiz:0,vol:15,zao:0,links:2,plinks:14},
+    "2024-06":{sunS:305,sunN:5,bap:0,raiz:0,vol:20,zao:0,links:5,plinks:26,ig:2137},
     "2024-07":{sunS:280,sunN:4,bap:0,raiz:0,vol:25,zao:0,links:4,plinks:30},
-    "2024-08":{sunS:407,sunN:4,bap:0,raiz:0,vol:27,zao:0,links:4,plinks:46,ig:2510},
+    "2024-08":{sunS:408,sunN:4,bap:0,raiz:0,vol:27,zao:0,links:4,plinks:46,ig:2510},
     "2024-09":{sunS:345,sunN:5,bap:0,raiz:0,vol:30,zao:0,links:4,plinks:46,ig:2622},
-    "2024-10":{sunS:317,sunN:4,bap:0,raiz:0,vol:30,zao:0,links:5,plinks:48,ig:2800},
-    "2024-11":{sunS:329,sunN:4,bap:0,raiz:0,vol:30,zao:0,links:5,plinks:46,ig:2900},
-    "2024-12":{sunS:318,sunN:4,bap:5,raiz:5,vol:29,zao:0,links:5,plinks:46,ig:3000},
+    "2024-10":{sunS:316,sunN:4,bap:0,raiz:0,vol:30,zao:0,links:5,plinks:48,ig:2800},
+    "2024-11":{sunS:328,sunN:4,bap:0,raiz:0,vol:30,zao:0,links:5,plinks:46,ig:2900},
+    "2024-12":{sunS:320,sunN:4,bap:5,raiz:5,vol:29,zao:0,links:5,plinks:46,ig:3000},
     "2025-01":{sunS:157,sunN:2,bap:0,raiz:0,vol:30,zao:0,ig:3155},
     "2025-02":{sunS:309,sunN:4,bap:0,raiz:0,vol:30,zao:41,links:3,plinks:46,ig:3233},
     "2025-03":{sunS:437,sunN:5,bap:0,raiz:0,vol:35,zao:41,links:5,plinks:41,ig:3389},
     "2025-04":{sunS:382,sunN:4,bap:0,raiz:0,vol:35,zao:41,links:5,plinks:40,ig:3579},
     "2025-05":{sunS:345,sunN:4,bap:0,raiz:0,vol:35,zao:53,links:5,plinks:40,ig:3750},
-    "2025-06":{sunS:573,sunN:5,bap:0,raiz:0,vol:35,zao:53,links:5,plinks:23,ig:3800},
+    "2025-06":{sunS:573,sunN:4,bap:0,raiz:0,vol:35,zao:53,links:5,plinks:23,ig:3800},
     "2025-07":{sunS:492,sunN:4,bap:0,raiz:34,vol:68,zao:53,links:5,plinks:41,ig:4036},
     "2025-08":{sunS:645,sunN:5,bap:0,raiz:0,vol:68,zao:0,links:5,plinks:41,ig:4211},
     "2025-09":{sunS:549,sunN:4,bap:0,raiz:0,vol:68,zao:59,links:5,plinks:41,ig:4300},
@@ -410,9 +406,9 @@ const DATA = {
     "2025-12":{sunS:290,sunN:3,bap:0,raiz:0,vol:68,zao:59,links:7,plinks:70,ig:4546},
     "2026-01":{sunS:286,sunN:3,vol:68,ig:4734},
     "2026-02":{sunS:350,sunN:4,vol:33,zao:39,links:6,plinks:72,ig:4961},
-    "2026-03":{sunS:444,sunN:5,bap:0,raiz:0,vol:34,zao:39,links:6,plinks:62,ig:5056},
-    "2026-04":{sunS:368,sunN:4,bap:0,raiz:0,vol:35,zao:39,links:72,ig:5100},
-    "2026-05":{sunS:175,sunN:2}
+    "2026-03":{sunS:442,sunN:5,bap:0,raiz:0,vol:34,zao:39,links:6,plinks:62,ig:5056},
+    "2026-04":{sunS:368,sunN:4,bap:0,raiz:0,vol:35,zao:39,links:45,ig:5100},
+    "2026-05":{sunS:175,sunN:2},
   },
   "Quito":{
     "2023-01":{bap:0,raiz:0,vol:80,zao:0,links:12,plinks:91,ig:6247,yt:3252},
@@ -427,35 +423,35 @@ const DATA = {
     "2023-10":{sunS:3219,sunN:5,bap:0,raiz:0,vol:147,zao:0,links:13,plinks:190,ig:9256,yt:4627},
     "2023-11":{sunS:2708,sunN:4,bap:0,raiz:37,vol:147,zao:0,links:13,plinks:190,ig:9586,yt:4750},
     "2023-12":{sunS:2035,sunN:3,bap:0,raiz:0,vol:147,zao:0,links:15,plinks:200,ig:9664,yt:5126},
-    "2024-01":{sunS:2240,sunN:3,bap:0,raiz:0,vol:147,zao:0,ig:10080,yt:5128},
-    "2024-02":{sunS:2612,sunN:4,bap:43,raiz:0,vol:147,zao:0,links:14,plinks:108,ig:10218,yt:5287},
-    "2024-03":{sunS:3702,sunN:5,bap:0,raiz:52,vol:147,zao:0,links:15,plinks:165,ig:10265,yt:5400},
-    "2024-04":{sunS:2863,sunN:4,bap:0,raiz:0,vol:165,zao:0,links:15,plinks:115,ig:10777,yt:5515},
-    "2024-05":{sunS:1923,sunN:4,bap:0,raiz:0,vol:165,zao:0,links:23,plinks:131,ig:10777,yt:5584},
-    "2024-06":{sunS:3608,sunN:5,bap:30,raiz:0,vol:165,zao:0,links:23,plinks:201,ig:10776,yt:5625},
+    "2024-01":{sunS:769,sunN:1,bap:0,raiz:0,vol:147,zao:0,ig:10080,yt:5128},
+    "2024-02":{sunS:653,sunN:1,bap:43,raiz:0,vol:147,zao:0,links:14,plinks:109,ig:10218,yt:5287},
+    "2024-03":{sunS:740,sunN:1,bap:0,raiz:52,vol:147,zao:0,links:15,plinks:165,ig:10265,yt:5400},
+    "2024-04":{sunS:716,sunN:1,bap:0,raiz:0,vol:165,zao:0,links:15,plinks:115,ig:10777,yt:5515},
+    "2024-05":{sunS:641,sunN:1,bap:0,raiz:0,vol:165,zao:0,links:23,plinks:131,ig:10777,yt:5584},
+    "2024-06":{sunS:3610,sunN:5,bap:30,raiz:0,vol:165,zao:0,links:23,plinks:201,ig:10776,yt:5625},
     "2024-07":{sunS:2768,sunN:4,bap:0,raiz:0,vol:37,zao:226,links:20,plinks:215,ig:10886,yt:5659},
-    "2024-08":{sunS:2790,sunN:4,bap:0,raiz:0,vol:37,zao:226,links:23,plinks:276,ig:10971,yt:5705},
-    "2024-09":{sunS:3813,sunN:5,bap:13,raiz:13,vol:83,zao:226,links:24,plinks:234,ig:11100,yt:5764},
-    "2024-10":{sunS:3275,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:29,plinks:243,ig:11233,yt:5822},
-    "2024-11":{sunS:2993,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:31,plinks:277,ig:11295,yt:5845},
-    "2024-12":{sunS:3239,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:31,plinks:250,ig:11309,yt:5897},
+    "2024-08":{sunS:2788,sunN:4,bap:0,raiz:0,vol:37,zao:226,links:23,plinks:276,ig:10971,yt:5705},
+    "2024-09":{sunS:3815,sunN:5,bap:13,raiz:13,vol:83,zao:226,links:24,plinks:234,ig:11100,yt:5764},
+    "2024-10":{sunS:3276,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:29,plinks:244,ig:11233,yt:5822},
+    "2024-11":{sunS:2992,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:31,plinks:277,ig:11295,yt:5845},
+    "2024-12":{sunS:3240,sunN:4,bap:0,raiz:0,vol:211,zao:0,links:31,plinks:250,ig:11309,yt:5897},
     "2025-01":{sunS:2540,sunN:3,bap:0,raiz:0,vol:211,zao:0,links:32,plinks:206,ig:11674,yt:6012},
     "2025-02":{sunS:3334,sunN:4,bap:23,raiz:0,vol:211,zao:154,links:32,plinks:127,ig:11780,yt:6054},
     "2025-03":{sunS:4201,sunN:5,bap:0,raiz:82,vol:211,zao:154,links:32,plinks:120,ig:11924,yt:6106},
     "2025-04":{sunS:3418,sunN:4,bap:0,raiz:0,vol:211,zao:153,links:32,plinks:203,ig:12061,yt:6134},
     "2025-05":{sunS:3159,sunN:4,bap:0,raiz:60,vol:211,zao:153,links:32,plinks:258,ig:12462,yt:6188},
-    "2025-06":{sunS:4479,sunN:5,bap:37,raiz:0,vol:211,zao:153,links:32,plinks:333,ig:12566,yt:6226},
+    "2025-06":{sunS:4480,sunN:5,bap:37,raiz:0,vol:211,zao:153,links:32,plinks:334,ig:12566,yt:6226},
     "2025-07":{sunS:3537,sunN:4,bap:0,raiz:0,vol:211,zao:153,links:33,plinks:406,ig:12706,yt:6271},
     "2025-08":{sunS:4427,sunN:5,bap:0,raiz:51,vol:254,zao:135,links:33,plinks:406,ig:12800,yt:6335},
     "2025-09":{sunS:4016,sunN:4,bap:0,raiz:0,vol:254,zao:135,links:34,plinks:426,ig:12930,yt:6381},
     "2025-10":{sunS:4043,sunN:4,bap:45,raiz:0,vol:242,zao:135,links:35,plinks:363,ig:13018,yt:6446},
     "2025-11":{sunS:4441,sunN:5,bap:0,raiz:0,vol:242,zao:132,links:40,plinks:187,ig:13174,yt:6500},
     "2025-12":{sunS:2634,sunN:3,bap:0,raiz:37,vol:242,zao:132,links:40,plinks:202,ig:13216,yt:6500},
-    "2026-01":{sunS:3230,sunN:3,vol:264,links:40,ig:13406,yt:6556},
+    "2026-01":{sunS:3230,sunN:3,vol:264,ig:13406,yt:6556},
     "2026-02":{sunS:3723,sunN:4,vol:264,zao:138,links:40,plinks:208,ig:13500,yt:6610},
-    "2026-03":{sunS:5480,sunN:5,bap:47,vol:264,zao:138,links:40,plinks:177,ig:13700,yt:6670},
+    "2026-03":{sunS:5495,sunN:5,bap:47,vol:264,zao:138,links:40,plinks:177,ig:13700,yt:6670},
     "2026-04":{sunS:4316,sunN:4,links:40,plinks:198},
-    "2026-05":{sunS:956,sunN:1}
+    "2026-05":{sunS:956,sunN:1},
   },
   "Recife":{
     "2023-01":{bap:0,raiz:0,vol:176,zao:0,links:16,plinks:220,ig:22518,yt:61},
@@ -470,55 +466,55 @@ const DATA = {
     "2023-10":{sunS:2736,sunN:5,bap:0,raiz:0,vol:190,zao:132,links:22,plinks:213,ig:24658,yt:200},
     "2023-11":{sunS:2290,sunN:4,bap:10,raiz:0,vol:202,zao:132,links:28,plinks:263,ig:24897,yt:200},
     "2023-12":{sunS:2167,sunN:3,bap:0,raiz:0,vol:202,zao:132,links:28,plinks:292,ig:25137,yt:3276},
-    "2024-01":{sunS:2037,sunN:3,bap:0,raiz:0,vol:208,zao:142,ig:25378,yt:3797},
-    "2024-02":{sunS:2346,sunN:4,bap:30,raiz:0,vol:208,zao:142,links:29,plinks:266,ig:25602,yt:3940},
-    "2024-03":{sunS:3370,sunN:5,bap:0,raiz:55,vol:246,zao:142,links:29,plinks:277,ig:25847,yt:4042},
-    "2024-04":{sunS:2168,sunN:4,bap:0,raiz:0,vol:246,zao:106,links:29,plinks:277,ig:26274,yt:4115},
-    "2024-05":{sunS:1678,sunN:4,bap:0,raiz:0,vol:229,zao:106,links:29,plinks:300,ig:26568,yt:4177},
-    "2024-06":{sunS:3432,sunN:5,bap:0,raiz:41,vol:250,zao:106,links:29,plinks:332,ig:26925,yt:4274},
+    "2024-01":{sunS:668,sunN:1,bap:0,raiz:0,vol:208,zao:142,ig:25378,yt:3797},
+    "2024-02":{sunS:586,sunN:1,bap:30,raiz:0,vol:208,zao:142,links:29,plinks:266,ig:25602,yt:3940},
+    "2024-03":{sunS:674,sunN:1,bap:0,raiz:55,vol:246,zao:142,links:29,plinks:277,ig:25847,yt:4042},
+    "2024-04":{sunS:542,sunN:1,bap:0,raiz:0,vol:246,zao:106,links:29,plinks:277,ig:26274,yt:4115},
+    "2024-05":{sunS:559,sunN:1,bap:0,raiz:0,vol:229,zao:106,links:29,plinks:300,ig:26568,yt:4177},
+    "2024-06":{sunS:3430,sunN:5,bap:0,raiz:41,vol:250,zao:106,links:29,plinks:332,ig:26925,yt:4274},
     "2024-07":{sunS:3016,sunN:4,bap:34,raiz:34,vol:250,zao:140,links:29,plinks:350,ig:27403,yt:4376},
     "2024-08":{sunS:3836,sunN:4,bap:0,raiz:0,vol:250,zao:0,links:34,plinks:388,ig:29294,yt:4765},
-    "2024-09":{sunS:5278,sunN:5,bap:0,raiz:0,vol:264,zao:0,links:34,plinks:397,ig:30652,yt:5234},
-    "2024-10":{sunS:4851,sunN:4,bap:0,raiz:0,vol:264,zao:0,links:38,plinks:417,ig:31773,yt:5680},
-    "2024-11":{sunS:3886,sunN:4,bap:0,raiz:0,vol:264,zao:0,links:40,plinks:441,ig:32972,yt:6064},
-    "2024-12":{sunS:4383,sunN:4,bap:49,raiz:49,vol:264,zao:0,links:40,plinks:433,ig:33723,yt:6350},
+    "2024-09":{sunS:5275,sunN:5,bap:0,raiz:0,vol:264,zao:0,links:34,plinks:397,ig:30652,yt:5234},
+    "2024-10":{sunS:4852,sunN:4,bap:0,raiz:0,vol:264,zao:0,links:38,plinks:417,ig:31773,yt:5680},
+    "2024-11":{sunS:3888,sunN:4,bap:0,raiz:0,vol:264,zao:0,links:40,plinks:441,ig:32972,yt:6064},
+    "2024-12":{sunS:4384,sunN:4,bap:49,raiz:49,vol:264,zao:0,links:40,plinks:433,ig:33723,yt:6350},
     "2025-01":{sunS:3389,sunN:3,bap:0,raiz:0,vol:277,zao:0,links:40,plinks:433,ig:36200,yt:6815},
     "2025-02":{sunS:4785,sunN:4,bap:0,raiz:0,vol:289,zao:162,links:43,plinks:438,ig:36895,yt:7005},
     "2025-03":{sunS:5850,sunN:5,bap:32,raiz:60,vol:289,zao:162,links:49,plinks:495,ig:38496,yt:7332},
     "2025-04":{sunS:5595,sunN:4,bap:0,raiz:0,vol:359,zao:138,links:49,plinks:505,ig:40136,yt:8325},
     "2025-05":{sunS:5594,sunN:4,bap:0,raiz:0,vol:359,zao:155,links:50,plinks:522,ig:41240,yt:9180},
-    "2025-06":{sunS:5229,sunN:5,bap:37,raiz:0,vol:359,zao:155,links:50,plinks:531,ig:43720,yt:9830},
+    "2025-06":{sunS:6540,sunN:5,bap:37,raiz:0,vol:359,zao:155,links:50,plinks:531,ig:43720,yt:9830},
     "2025-07":{sunS:4887,sunN:4,bap:0,raiz:0,vol:405,zao:170,links:51,plinks:531,ig:45357,yt:10108},
     "2025-08":{sunS:5903,sunN:5,bap:0,raiz:0,vol:405,zao:170,links:50,plinks:531,ig:46083,yt:10350},
     "2025-09":{sunS:5436,sunN:4,bap:0,raiz:0,vol:390,zao:166,links:52,plinks:548,ig:47450,yt:10760},
     "2025-10":{sunS:4573,sunN:4,bap:0,raiz:83,vol:392,zao:162,links:53,plinks:554,ig:48650,yt:10870},
     "2025-11":{sunS:5942,sunN:5,bap:0,raiz:0,vol:392,zao:138,links:54,plinks:310,ig:49000,yt:11000},
     "2025-12":{sunS:3881,sunN:3,bap:0,raiz:0,vol:392,zao:138,links:54,plinks:270,ig:49456,yt:11000},
-    "2026-01":{sunS:3945,sunN:3,vol:392,links:56,plinks:88,ig:49530,yt:11150},
-    "2026-02":{sunS:7272,sunN:4,bap:0,raiz:45,vol:392,zao:153,links:56,plinks:88,ig:50950,yt:11450},
-    "2026-03":{sunS:6944,sunN:5,raiz:90,vol:392,zao:153,links:56,plinks:71,ig:53450,yt:11950},
+    "2026-01":{sunS:3945,sunN:3,vol:392,ig:49530,yt:11150},
+    "2026-02":{sunS:7272,sunN:4,bap:0,raiz:0,vol:392,zao:153,links:56,plinks:88,ig:50950,yt:11450},
+    "2026-03":{sunS:7006,sunN:5,raiz:90,vol:392,zao:153,links:56,plinks:71,ig:53450,yt:11950},
     "2026-04":{sunS:5471,sunN:4,vol:392,zao:148,ig:54100,yt:12200},
-    "2026-05":{vol:392}
+    "2026-05":{vol:392},
   },
   "Ribeirão Preto":{
-    "2024-01":{bap:0,raiz:0,zao:0},
-    "2024-02":{bap:0,raiz:0,zao:0},
-    "2024-03":{sunS:296,sunN:5,bap:0,raiz:56,zao:0,links:7,plinks:100},
-    "2024-04":{sunS:721,sunN:4,bap:0,raiz:0,vol:82,zao:123,links:10,plinks:121,ig:3702},
-    "2024-05":{sunS:523,sunN:4,bap:0,raiz:0,vol:94,zao:123,links:10,plinks:121,ig:4633},
-    "2024-06":{sunS:929,sunN:5,bap:0,raiz:0,vol:87,zao:123,links:10,plinks:121,ig:5036},
-    "2024-07":{sunS:738,sunN:4,bap:7,raiz:7,vol:24,zao:0,links:11,plinks:125,ig:624},
-    "2024-08":{sunS:889,sunN:4,bap:18,raiz:18,vol:24,zao:122,links:13,plinks:135,ig:5852},
-    "2024-09":{sunS:1378,sunN:5,bap:0,raiz:0,vol:25,zao:122,links:13,plinks:135},
-    "2024-10":{sunS:1025,sunN:4,bap:0,raiz:0,vol:24,zao:83,links:13,plinks:135,ig:6117},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-02":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-03":{sunS:296,sunN:5,bap:0,raiz:56,vol:0,zao:0,links:7,plinks:100},
+    "2024-04":{sunS:43,sunN:1,bap:0,raiz:0,vol:82,zao:123,links:10,plinks:121,ig:3702},
+    "2024-05":{sunS:174,sunN:1,bap:0,raiz:0,vol:94,zao:123,links:10,plinks:121,ig:4633},
+    "2024-06":{sunS:930,sunN:5,bap:0,raiz:0,vol:87,zao:123,links:10,plinks:121,ig:5036},
+    "2024-07":{sunS:736,sunN:4,bap:7,raiz:7,vol:24,zao:0,links:11,plinks:125,ig:624},
+    "2024-08":{sunS:888,sunN:4,bap:18,raiz:18,vol:24,zao:122,links:13,plinks:135,ig:5852},
+    "2024-09":{sunS:1380,sunN:5,bap:0,raiz:0,vol:25,zao:122,links:13,plinks:135},
+    "2024-10":{sunS:1024,sunN:4,bap:0,raiz:0,vol:24,zao:83,links:13,plinks:135,ig:6117},
     "2024-11":{sunS:1312,sunN:4,bap:0,raiz:0,vol:24,zao:83,links:13,plinks:135,ig:6286,yt:178},
-    "2024-12":{sunS:1267,sunN:4,bap:0,raiz:0,vol:24,zao:83,links:13,plinks:135,ig:6430,yt:211},
+    "2024-12":{sunS:1268,sunN:4,bap:0,raiz:0,vol:24,zao:83,links:13,plinks:135,ig:6430,yt:211},
     "2025-01":{sunS:1482,sunN:3,bap:0,raiz:0,vol:166,zao:0,links:13,plinks:135,ig:7046,yt:335},
     "2025-02":{sunS:1463,sunN:4,bap:21,raiz:0,vol:166,zao:126,links:15,plinks:175,ig:7180,yt:394},
     "2025-03":{sunS:1628,sunN:5,bap:0,raiz:0,vol:168,zao:126,links:15,plinks:175,ig:7376,yt:429},
     "2025-04":{sunS:1431,sunN:4,bap:0,raiz:81,vol:168,zao:57,links:15,plinks:175,ig:7534,yt:458},
-    "2025-05":{sunS:945,sunN:4,bap:0,raiz:0,vol:168,zao:57,links:16,plinks:221,ig:7713,yt:492},
-    "2025-06":{sunS:1812,sunN:5,bap:0,raiz:0,vol:168,zao:57,links:16,plinks:221,ig:7848,yt:519},
+    "2025-05":{sunS:945,sunN:3,bap:0,raiz:0,vol:168,zao:57,links:16,plinks:221,ig:7713,yt:492},
+    "2025-06":{sunS:1810,sunN:5,bap:0,raiz:0,vol:168,zao:57,links:16,plinks:221,ig:7848,yt:519},
     "2025-07":{sunS:1414,sunN:4,bap:0,raiz:0,vol:203,zao:64,links:16,plinks:221,ig:8007,yt:650},
     "2025-08":{sunS:1480,sunN:5,bap:0,raiz:0,vol:203,zao:64,links:17,plinks:200,ig:8284,yt:713},
     "2025-09":{sunS:1510,sunN:4,bap:0,raiz:77,vol:203,zao:64,links:17,plinks:209,ig:8499,yt:774},
@@ -529,13 +525,7 @@ const DATA = {
     "2026-02":{sunS:1130,sunN:4,vol:182,zao:33,links:15,plinks:128,ig:9434,yt:941},
     "2026-03":{sunS:1684,sunN:5,bap:6,vol:94,zao:33,links:15,plinks:128,ig:9680,yt:974},
     "2026-04":{sunS:1452,sunN:4,vol:94,links:15,plinks:195,ig:9837,yt:994},
-    "2026-05":{sunS:604,sunN:2,vol:94}
-  },
-  "SJCampos":{
-    "2026-01":{ig:1494},
-    "2026-02":{sunS:558,sunN:1,links:2,plinks:55,ig:1494},
-    "2026-03":{sunS:550,sunN:1,ig:4598},
-    "2026-05":{sunS:223,sunN:1}
+    "2026-05":{sunS:604,sunN:2,vol:94},
   },
   "Santiago":{
     "2023-01":{bap:0,raiz:0,vol:10,zao:0},
@@ -546,22 +536,22 @@ const DATA = {
     "2023-06":{bap:0,raiz:0,vol:10,zao:0},
     "2023-07":{bap:0,raiz:0,vol:10,zao:0},
     "2023-08":{bap:0,raiz:0,vol:10,zao:0},
-    "2023-09":{sunS:63,sunN:4,bap:0,raiz:0,vol:10,zao:0},
-    "2023-10":{sunS:56,sunN:5,bap:0,raiz:0,vol:10,zao:0},
-    "2023-11":{sunS:51,sunN:4,bap:0,raiz:0,vol:10,zao:0},
-    "2023-12":{sunS:55,sunN:3,bap:0,raiz:0,vol:10,zao:0},
-    "2024-01":{sunS:52,sunN:3,bap:0,raiz:0,vol:10,zao:0,links:3},
-    "2024-02":{sunS:75,sunN:4,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:30,ig:661},
-    "2024-03":{sunS:290,sunN:5,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:33,ig:852},
-    "2024-04":{sunS:278,sunN:4,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:30,ig:1224},
-    "2024-05":{sunS:149,sunN:4,bap:0,raiz:0,vol:12,zao:0,links:4,plinks:34,ig:1282},
-    "2024-06":{sunS:368,sunN:5,bap:0,raiz:0,vol:12,zao:0,links:4,plinks:30,ig:1566},
-    "2024-07":{sunS:322,sunN:4,bap:0,raiz:0,vol:24,zao:0,links:3,plinks:19,ig:1718},
-    "2024-08":{sunS:250,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:3,ig:1838},
+    "2023-09":{sunS:252,sunN:4,bap:0,raiz:0,vol:10,zao:0},
+    "2023-10":{sunS:280,sunN:5,bap:0,raiz:0,vol:10,zao:0},
+    "2023-11":{sunS:204,sunN:4,bap:0,raiz:0,vol:10,zao:0},
+    "2023-12":{sunS:165,sunN:3,bap:0,raiz:0,vol:10,zao:0},
+    "2024-01":{sunS:52,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:3},
+    "2024-02":{sunS:75,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:30,ig:661},
+    "2024-03":{sunS:58,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:33,ig:852},
+    "2024-04":{sunS:70,sunN:1,bap:0,raiz:0,vol:10,zao:0,links:3,plinks:30,ig:1224},
+    "2024-05":{sunS:50,sunN:1,bap:0,raiz:0,vol:12,zao:0,links:4,plinks:34,ig:1282},
+    "2024-06":{sunS:370,sunN:5,bap:0,raiz:0,vol:12,zao:0,links:4,plinks:30,ig:1566},
+    "2024-07":{sunS:320,sunN:4,bap:0,raiz:0,vol:24,zao:0,links:3,plinks:19,ig:1718},
+    "2024-08":{sunS:248,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:3,ig:1838},
     "2024-09":{sunS:355,sunN:5,bap:0,raiz:0,vol:25,zao:47,links:4,plinks:40,ig:1902},
-    "2024-10":{sunS:271,sunN:4,bap:5,raiz:5,vol:24,zao:47,links:5,plinks:44,ig:2145},
-    "2024-11":{sunS:309,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:6,plinks:48,ig:2327},
-    "2024-12":{sunS:297,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:6,plinks:50,ig:2388},
+    "2024-10":{sunS:272,sunN:4,bap:5,raiz:5,vol:24,zao:47,links:5,plinks:44,ig:2145},
+    "2024-11":{sunS:308,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:6,plinks:48,ig:2327},
+    "2024-12":{sunS:296,sunN:4,bap:0,raiz:0,vol:24,zao:47,links:6,plinks:50,ig:2388},
     "2025-01":{sunS:327,sunN:3,bap:0,raiz:0,vol:26,zao:0,ig:2451},
     "2025-02":{sunS:250,sunN:4,bap:0,raiz:0,vol:28,zao:0,links:6,plinks:52,ig:2763},
     "2025-03":{sunS:309,sunN:5,bap:0,raiz:18,vol:32,zao:55,links:7,plinks:59,ig:2919},
@@ -576,29 +566,29 @@ const DATA = {
     "2025-12":{sunS:205,sunN:3,bap:0,raiz:0,vol:50,zao:57,links:6,plinks:19,ig:3914},
     "2026-01":{sunS:160,sunN:3,bap:0,raiz:0,vol:32,zao:0,links:7,ig:4000},
     "2026-02":{sunS:283,sunN:4,bap:0,raiz:0,vol:32,zao:0,links:7,plinks:25,ig:4120},
-    "2026-03":{sunS:494,sunN:5,bap:0,vol:35,zao:34,links:25,plinks:32,ig:3800,yt:3},
+    "2026-03":{sunS:519,sunN:5,bap:0,vol:35,zao:34,links:17,plinks:32,ig:3800,yt:3},
     "2026-04":{sunS:473,sunN:4,bap:0,vol:43,zao:24,links:35,ig:4006,yt:1},
-    "2026-05":{sunS:264,sunN:2,bap:14,zao:31}
+    "2026-05":{sunS:264,sunN:2,bap:0,zao:31},
   },
   "Santos":{
-    "2024-01":{bap:0,raiz:0,zao:0},
-    "2024-02":{bap:0,raiz:0,zao:0,links:1,plinks:25},
-    "2024-03":{bap:0,raiz:0,zao:0,links:1,plinks:30},
-    "2024-04":{bap:0,raiz:0,zao:0,links:1,plinks:35},
-    "2024-05":{bap:0,raiz:0,zao:0,links:1,plinks:35},
-    "2024-06":{sunS:422,sunN:5,bap:0,raiz:0,zao:0,links:1,plinks:35},
-    "2024-07":{sunS:583,sunN:4,bap:0,raiz:0,vol:27,zao:0,links:1,plinks:35},
-    "2024-08":{sunS:594,sunN:4,bap:0,raiz:0,vol:28,zao:0,links:1,plinks:35},
-    "2024-09":{sunS:889,sunN:5,bap:0,raiz:0,vol:28,zao:0,links:6,plinks:86},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-02":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:25},
+    "2024-03":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:30},
+    "2024-04":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:35},
+    "2024-05":{bap:0,raiz:0,vol:0,zao:0,links:1,plinks:35},
+    "2024-06":{sunS:1055,sunN:5,bap:0,raiz:0,vol:0,zao:0,links:1,plinks:35},
+    "2024-07":{sunS:584,sunN:4,bap:0,raiz:0,vol:27,zao:0,links:1,plinks:35},
+    "2024-08":{sunS:596,sunN:4,bap:0,raiz:0,vol:28,zao:0,links:1,plinks:35},
+    "2024-09":{sunS:890,sunN:5,bap:0,raiz:0,vol:28,zao:0,links:6,plinks:86},
     "2024-10":{sunS:640,sunN:4,bap:0,raiz:0,vol:37,zao:0,links:7,plinks:112,ig:2491},
     "2024-11":{sunS:724,sunN:4,bap:0,raiz:0,vol:33,zao:0,links:7,plinks:120,ig:2997},
-    "2024-12":{sunS:675,sunN:4,bap:8,raiz:8,vol:37,zao:0,links:7,plinks:120,ig:3111},
+    "2024-12":{sunS:676,sunN:4,bap:8,raiz:8,vol:37,zao:0,links:7,plinks:120,ig:3111},
     "2025-01":{sunS:622,sunN:3,bap:0,raiz:0,vol:41,zao:0,links:7,plinks:122,ig:3505},
     "2025-02":{sunS:917,sunN:4,bap:0,raiz:25,vol:51,zao:49,links:7,plinks:146,ig:3802},
     "2025-03":{sunS:1061,sunN:5,bap:0,raiz:6,vol:69,zao:49,links:12,plinks:137,ig:4225},
     "2025-04":{sunS:827,sunN:4,bap:0,raiz:0,vol:86,zao:49,links:12,plinks:168,ig:4580},
-    "2025-05":{sunS:546,sunN:4,bap:0,raiz:0,vol:86,zao:0,links:12,plinks:201,ig:4895},
-    "2025-06":{sunS:1007,sunN:5,bap:0,raiz:6,vol:86,zao:0,links:12,plinks:179,ig:5172},
+    "2025-05":{sunS:546,sunN:3,bap:0,raiz:0,vol:86,zao:0,links:12,plinks:201,ig:4895},
+    "2025-06":{sunS:1005,sunN:5,bap:0,raiz:6,vol:86,zao:0,links:12,plinks:179,ig:5172},
     "2025-07":{sunS:803,sunN:4,bap:0,raiz:0,vol:51,zao:23,links:14,plinks:144,ig:5444},
     "2025-08":{sunS:1063,sunN:5,bap:0,raiz:17,vol:64,zao:23,links:14,plinks:162,ig:5681},
     "2025-09":{sunS:879,sunN:4,bap:0,raiz:6,vol:64,zao:43,links:14,plinks:172,ig:5956},
@@ -609,7 +599,13 @@ const DATA = {
     "2026-02":{sunS:1087,sunN:4,bap:0,raiz:0,vol:112,zao:0,links:14,plinks:64,ig:8316},
     "2026-03":{sunS:1464,sunN:5,bap:7,raiz:7,vol:45,links:14,plinks:66,ig:8700},
     "2026-04":{sunS:1350,sunN:4,bap:9,raiz:9,vol:49,ig:9500},
-    "2026-05":{sunS:282,sunN:1,bap:1,raiz:1}
+    "2026-05":{sunS:282,sunN:1,bap:1,raiz:1},
+  },
+  "SJCampos":{
+    "2026-01":{ig:1494},
+    "2026-02":{sunS:558,sunN:1,links:2,plinks:55},
+    "2026-03":{sunS:550,sunN:1,ig:4598},
+    "2026-05":{sunS:223,sunN:1},
   },
   "São Paulo":{
     "2023-01":{bap:0,raiz:98,vol:545,zao:0,links:122,plinks:1766,ig:220360,yt:358918},
@@ -624,24 +620,24 @@ const DATA = {
     "2023-10":{sunS:17485,sunN:5,bap:0,raiz:114,vol:576,zao:269,links:140,plinks:2171,ig:239794,yt:380049},
     "2023-11":{sunS:12133,sunN:4,bap:75,raiz:139,vol:602,zao:269,links:143,plinks:2168,ig:241668,yt:384864},
     "2023-12":{sunS:10686,sunN:3,bap:0,raiz:0,vol:595,zao:269,links:143,plinks:2157,ig:242209,yt:386830},
-    "2024-01":{sunS:11695,sunN:3,bap:0,raiz:0,vol:582,zao:504,links:141,plinks:1912,ig:245818,yt:392566},
-    "2024-02":{sunS:13246,sunN:4,bap:48,raiz:119,vol:583,zao:504,links:141,plinks:1912,ig:252199,yt:394745},
-    "2024-03":{sunS:17505,sunN:5,bap:0,raiz:133,vol:631,zao:504,links:140,plinks:1912,ig:252953,yt:395716},
-    "2024-04":{sunS:10747,sunN:4,bap:0,raiz:0,vol:623,zao:516,links:128,plinks:1924,ig:256005,yt:398338},
-    "2024-05":{sunS:7735,sunN:4,bap:0,raiz:0,vol:684,zao:516,links:131,plinks:1742,ig:261127,yt:403878},
-    "2024-06":{sunS:14478,sunN:5,bap:29,raiz:147,vol:707,zao:516,links:131,plinks:1972,ig:264080,yt:405725},
-    "2024-07":{sunS:11403,sunN:4,bap:18,raiz:18,vol:736,zao:498,ig:273487,yt:409000},
-    "2024-08":{sunS:11250,sunN:4,bap:51,raiz:51,vol:756,zao:498,links:159,plinks:2198,ig:276324,yt:410121},
+    "2024-01":{sunS:3898,sunN:1,bap:0,raiz:0,vol:582,zao:504,links:141,plinks:1912,ig:245818,yt:392566},
+    "2024-02":{sunS:3312,sunN:1,bap:48,raiz:119,vol:583,zao:504,links:141,plinks:1912,ig:252199,yt:394745},
+    "2024-03":{sunS:3501,sunN:1,bap:0,raiz:133,vol:631,zao:504,links:140,plinks:1912,ig:252953,yt:395716},
+    "2024-04":{sunS:2687,sunN:1,bap:0,raiz:0,vol:623,zao:516,links:128,plinks:1924,ig:256005,yt:398338},
+    "2024-05":{sunS:2578,sunN:1,bap:0,raiz:0,vol:684,zao:516,links:131,plinks:1742,ig:261127,yt:403878},
+    "2024-06":{sunS:14480,sunN:5,bap:29,raiz:147,vol:707,zao:516,links:131,plinks:1972,ig:264080,yt:405725},
+    "2024-07":{sunS:11404,sunN:4,bap:18,raiz:18,vol:736,zao:498,ig:273487,yt:409000},
+    "2024-08":{sunS:11248,sunN:4,bap:51,raiz:51,vol:756,zao:498,links:159,plinks:2198,ig:276324,yt:410121},
     "2024-09":{sunS:14860,sunN:5,bap:9,raiz:9,vol:749,zao:498,links:158,plinks:2112,ig:278216,yt:411617},
-    "2024-10":{sunS:13738,sunN:4,bap:0,raiz:0,vol:834,zao:0,links:160,plinks:2222,ig:280088,yt:412393},
+    "2024-10":{sunS:13736,sunN:4,bap:0,raiz:0,vol:834,zao:0,links:160,plinks:2222,ig:280088,yt:412393},
     "2024-11":{sunS:13000,sunN:4,bap:0,raiz:0,vol:846,zao:0,links:160,plinks:2196,ig:283527,yt:413537},
-    "2024-12":{sunS:12519,sunN:4,bap:0,raiz:0,vol:882,zao:0,links:159,plinks:2345,ig:284875,yt:414792},
+    "2024-12":{sunS:12520,sunN:4,bap:0,raiz:0,vol:882,zao:0,links:159,plinks:2345,ig:284875,yt:414792},
     "2025-01":{sunS:11914,sunN:3,bap:0,raiz:0,vol:830,zao:601,links:160,plinks:2312,ig:288831,yt:416126},
     "2025-02":{sunS:14770,sunN:4,bap:97,raiz:110,vol:685,zao:625,links:173,plinks:2594,ig:293127,yt:419344},
     "2025-03":{sunS:17189,sunN:5,bap:0,raiz:66,vol:685,zao:625,links:166,plinks:2686,ig:295047,yt:420000},
     "2025-04":{sunS:16607,sunN:4,bap:0,raiz:87,vol:685,zao:495,links:173,plinks:2901,ig:297182,yt:421000},
-    "2025-05":{sunS:9848,sunN:4,bap:106,raiz:0,vol:685,zao:495,links:173,plinks:2937,ig:299732,yt:422000},
-    "2025-06":{sunS:17334,sunN:5,bap:0,raiz:148,vol:686,zao:495,links:173,plinks:2982,ig:301254,yt:424000},
+    "2025-05":{sunS:9848,sunN:3,bap:106,raiz:0,vol:685,zao:495,links:173,plinks:2937,ig:299732,yt:422000},
+    "2025-06":{sunS:17335,sunN:5,bap:0,raiz:148,vol:686,zao:495,links:173,plinks:2982,ig:301254,yt:424000},
     "2025-07":{sunS:13810,sunN:4,bap:0,raiz:0,vol:686,zao:510,links:173,plinks:2982,ig:303708,yt:426000},
     "2025-08":{sunS:18984,sunN:5,bap:69,raiz:138,vol:745,zao:510,links:207,plinks:3091,ig:309127,yt:427000},
     "2025-09":{sunS:15547,sunN:4,bap:0,raiz:109,vol:745,zao:510,links:209,plinks:3411,ig:315190,yt:429050},
@@ -650,47 +646,47 @@ const DATA = {
     "2025-12":{sunS:11474,sunN:3,bap:54,raiz:0,vol:892,zao:522,links:186,plinks:3447,ig:333299,yt:432635},
     "2026-01":{sunS:13608,sunN:3,vol:892,links:191,plinks:755,ig:342528,yt:435964},
     "2026-02":{sunS:15693,sunN:4,raiz:91,vol:892,zao:465,links:191,plinks:755,ig:345406,yt:437903},
-    "2026-03":{sunS:20874,sunN:5,bap:64,raiz:72,vol:892,zao:465,links:191,plinks:467,ig:346310,yt:439267},
-    "2026-04":{sunS:17432,sunN:4,bap:87,raiz:87,vol:892,zao:452,links:191,plinks:313,ig:348097,yt:440734},
-    "2026-05":{sunS:10556,sunN:3,zao:452}
+    "2026-03":{sunS:20916,sunN:5,bap:64,raiz:72,vol:892,zao:465,links:191,plinks:467,ig:346310,yt:439267},
+    "2026-04":{sunS:17432,sunN:4,bap:0,raiz:87,vol:892,zao:452,links:191,plinks:313,ig:348097,yt:440734},
+    "2026-05":{sunS:10556,sunN:3,zao:452},
   },
   "Vale do Ribeira":{
-    "2024-01":{bap:0,raiz:0,zao:0},
-    "2024-02":{sunS:234,sunN:4,bap:0,raiz:0,zao:0,links:8,plinks:83},
-    "2024-03":{sunS:343,sunN:5,bap:0,raiz:45,zao:0,links:8,plinks:96},
-    "2024-04":{sunS:546,sunN:4,bap:0,raiz:0,vol:54,zao:0,links:8,plinks:98},
-    "2024-05":{sunS:368,sunN:4,bap:0,raiz:0,vol:66,zao:0,links:8,plinks:98},
-    "2024-06":{sunS:597,sunN:5,bap:0,raiz:0,vol:66,zao:0,links:8,plinks:102},
-    "2024-07":{sunS:175,sunN:4,bap:0,raiz:0,vol:66,zao:0},
-    "2024-08":{sunS:598,sunN:4,bap:3,raiz:3,vol:66,zao:123,links:8,plinks:116},
-    "2024-09":{sunS:947,sunN:5,bap:0,raiz:0,vol:87,zao:123,links:10,plinks:116},
+    "2024-01":{bap:0,raiz:0,vol:0,zao:0},
+    "2024-02":{sunS:117,sunN:1,bap:0,raiz:0,vol:0,zao:0,links:8,plinks:83},
+    "2024-03":{sunS:114,sunN:1,bap:0,raiz:45,vol:0,zao:0,links:8,plinks:96},
+    "2024-04":{sunS:136,sunN:1,bap:0,raiz:0,vol:54,zao:0,links:8,plinks:98},
+    "2024-05":{sunS:123,sunN:1,bap:0,raiz:0,vol:66,zao:0,links:8,plinks:98},
+    "2024-06":{sunS:595,sunN:5,bap:0,raiz:0,vol:66,zao:0,links:8,plinks:102},
+    "2024-07":{sunS:352,sunN:4,bap:0,raiz:0,vol:66,zao:0},
+    "2024-08":{sunS:596,sunN:4,bap:3,raiz:3,vol:66,zao:123,links:8,plinks:116},
+    "2024-09":{sunS:945,sunN:5,bap:0,raiz:0,vol:87,zao:123,links:10,plinks:116},
     "2024-10":{sunS:712,sunN:4,bap:0,raiz:0,vol:87,zao:181,links:10,plinks:140},
     "2024-11":{sunS:560,sunN:4,bap:0,raiz:0,vol:87,zao:181,links:11,plinks:145},
-    "2024-12":{sunS:571,sunN:4,bap:0,raiz:0,vol:89,zao:181,links:11,plinks:145},
-    "2025-01":{sunS:303,sunN:3,bap:0,raiz:0,vol:89,zao:0},
+    "2024-12":{sunS:572,sunN:4,bap:0,raiz:0,vol:89,zao:181,links:11,plinks:145},
+    "2025-01":{sunS:303,sunN:2,bap:0,raiz:0,vol:89,zao:0},
     "2025-02":{sunS:840,sunN:4,bap:0,raiz:3,vol:124,zao:175,links:14,plinks:153},
     "2025-03":{sunS:1201,sunN:5,bap:0,raiz:24,vol:124,zao:175,links:14,plinks:155},
     "2025-04":{sunS:1523,sunN:4,bap:1,raiz:4,vol:110,zao:0,links:10,plinks:120},
-    "2025-05":{sunS:501,sunN:4,bap:0,raiz:0,vol:80,zao:0,links:10,plinks:120},
+    "2025-05":{sunS:501,sunN:3,bap:0,raiz:0,vol:80,zao:0,links:10,plinks:120},
     "2025-06":{sunS:911,sunN:5,bap:0,raiz:2,vol:84,zao:0,links:10},
-    "2025-07":{sunS:100,sunN:4,bap:0,raiz:0,vol:110,zao:0,links:10,plinks:120},
+    "2025-07":{sunS:400,sunN:4,bap:0,raiz:0,vol:110,zao:0,links:10,plinks:120},
     "2025-08":{sunS:1098,sunN:5,bap:0,raiz:32,vol:108,zao:0,links:17,plinks:185},
     "2025-09":{sunS:865,sunN:4,bap:0,raiz:16,vol:108,zao:0,links:17,plinks:185},
     "2025-10":{sunS:785,sunN:4,bap:0,raiz:0,vol:110,zao:0,links:17,plinks:185},
     "2025-11":{sunS:843,sunN:4,bap:0,raiz:0,vol:110,zao:0,links:17,plinks:170},
-    "2025-12":{sunS:430,sunN:3,bap:0,raiz:0,vol:110,zao:0,links:17,plinks:170},
+    "2025-12":{sunS:645,sunN:3,bap:0,raiz:0,vol:110,zao:0,links:17,plinks:170},
     "2026-01":{sunS:324,sunN:2,bap:0,raiz:0,vol:65,zao:0},
     "2026-02":{sunS:336,sunN:3,bap:0,raiz:0,vol:65,zao:123,links:15,plinks:56},
-    "2026-03":{sunS:1358,sunN:5,bap:9,raiz:9,vol:62,zao:141},
-    "2026-04":{sunS:654,sunN:2,bap:5,raiz:5}
+    "2026-03":{sunS:1349,sunN:5,bap:9,raiz:9,vol:62,zao:141},
+    "2026-04":{sunS:654,sunN:2,bap:5,raiz:5},
   },
   "Vitória":{
     "2026-01":{ig:3478},
     "2026-02":{links:3,plinks:40},
     "2026-03":{sunS:356,sunN:1,ig:5134},
     "2026-04":{sunS:172,sunN:1},
-    "2026-05":{sunS:230,sunN:1}
-  }
+    "2026-05":{sunS:230,sunN:1},
+  },
 };
 
 /* ═══ CALC */
@@ -729,8 +725,8 @@ function globalForPeriod(period){
     });
     links+=lastVal(loc.id,months,'links');
     plinks+=lastVal(loc.id,months,'plinks');
-    vol+=maxVal(loc.id,months,'vol');
-    zao+=maxVal(loc.id,months,'zao');
+    vol+=lastVal(loc.id,months,'vol');
+    zao+=lastVal(loc.id,months,'zao');
     ig+=lastVal(loc.id,months,'ig');
     yt+=lastVal(loc.id,months,'yt');
   });
@@ -1047,8 +1043,8 @@ function PageGlobal(){
       raiz+=sumFlow(loc.id,ms2,'raiz');
       links+=lastVal(loc.id,ms2,'links');
       plinks+=lastVal(loc.id,ms2,'plinks');
-      vol+=maxVal(loc.id,ms2,'vol');
-      zao+=maxVal(loc.id,ms2,'zao');
+      vol+=lastVal(loc.id,ms2,'vol');
+      zao+=lastVal(loc.id,ms2,'zao');
     });
     const avgSun=n>0?Math.round(s/n):0;
     return{avgSun,bap,raiz,links,plinks,vol,zao,pessoasPerLink:links>0?+(plinks/links).toFixed(1):0};
@@ -1208,8 +1204,8 @@ function PageLocal(){
     raiz:  sumFlow(locId,months,'raiz'),
     links: lastVal(locId,months,'links'),
     plinks:lastVal(locId,months,'plinks'),
-    vol:   maxVal(locId,months,'vol'),
-    zao:   maxVal(locId,months,'zao'),
+    vol:   lastVal(locId,months,'vol'),
+    zao:   lastVal(locId,months,'zao'),
   };
   const p=prev?{
     avgSun:avgSunday(locId,prevM),
@@ -1217,8 +1213,8 @@ function PageLocal(){
     raiz:  sumFlow(locId,prevM,'raiz'),
     links: lastVal(locId,prevM,'links'),
     plinks:lastVal(locId,prevM,'plinks'),
-    vol:   maxVal(locId,prevM,'vol'),
-    zao:   maxVal(locId,prevM,'zao'),
+    vol:   lastVal(locId,prevM,'vol'),
+    zao:   lastVal(locId,prevM,'zao'),
   }:null;
   const tier=getTier(s.avgSun);
 
@@ -1306,7 +1302,7 @@ function PageLocal(){
             <YAxis yAxisId="r" orientation="right" tick={{fill:C.sage,fontSize:11}} axisLine={false} tickLine={false}/>
             <Tooltip content={<TT/>}/>
             <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
-            <Bar isAnimationActive={false} yAxisId="l" dataKey="links" name="Links Ativos" fill={C.teal} radius={[3,3,0,0]} barSize={14}>
+            <Bar isAnimationActive={false} yAxisId="l" dataKey="links" name="Links Ativos" fill={C.teal} radius={[3,3,0,0]} barSize={26}>
               <LabelList dataKey="links" position="insideTop" style={{fill:'#fff',fontSize:10}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
             <Line isAnimationActive={false} yAxisId="r" type="monotone" dataKey="plinks" name="Pessoas em Links" stroke={C.sage} strokeWidth={2} dot={{r:4,fill:C.sage}}>
@@ -1766,7 +1762,7 @@ function PageTaxas(){
     const pl=lastVal(locId,ms,'plinks');
     const vol=lastVal(locId,ms,'vol');
     const links=lastVal(locId,ms,'links');
-    const zao=maxVal(locId,ms,'zao');
+    const zao=lastVal(locId,ms,'zao');
     const bap=sumFlow(locId,ms,'bap');
     /* Taxas */
     const conexao  =sun>0?+(pl/sun*100).toFixed(1):0;          // % em links
@@ -2748,6 +2744,7 @@ function PageGeracionais(){
                 <Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
                 {GEN_CATS.map((c,i)=>(
                   <Bar isAnimationActive={false} key={c.key} dataKey={c.key} name={c.label} stackId="a" fill={c.color}>
+                    <LabelList dataKey={c.key} position="center" style={{fill:'#fff',fontSize:9,fontWeight:700}} formatter={v=>v>30?v.toLocaleString('pt-BR'):''}/>
                     {i===GEN_CATS.length-1&&<LabelList dataKey="total" position="top" style={{fill:C.cream,fontSize:11,fontWeight:700}} formatter={v=>v>0?v.toLocaleString('pt-BR'):''}/>}
                   </Bar>
                 ))}
@@ -3434,20 +3431,26 @@ function PageDigital(){
   const igRows=LOCS.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'ig')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
   const ytRows=LOCS.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'yt')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
 
-  const ytLocs=['São Paulo','Recife','Quito','Campinas','Ribeirão Preto','Miami','Orlando'];
+  const ytLocs=['São Paulo','Recife','Quito'];
+  const ytLocsAll=['Campinas','Ribeirão Preto','Miami','Orlando','Lisboa','Porto'];
   const MM=['01','02','03','04','05','06','07','08','09','10','11','12'];
   const ML=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const igLocsMain=['Recife','Quito','Campinas','Lisboa','Ribeirão Preto'];
   const trendData=MM.map(function(mm,i){
     const pt={name:ML[i]};
-    ytLocs.forEach(function(l){pt[l]=DATA[l]?.['2026-'+mm]?.yt||null;});
+    ytLocs.forEach(function(l){const v=DATA[l]?.['2026-'+mm]?.yt;pt[l]=v||null;});
+    ytLocsAll.forEach(function(l){const v=DATA[l]?.['2026-'+mm]?.yt;pt[l]=v||null;});
     return pt;
   });
   const igTrendData=MM.map(function(mm,i){
     const pt={name:ML[i]};
-    ['São Paulo','Recife','Quito','Campinas','Lisboa'].forEach(function(l){pt[l]=DATA[l]?.['2026-'+mm]?.ig||null;});
+    // SP separado (eixo direito para evitar compressão)
+    const spIg=DATA['São Paulo']?.['2026-'+mm]?.ig; pt['São Paulo']=spIg||null;
+    igLocsMain.forEach(function(l){const v=DATA[l]?.['2026-'+mm]?.ig;pt[l]=v||null;});
     return pt;
   });
-  const ytColors=['#078780','#439B6A','#D4AF37','#89CFF0','#A8A9AD','#e05c5c','#9b8fd5'];
+  const ytColors=['#078780','#e05c5c','#D4AF37','#89CFF0','#A8A9AD','#9b8fd5','#439B6A'];
+  const igColors=['#439B6A','#D4AF37','#89CFF0','#A8A9AD','#e05c5c'];
 
   const locRows=LOCS.map(loc=>({loc,cur:lastVal(loc.id,months,'ig'),prv:prev?lastVal(loc.id,prevM,'ig'):null})).sort((a,b)=>b.cur-a.cur);
 
@@ -3500,37 +3503,75 @@ function PageDigital(){
         </Card>
       </div>
 
-      <Card>
-        <ChartTitle>YouTube — Evolução Mensal 2026 (Principais Localidades)</ChartTitle>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={trendData} margin={{top:20,right:10,bottom:0,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
-            <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
-            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
-            <Tooltip content={<TT/>}/>
-            <Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
-            {ytLocs.map((l,i)=>(
-              <Area key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i]} fill={ytColors[i]} fillOpacity={0.08} strokeWidth={2} dot={{r:2,fill:ytColors[i]}} connectNulls={true}/>
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
-      </Card>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>YouTube — São Paulo (Evolução Mensal 2026)</ChartTitle>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={trendData} margin={{top:22,right:16,bottom:0,left:0}}>
+              <defs><linearGradient id="ytSP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#078780" stopOpacity={0.3}/><stop offset="95%" stopColor="#078780" stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>(v/1000).toFixed(0)+'k'} width={36}/>
+              <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="São Paulo" name="São Paulo YT" stroke="#078780" fill="url(#ytSP)" strokeWidth={2.5} dot={{r:3,fill:'#078780',strokeWidth:0}} connectNulls={true}>
+                <LabelList dataKey="São Paulo" position="top" style={{fill:C.cream,fontSize:9,fontWeight:600}} formatter={v=>v?(v/1000).toFixed(0)+'k':''}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>YouTube — Recife, Quito e Outras (Evolução 2026)</ChartTitle>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={trendData} margin={{top:22,right:16,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={44}/>
+              <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
+              <Legend wrapperStyle={{fontSize:10,color:C.cream}}/>
+              {['Recife','Quito','Campinas','Ribeirão Preto'].map((l,i)=>(
+                <Line key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i+1]} strokeWidth={2} dot={{r:3,fill:ytColors[i+1],strokeWidth:0}} connectNulls={true}>
+                  <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
+                </Line>
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
 
-      <Card>
-        <ChartTitle>Instagram — Evolução Mensal 2026 (SP, Recife, Quito, Campinas, Lisboa)</ChartTitle>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={igTrendData} margin={{top:20,right:10,bottom:0,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
-            <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
-            <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
-            <Tooltip content={<TT/>}/>
-            <Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
-            {['São Paulo','Recife','Quito','Campinas','Lisboa'].map((l,i)=>(
-              <Area key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i]} fill={ytColors[i]} fillOpacity={0.08} strokeWidth={2} dot={{r:2,fill:ytColors[i]}} connectNulls={true}/>
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
-      </Card>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card>
+          <ChartTitle>Instagram — São Paulo (Evolução Mensal 2026)</ChartTitle>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={igTrendData} margin={{top:22,right:16,bottom:0,left:0}}>
+              <defs><linearGradient id="igSP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#439B6A" stopOpacity={0.3}/><stop offset="95%" stopColor="#439B6A" stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>(v/1000).toFixed(0)+'k'} width={36}/>
+              <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
+              <Area isAnimationActive={false} type="monotone" dataKey="São Paulo" name="São Paulo IG" stroke="#439B6A" fill="url(#igSP)" strokeWidth={2.5} dot={{r:3,fill:'#439B6A',strokeWidth:0}} connectNulls={true}>
+                <LabelList dataKey="São Paulo" position="top" style={{fill:C.cream,fontSize:9,fontWeight:600}} formatter={v=>v?(v/1000).toFixed(0)+'k':''}/>
+              </Area>
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <ChartTitle>Instagram — Recife, Quito, Campinas e Outras (Evolução 2026)</ChartTitle>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={igTrendData} margin={{top:22,right:16,bottom:0,left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={44}/>
+              <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
+              <Legend wrapperStyle={{fontSize:10,color:C.cream}}/>
+              {igLocsMain.map((l,i)=>(
+                <Line key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={igColors[i]} strokeWidth={2} dot={{r:3,fill:igColors[i],strokeWidth:0}} connectNulls={true}>
+                  <LabelList dataKey={l} position="top" style={{fill:igColors[i],fontSize:9,fontWeight:600}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
+                </Line>
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
 
       <Card>
         <ChartTitle>Heatmap Instagram — {PERIODS[period]?.label}</ChartTitle>
