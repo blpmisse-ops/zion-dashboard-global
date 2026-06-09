@@ -247,8 +247,9 @@ const DATA = {
     "2026-01":{sunS:586,sunN:3,bap:0,raiz:0,vol:86,ig:4826,yt:0},
     "2026-02":{sunS:794,sunN:4,bap:0,raiz:0,vol:90,links:11,plinks:113,ig:5369,yt:0},
     "2026-03":{sunS:1406,sunN:5,bap:0},
-    "2026-04":{sunS:900,sunN:3}
-  },
+    "2026-04":{sunS:900,sunN:3},
+    "2026-05":{bap:0,raiz:0}
+  }
   "Lisboa": {
     "2023-01":{bap:0,raiz:0,links:9},
     "2023-02":{bap:0,raiz:0,links:9},
@@ -290,7 +291,7 @@ const DATA = {
     "2026-02":{sunS:2367,sunN:4,bap:0,raiz:0},
     "2026-03":{sunS:3247,sunN:5,bap:17,raiz:0,vol:425},
     "2026-04":{sunS:2540,sunN:4,raiz:44,vol:318,zao:490},
-    "2026-05":{sunS:2089,sunN:4,zao:221},
+    "2026-05":{sunS:2089,sunN:4,zao:221,bap:0,raiz:0},
     "2026-06":{ig:47200,yt:31200}
   },
   "Maceió": {
@@ -366,7 +367,7 @@ const DATA = {
     "2026-02":{sunS:224,sunN:4,bap:0,raiz:0,vol:53,zao:0,links:2,plinks:32,ig:6725,yt:411},
     "2026-03":{sunS:321,sunN:5,plinks:32},
     "2026-04":{sunS:278,sunN:4,vol:53,zao:50,plinks:28,ig:6855,yt:445},
-    "2026-05":{sunS:286,sunN:5,raiz:7,vol:53,zao:50,plinks:34,ig:6952,yt:460}
+    "2026-05":{sunS:286,sunN:5,raiz:7,vol:53,zao:50,plinks:34,ig:6952,yt:460,bap:0}
   },
   "Orlando": {
     "2025-01":{bap:0,raiz:0},
@@ -508,7 +509,7 @@ const DATA = {
     "2026-02":{sunS:7272,sunN:4,bap:0,raiz:45,vol:392,zao:153,links:56,plinks:88,ig:50950,yt:11450},
     "2026-03":{sunS:7006,sunN:5,bap:0,raiz:90,vol:392,zao:153,links:56,plinks:71,ig:53450,yt:11950},
     "2026-04":{sunS:5471,sunN:4,bap:0,raiz:0,vol:392,zao:148,plinks:72,ig:54100,yt:12200},
-    "2026-05":{sunS:2401,sunN:2,vol:392,plinks:91}
+    "2026-05":{sunS:2401,sunN:2,vol:392,plinks:91,bap:0}
   },
   "Ribeirão Preto": {
     "2024-01":{bap:0,raiz:0},
@@ -539,7 +540,7 @@ const DATA = {
     "2026-02":{sunS:1130,sunN:4,bap:0,raiz:0,vol:182,zao:33,links:15,plinks:128,ig:9434,yt:941},
     "2026-03":{sunS:1684,sunN:5,bap:6,raiz:0,vol:94,zao:33,links:15,plinks:128,ig:9680,yt:974},
     "2026-04":{sunS:1452,sunN:4,bap:0,raiz:0,vol:94,links:15,plinks:195,ig:9837,yt:994},
-    "2026-05":{sunS:1274,sunN:4,vol:94,zao:42,plinks:195,ig:10200,yt:1030},
+    "2026-05":{sunS:1274,sunN:4,vol:94,zao:42,plinks:195,ig:10200,yt:1030,bap:0},
     "2026-06":{sunS:291,sunN:1,vol:94,ig:10200,yt:1030}
   },
   "SJCampos": {
@@ -665,7 +666,7 @@ const DATA = {
     "2026-02":{sunS:15693,sunN:4,bap:0,raiz:91,vol:892,zao:465,links:191,plinks:755,ig:345406,yt:437903},
     "2026-03":{sunS:20916,sunN:5,bap:64,raiz:72,vol:892,zao:465,links:191,plinks:467,ig:346310,yt:439267},
     "2026-04":{sunS:17432,sunN:4,bap:0,raiz:87,vol:892,zao:452,links:191,plinks:313,ig:348097,yt:440734},
-    "2026-05":{sunS:10556,sunN:3,zao:452}
+    "2026-05":{sunS:10556,sunN:3,zao:452,bap:0}
   },
   "Vale do Ribeira": {
     "2024-01":{bap:0,raiz:0},
@@ -2044,7 +2045,7 @@ function expectedSundaysForLoc(locId,ym){
 function PageDataControl(){
   const [period,setPeriod]=useState('2026-S1');
   const [locFilter,setLocFilter]=useState('all');
-  const [monthFilter,setMonthFilter]=useState('all');
+  const [monthFilter,setMonthFilter]=useState('2026-05');
   const allMonths=pMonths(period);
   const months=monthFilter==='all'?allMonths:allMonths.filter(m=>m===monthFilter);
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
