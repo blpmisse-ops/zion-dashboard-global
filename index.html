@@ -2651,13 +2651,25 @@ function HeatmapTable({locRows,months,getMonthVal,getSemVal}){
   );
 }
 
+/* ═══ CAMPUS PASSWORDS */
+const CAMPUS_PASSWORDS={
+  'ZionSP26':'São Paulo','ZionCPS26':'Campinas','ZionRBP26':'Ribeirão Preto',
+  'ZionREC26':'Recife','ZionMCZ26':'Maceió','ZionCGR26':'Campo Grande',
+  'ZionVDR26':'Vale do Ribeira','ZionQTO26':'Quito','ZionSTG26':'Santiago',
+  'ZionLIS26':'Lisboa','ZionCCS26':'Cascais','ZionPTO26':'Porto',
+  'ZionPTM26':'Portimão','ZionMIA26':'Miami','ZionORL26':'Orlando',
+  'ZionSTS26':'Santos','ZionJDI26':'Jundiaí','ZionCUE26':'Cuenca',
+  'ZionVIT26':'Vitória','ZionSJC26':'SJCampos',
+};
+
 /* ═══ LOGIN */
 function Login({onLogin}){
   const [pw,setPw]=useState('');
   const [err,setErr]=useState(false);
   const handle=e=>{
     e.preventDefault();
-    if(pw==='zion2026')onLogin();
+    if(pw==='zion2026')onLogin(null);
+    else if(CAMPUS_PASSWORDS[pw])onLogin(CAMPUS_PASSWORDS[pw]);
     else{setErr(true);setTimeout(()=>setErr(false),1500);}
   };
   return(
@@ -2985,9 +2997,9 @@ function PageGlobal(){
 }
 
 /* ═══ PAGE: ZION LOCAL */
-function PageLocal(){
+function PageLocal({lockedLocId=null}){
   const [period,setPeriod]=useState('2026-S1');
-  const [locId,setLocId]=useState('São Paulo');
+  const [locId,setLocId]=useState(lockedLocId||'São Paulo');
   const months=pMonths(period);
   const loc=LOCS.find(l=>l.id===locId);
   const prev=prevPeriod(period);
@@ -3028,11 +3040,11 @@ function PageLocal(){
         <PeriodSelector value={period} onChange={setPeriod}/>
       </div>
 
-      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+      {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {LOCS.map(l=>(
           <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
         ))}
-      </div>
+      </div>}
 
       <Card style={{display:'flex',alignItems:'center',gap:16}}>
         <div style={{fontSize:36}}>{loc.flag}</div>
@@ -5752,15 +5764,15 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
 
 /* ═══ APP */
 function App(){
-  const [authed,setAuthed]=useState(false);
+  const [campusFilter,setCampusFilter]=useState(undefined);
   const [page,setPage]=useState('global');
   const [collapsed,setCollapsed]=useState(false);
-  if(!authed)return<Login onLogin={()=>setAuthed(true)}/>;
+  if(campusFilter===undefined)return<Login onLogin={c=>{setCampusFilter(c);setPage(c?'local':'global');}}/>;
   function renderPage(){
     switch(page){
       case 'ranking':     return<PageRanking/>;
       case 'global':      return<PageGlobal/>;
-      case 'local':       return<PageLocal/>;
+      case 'local':       return<PageLocal lockedLocId={campusFilter}/>;
       case 'cultos':      return<PageCultos/>;
       case 'batismo':     return<MetricPage title="Total de Batismos" pageTitle="Batismo" field="bap" isStock={false} aggFn={sumFlow} description="Total de batismos realizados no período — métrica de fluxo (soma acumulada dos meses)" color={C.teal} compTitle="Total de Batismos"/>;
       case 'links':       return<MetricPage title="Links Ativos" pageTitle="Links" field="links" isStock={true} aggFn={lastVal} description="Quantidade de links ativos — valor do último mês do período selecionado (métrica de estoque)" color={C.teal} compTitle="Links Ativos"/>;
