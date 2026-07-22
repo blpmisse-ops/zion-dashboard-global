@@ -3204,8 +3204,9 @@ function PageLocal({lockedLocId=null}){
 
 /* ═══ PAGE: CULTOS */
 function PageCultos(){
+  const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-S1');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const [selMonth,setSelMonth]=useState('all');
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
@@ -3435,9 +3436,10 @@ function PageCultos(){
 /* ═══ GENERIC METRIC PAGE */
 function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compTitle}){
   color=color||C.teal;
+  const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-S1');
-  const [locFilter,setLocFilter]=useState('global');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [locFilter,setLocFilter]=useState(campusLock?campusLock:'global');
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
   const prev=prevPeriod(period);
@@ -3796,8 +3798,9 @@ function expectedSundaysForLoc(locId,ym){
   return expectedSundays(ym);
 }
 function PageDataControl(){
+  const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-S1');
-  const [locFilter,setLocFilter]=useState('all');
+  const [locFilter,setLocFilter]=useState(campusLock||'all');
   const [monthFilter,setMonthFilter]=useState('2026-05');
   const allMonths=pMonths(period);
   const months=monthFilter==='all'?allMonths:allMonths.filter(m=>m===monthFilter);
@@ -4495,10 +4498,11 @@ function gerAvg(locId,months,cat){
   return n>0?Math.round(s/n):0;
 }
 function PageGeracionais(){
+  const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-S1');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
-  const [locId,setLocId]=useState('São Paulo');
+  const [locId,setLocId]=useState(campusLock||'São Paulo');
   const months=pMonths(period);
   const loc=LOCS.find(l=>l.id===locId);
   const hasData=GER_DATA[locId]&&months.some(m=>GER_DATA[locId][m]);
@@ -4715,8 +4719,9 @@ const PRED_DATA={
 /* seats derivado do tier; cap total = seats × cultos */
 Object.values(PRED_DATA).forEach(d=>{d.seats=TIER_SEATS[d.tier]||0;d.cap=d.seats*d.cultos;});
 function PagePredios(){
+  const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-S1');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
 
@@ -5300,18 +5305,20 @@ function PageCenso(){
 
 /* ═══ PAGE: PRESENÇA DIGITAL */
 function PageDigital(){
+  const campusLock=React.useContext(CampusCtx);
+  const visLocs=campusLock?LOCS.filter(l=>l.id===campusLock):LOCS;
   const [period,setPeriod]=useState('2026-S1');
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevM=prev?pMonths(prev):[];
 
-  const igCur=LOCS.reduce((s,l)=>s+lastVal(l.id,months,'ig'),0);
-  const ytCur=LOCS.reduce((s,l)=>s+lastVal(l.id,months,'yt'),0);
-  const igPrv=prev?LOCS.reduce((s,l)=>s+lastVal(l.id,prevM,'ig'),0):null;
-  const ytPrv=prev?LOCS.reduce((s,l)=>s+lastVal(l.id,prevM,'yt'),0):null;
+  const igCur=visLocs.reduce((s,l)=>s+lastVal(l.id,months,'ig'),0);
+  const ytCur=visLocs.reduce((s,l)=>s+lastVal(l.id,months,'yt'),0);
+  const igPrv=prev?visLocs.reduce((s,l)=>s+lastVal(l.id,prevM,'ig'),0):null;
+  const ytPrv=prev?visLocs.reduce((s,l)=>s+lastVal(l.id,prevM,'yt'),0):null;
 
-  const igRows=LOCS.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'ig')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
-  const ytRows=LOCS.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'yt')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
+  const igRows=visLocs.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'ig')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
+  const ytRows=visLocs.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'yt')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
 
   const ytLocs=['São Paulo','Recife','Quito'];
   const ytLocsAll=['Campinas','Ribeirão Preto','Miami','Orlando','Lisboa','Porto'];
@@ -5334,7 +5341,7 @@ function PageDigital(){
   const ytColors=['#078780','#e05c5c','#D4AF37','#89CFF0','#A8A9AD','#9b8fd5','#439B6A'];
   const igColors=['#439B6A','#D4AF37','#89CFF0','#A8A9AD','#e05c5c'];
 
-  const locRows=LOCS.map(loc=>({loc,cur:lastVal(loc.id,months,'ig'),prv:prev?lastVal(loc.id,prevM,'ig'):null})).sort((a,b)=>b.cur-a.cur);
+  const locRows=visLocs.map(loc=>({loc,cur:lastVal(loc.id,months,'ig'),prv:prev?lastVal(loc.id,prevM,'ig'):null})).sort((a,b)=>b.cur-a.cur);
 
   return(
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
@@ -5713,6 +5720,8 @@ function PagePUL(){
 }
 
 /* ═══ SIDEBAR */
+const CampusCtx=React.createContext(null);
+const CAMPUS_BLOCKED=['ranking','global','pul'];
 const PAGES=[
   {id:'ranking',    label:'Ranking de Localidades', icon:'🏅'},
   {id:'global',     label:'Visão Global',            icon:'🌍'},
@@ -5734,6 +5743,7 @@ const PAGES=[
 ];
 
 function Sidebar({page,setPage,collapsed,setCollapsed}){
+  const campusLock=React.useContext(CampusCtx);
   return(
     <aside style={{width:collapsed?52:222,minWidth:collapsed?52:222,background:'#021a1a',borderRight:'1px solid rgba(7,135,128,0.2)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto',overflowX:'hidden',transition:'width 0.22s,min-width 0.22s'}}>
       <div style={{padding:collapsed?'14px 0':'14px 16px',borderBottom:'1px solid rgba(7,135,128,0.2)',display:'flex',alignItems:'center',justifyContent:collapsed?'center':'space-between',cursor:'pointer',minHeight:56,flexShrink:0}} onClick={()=>setCollapsed(!collapsed)}>
@@ -5742,9 +5752,9 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
       </div>
       <nav style={{flex:1,padding:'6px 0',overflowY:'auto'}}>
         {[
-          {sep:'— VISÃO GERAL —',ids:['ranking','global','local']},
+          {sep:'— VISÃO GERAL —',ids:campusLock?['local']:['ranking','global','local']},
           {sep:'— MÉTRICAS —',ids:['cultos','geracionais','batismo','links','plinks','voluntarios','raizes','zao','digital']},
-          {sep:'— ANÁLISES —',ids:['predios','dados','censo','dsm','pul']},
+          {sep:'— ANÁLISES —',ids:campusLock?['predios','dados','censo','dsm']:['predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
@@ -5791,6 +5801,7 @@ function App(){
     }
   }
   return(
+    <CampusCtx.Provider value={campusFilter}>
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
       <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
       <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,#032525 0%,${C.deepGreen} 100%)`}}>
@@ -5802,6 +5813,7 @@ function App(){
         {renderPage()}
       </main>
     </div>
+    </CampusCtx.Provider>
   );
 }
 
