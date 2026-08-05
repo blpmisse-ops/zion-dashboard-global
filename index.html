@@ -111,6 +111,7 @@ const PERIODS={
   '2026-Q2':{label:'Q2 2026',           months:['2026-04','2026-05','2026-06']},
   '2026-Q3':{label:'Q3 2026 (YTD)',     months:['2026-07']},
   '2026-S1':{label:'H1 2026',           months:['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06']},
+  '2026-YTD':{label:'2026 (Jan–Jul)',     months:['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07']},
   '2024':   {label:'2024 (Ano Completo)',months:['2024-01','2024-02','2024-03','2024-04','2024-05','2024-06','2024-07','2024-08','2024-09','2024-10','2024-11','2024-12']},
   '2025':   {label:'2025 (Ano Completo)',months:['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12']},
   '2026':   {label:'2026 (YTD)',         months:['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07']},
@@ -2747,7 +2748,7 @@ function LocMultiFilter({selected,onChange}){
 }
 
 function PageRanking(){
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevMonths=prev?pMonths(prev):[];
@@ -2824,10 +2825,10 @@ function PageRanking(){
 
 /* ═══ PAGE: VISÃO GLOBAL */
 function PageGlobal(){
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
   const [cmpA,setCmpA]=useState('2025-S1');
-  const [cmpB,setCmpB]=useState('2026-S1');
+  const [cmpB,setCmpB]=useState('2026-YTD');
   const [selMonth,setSelMonth]=useState('all');
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
@@ -2872,7 +2873,7 @@ function PageGlobal(){
   const allLocPlinks=filtLocs.map(loc=>({name:loc.name,val:lastVal(loc.id,months,'plinks')})).sort((a,b)=>b.val-a.val);
   const allLocVol=filtLocs.map(loc=>({name:loc.name,val:lastVal(loc.id,months,'vol')})).sort((a,b)=>b.val-a.val);
 
-  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1','2026-YTD'];
   const trendData=allPeriods.map(p=>{const g=filtGlobal(pMonths(p));return{name:PERIODS[p].label,...g};});
 
   function AllLocBar({data,dataKey,label,color}){
@@ -3003,7 +3004,7 @@ function PageGlobal(){
 
 /* ═══ PAGE: ZION LOCAL */
 function PageLocal({lockedLocId=null}){
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [locId,setLocId]=useState(lockedLocId||'São Paulo');
   const months=pMonths(period);
   const loc=LOCS.find(l=>l.id===locId);
@@ -3210,7 +3211,7 @@ function PageLocal({lockedLocId=null}){
 /* ═══ PAGE: CULTOS */
 function PageCultos(){
   const campusLock=React.useContext(CampusCtx);
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const [selMonth,setSelMonth]=useState('all');
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
@@ -3232,7 +3233,7 @@ function PageCultos(){
   const gPAvg=(prev&&filtLocs.length>0)?Math.round(gPSum/filtLocs.length):null;
 
   // All periods trend
-  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1','2026-YTD'];
   const trendData=allPeriods.filter(p=>PERIODS[p]).map(p=>{
     let t=0; filtLocs.forEach(l=>{t+=avgSunday(l.id,pMonths(p));});
     return{name:PERIODS[p].label,val:filtLocs.length>0?Math.round(t/filtLocs.length):0};
@@ -3442,7 +3443,7 @@ function PageCultos(){
 function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compTitle}){
   color=color||C.teal;
   const campusLock=React.useContext(CampusCtx);
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [locFilter,setLocFilter]=useState(campusLock?campusLock:'global');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
@@ -3466,7 +3467,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
     return{loc,cur,prv,d:prv!==null?delta(cur,prv):null};
   }).sort((a,b)=>b.cur-a.cur);
 
-  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1'];
+  const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1','2026-YTD'];
   const trendData=allPeriods.map(p=>{
     let v=0;
     if(isGlobal){filtLocs.forEach(l=>{v+=aggFn(l.id,pMonths(p),field);});}
@@ -3625,7 +3626,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
 /* ═══ PAGE: TAXAS */
 function PageTaxas(){
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
   const months=pMonths(period);
   const prev=prevPeriod(period);
@@ -3804,7 +3805,7 @@ function expectedSundaysForLoc(locId,ym){
 }
 function PageDataControl(){
   const campusLock=React.useContext(CampusCtx);
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [locFilter,setLocFilter]=useState(campusLock||'all');
   const [monthFilter,setMonthFilter]=useState('2026-05');
   const allMonths=pMonths(period);
@@ -4504,7 +4505,7 @@ function gerAvg(locId,months,cat){
 }
 function PageGeracionais(){
   const campusLock=React.useContext(CampusCtx);
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const [locId,setLocId]=useState(campusLock||'São Paulo');
@@ -4725,7 +4726,7 @@ const PRED_DATA={
 Object.values(PRED_DATA).forEach(d=>{d.seats=TIER_SEATS[d.tier]||0;d.cap=d.seats*d.cultos;});
 function PagePredios(){
   const campusLock=React.useContext(CampusCtx);
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
@@ -5312,7 +5313,7 @@ function PageCenso(){
 function PageDigital(){
   const campusLock=React.useContext(CampusCtx);
   const visLocs=campusLock?LOCS.filter(l=>l.id===campusLock):LOCS;
-  const [period,setPeriod]=useState('2026-S1');
+  const [period,setPeriod]=useState('2026-YTD');
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevM=prev?pMonths(prev):[];
