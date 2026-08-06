@@ -3664,7 +3664,7 @@ function PageDataControl(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
   const [locFilter,setLocFilter]=useState(campusLock||'all');
-  const [monthFilter,setMonthFilter]=useState('2026-05');
+  const [monthFilter,setMonthFilter]=useState(PERIODS['2026-YTD'].months.slice(-1)[0]);
   const allMonths=pMonths(period);
   const months=monthFilter==='all'?allMonths:allMonths.filter(m=>m===monthFilter);
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
