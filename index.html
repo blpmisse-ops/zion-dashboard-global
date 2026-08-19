@@ -1843,6 +1843,48 @@ function ChartTitle({children}){
   return<h4 style={{fontSize:15,color:C.teal,marginBottom:10,fontWeight:600}}>{children}</h4>;
 }
 
+/* ═══ RÓTULO DE SÉRIE
+   Rótulos de duas séries na mesma linha se sobrepunham e ficavam ilegíveis.
+   Aqui cada série recebe a cor da própria linha, um contorno escuro que a
+   separa do que estiver atrás, e um deslocamento vertical próprio — uma série
+   acima do ponto, a outra abaixo — para que nunca colidam.               */
+/* ═══ DESTAQUE DOS EXTREMOS
+   Marca os 3 maiores e os 3 menores valores de uma série semanal, para que
+   os melhores e os piores domingos saltem à vista no gráfico.            */
+const C_TOP='#5dd68c', C_BOT='#f07070';
+function extremos(dados,campo){
+  const v=dados.map(d=>d[campo]).filter(x=>typeof x==='number'&&x>0).sort((a,b)=>b-a);
+  if(v.length<6) return{alto:new Set(),baixo:new Set()};
+  return{alto:new Set(v.slice(0,3)),baixo:new Set(v.slice(-3))};
+}
+function corExtremo(ex,valor){
+  if(ex.alto.has(valor)) return C_TOP;
+  if(ex.baixo.has(valor)) return C_BOT;
+  return C.teal;
+}
+function LegendaExtremos(){
+  return(
+    <div style={{display:'flex',gap:16,alignItems:'center',fontSize:11,color:C.cream,marginTop:-4,marginBottom:8}}>
+      <span><span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:C_TOP,marginRight:5}}/>3 melhores</span>
+      <span><span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:C_BOT,marginRight:5}}/>3 piores</span>
+    </div>
+  );
+}
+
+function serieLabel(cor,acima){
+  return function(props){
+    const {x,y,value}=props;
+    if(value===null||value===undefined) return null;
+    return(
+      <text x={x} y={y+(acima?-9:16)} fill={cor} textAnchor="middle"
+            fontSize={10} fontWeight={700}
+            stroke="#021a1a" strokeWidth={3} paintOrder="stroke">
+        {Number(value).toLocaleString('pt-BR')}
+      </text>
+    );
+  };
+}
+
 /* ═══ PERIOD SELECTOR */
 function PeriodSelector({value,onChange}){
   const isYear= value.length===4;
@@ -2345,13 +2387,16 @@ function PageLocal({lockedLocId=null}){
       {weeklyRaw.length>0&&(
         <Card>
           <ChartTitle>Presença por Domingo — Semana a Semana ({PERIODS[period]?.label})</ChartTitle>
+          <LegendaExtremos/>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={weeklyRaw} margin={{top:22,right:8,bottom:30,left:40}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={45}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={45}/>
               <Tooltip content={<TT/>}/>
-              <Bar isAnimationActive={false} dataKey="v" name="Presença" fill={C.teal} radius={[3,3,0,0]}>
+              <Bar isAnimationActive={false} dataKey="v" name="Presença" radius={[3,3,0,0]}>
+                {(()=>{const ex=extremos(weeklyRaw,'v');
+                  return weeklyRaw.map((d,i)=><Cell key={i} fill={corExtremo(ex,d.v)}/>);})()}
                 <LabelList dataKey="v" position="top" style={{fill:C.cream,fontSize:10}} formatter={v=>v.toLocaleString('pt-BR')}/>
               </Bar>
             </BarChart>
@@ -2379,10 +2424,10 @@ function PageLocal({lockedLocId=null}){
                 <Tooltip content={<TT/>}/>
                 <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
                 {has25&&<Line isAnimationActive={false} type="monotone" dataKey="y2025" name="2025" stroke={C.mid} strokeWidth={2} dot={{r:3,fill:C.mid}} connectNulls={true}>
-                  <LabelList dataKey="y2025" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                  <LabelList dataKey="y2025" content={serieLabel(C.mid,false)}/>
                 </Line>}
                 {has26&&<Line isAnimationActive={false} type="monotone" dataKey="y2026" name="2026" stroke={C.sage} strokeWidth={2} dot={{r:3,fill:C.sage}} connectNulls={true}>
-                  <LabelList dataKey="y2026" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                  <LabelList dataKey="y2026" content={serieLabel(C.sage,true)}/>
                 </Line>}
               </LineChart>
             </ResponsiveContainer>
@@ -2499,9 +2544,14 @@ function PageCultos(){
 
   // All periods trend
   const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1','2026-YTD'];
+  /* Média ponderada (total de pessoas ÷ total de domingos), igual ao gráfico
+     "Evolução Semestral Global" da visão geral. Antes aqui era a média simples
+     das médias dividida por TODAS as localidades — inclusive as sem dado no
+     período — o que dava um número menor e divergente do outro gráfico. */
   const trendData=allPeriods.filter(p=>PERIODS[p]).map(p=>{
-    let t=0; filtLocs.forEach(l=>{t+=avgSunday(l.id,pMonths(p));});
-    return{name:PERIODS[p].label,val:filtLocs.length>0?Math.round(t/filtLocs.length):0};
+    const ms=pMonths(p); let s=0,n=0;
+    filtLocs.forEach(l=>{ms.forEach(m=>{const d=DATA[l.id]?.[m];if(d?.sunS&&d?.sunN){s+=d.sunS;n+=d.sunN;}});});
+    return{name:PERIODS[p].label,val:n>0?Math.round(s/n):0};
   });
 
   // Monthly global attendance
@@ -2558,14 +2608,17 @@ function PageCultos(){
         return(
           <Card>
             <ChartTitle>Presença Total por Domingo — Semana a Semana ({PERIODS[period]?.label})</ChartTitle>
-            <p style={{fontSize:10,color:'#666',marginTop:-8,marginBottom:8}}>Soma de todas as localidades filtradas</p>
+            <p style={{fontSize:10,color:'#666',marginTop:-8,marginBottom:4}}>Soma de todas as localidades filtradas</p>
+            <LegendaExtremos/>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={wkData} margin={{top:22,right:8,bottom:35,left:50}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
                 <XAxis dataKey="name" tick={{fill:C.teal,fontSize:10}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={50}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={55}/>
                 <Tooltip content={<TT/>}/>
-                <Bar isAnimationActive={false} dataKey="total" name="Total de Pessoas" fill={C.teal} radius={[3,3,0,0]}>
+                <Bar isAnimationActive={false} dataKey="total" name="Total de Pessoas" radius={[3,3,0,0]}>
+                  {(()=>{const ex=extremos(wkData,'total');
+                    return wkData.map((d,i)=><Cell key={i} fill={corExtremo(ex,d.total)}/>);})()}
                   <LabelList dataKey="total" position="top" style={{fill:C.cream,fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
                 </Bar>
               </BarChart>
@@ -2618,10 +2671,10 @@ function PageCultos(){
                 <Tooltip content={<TT/>}/>
                 <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
                 {has25&&<Line isAnimationActive={false} type="monotone" dataKey="y2025" name="2025" stroke={C.mid} strokeWidth={2} dot={{r:3,fill:C.mid}} connectNulls={true}>
-                  <LabelList dataKey="y2025" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                  <LabelList dataKey="y2025" content={serieLabel(C.mid,false)}/>
                 </Line>}
                 {has26&&<Line isAnimationActive={false} type="monotone" dataKey="y2026" name="2026" stroke={C.sage} strokeWidth={2} dot={{r:3,fill:C.sage}} connectNulls={true}>
-                  <LabelList dataKey="y2026" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                  <LabelList dataKey="y2026" content={serieLabel(C.sage,true)}/>
                 </Line>}
               </LineChart>
             </ResponsiveContainer>
@@ -2681,7 +2734,7 @@ function PageCultos(){
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
             <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
-            <Bar isAnimationActive={false} dataKey="y24" name="S1 2025" fill={C.mid} radius={[3,3,0,0]}>
+            <Bar isAnimationActive={false} dataKey="y24" name={PERIODS[cmpA]?.label||cmpA} fill={C.mid} radius={[3,3,0,0]}>
               <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
             <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={C.teal} radius={[3,3,0,0]}>
@@ -2712,6 +2765,10 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
   const [locFilter,setLocFilter]=useState(campusLock?campusLock:'global');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  /* Períodos do comparativo por localidade — antes eram fixos em H1 2025 vs
+     H1 2026, agora são escolhidos no próprio gráfico. */
+  const [cmpA,setCmpA]=useState('2025-S1');
+  const [cmpB,setCmpB]=useState('2026-S1');
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevM=prev?pMonths(prev):[];
@@ -2749,8 +2806,8 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
   const annualComp=filtLocs.map(loc=>({
     name:loc.name,
-    y24:aggFn(loc.id,pMonths('2025-S1'),field),
-    y25:aggFn(loc.id,pMonths('2026-S1'),field),
+    y24:aggFn(loc.id,pMonths(cmpA),field),
+    y25:aggFn(loc.id,pMonths(cmpB),field),
   })).sort((a,b)=>b.y25-a.y25);
 
   const curLoc=LOCS.find(l=>l.id===locFilter);
@@ -2858,7 +2915,14 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
       {/* Annual comparison */}
       <Card>
-        <ChartTitle>Comparativo — {compTitle||title} por Localidade (H1 2025 vs H1 2026)</ChartTitle>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:12}}>
+          <h4 style={{fontSize:15,color:C.teal,fontWeight:600}}>Comparativo — {compTitle||title} por Localidade</h4>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <PeriodSelector value={cmpA} onChange={setCmpA}/>
+            <span style={{color:C.teal,fontSize:12,fontWeight:600}}>vs</span>
+            <PeriodSelector value={cmpB} onChange={setCmpB}/>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
@@ -2866,10 +2930,10 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
             <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
-            <Bar isAnimationActive={false} dataKey="y24" name="S1 2025" fill={C.mid} radius={[3,3,0,0]}>
+            <Bar isAnimationActive={false} dataKey="y24" name={PERIODS[cmpA]?.label||cmpA} fill={C.mid} radius={[3,3,0,0]}>
               <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
-            <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={color} radius={[3,3,0,0]}>
+            <Bar isAnimationActive={false} dataKey="y25" name={PERIODS[cmpB]?.label||cmpB} fill={color} radius={[3,3,0,0]}>
               <LabelList dataKey="y25" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
           </BarChart>
@@ -3784,14 +3848,19 @@ function PageGeracionais(){
   const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
-  const [locId,setLocId]=useState(campusLock||'São Paulo');
   const months=pMonths(period);
-  const loc=LOCS.find(l=>l.id===locId);
-  const hasData=GER_DATA[locId]&&months.some(m=>GER_DATA[locId][m]);
+  /* Toda a página passou a seguir o filtro de localidades do topo.
+     Antes havia um segundo seletor só para esta página, então o bloco de
+     baixo continuava mostrando São Paulo mesmo com outra igreja filtrada. */
+  const escopo=filtLocs.length===1?filtLocs[0].name
+              :filtLocs.length===LOCS.length?'Todas as Localidades'
+              :`${filtLocs.length} Localidades Filtradas`;
+  const hasData=filtLocs.some(l=>GER_DATA[l.id]&&months.some(m=>GER_DATA[l.id][m]));
 
-  /* meses Jan-Jun para comparativo 2025 vs 2026 */
-  const GEN_MM=['01','02','03','04','05','06'];
-  const GEN_ML=['Jan','Fev','Mar','Abr','Mai','Jun'];
+  /* meses do comparativo 2025 vs 2026: acompanham o período selecionado */
+  const GEN_MM=months.filter(m=>m.startsWith('2026')).map(m=>m.slice(5));
+  const GEN_ML=GEN_MM.map(mm=>['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mm)-1]);
+  const GEN_RANGE=GEN_ML.length?`${GEN_ML[0]}–${GEN_ML[GEN_ML.length-1]}`:'—';
 
   /* dados para gráfico por geracional: 2025 vs 2026 (agregado por filtLocs) */
   function genTrendData(catKey){
@@ -3812,11 +3881,14 @@ function PageGeracionais(){
     });
   }
 
-  /* stacked bar mensal (localidade única) */
+  /* stacked bar mensal — média ponderada das localidades filtradas */
   const monthlyData=months.map(m=>{
-    const d=GER_DATA[locId]?.[m]||{};
     const row={name:fmtMonth(m)};let tot=0;
-    GEN_CATS.forEach(c=>{const v=(d[c.key+'N']||0)>0?Math.round(d[c.key+'S']/d[c.key+'N']):0;row[c.key]=v;tot+=v;});
+    GEN_CATS.forEach(c=>{
+      let s=0,n=0;
+      filtLocs.forEach(l=>{const d=GER_DATA[l.id]?.[m];if(d){s+=d[c.key+'S']||0;n+=d[c.key+'N']||0;}});
+      const v=n>0?Math.round(s/n):0; row[c.key]=v; tot+=v;
+    });
     row.total=tot;return row;
   });
 
@@ -3830,7 +3902,13 @@ function PageGeracionais(){
     return{name:c.label,val:n>0?Math.round(s/n):0,color:c.color};
   });
 
-  const kpiData=GEN_CATS.map(c=>({...c,val:gerAvg(locId,months,c.key)}));
+  const kpiData=GEN_CATS.map(c=>{
+    let s=0,n=0;
+    filtLocs.forEach(l=>{months.forEach(m=>{
+      const d=GER_DATA[l.id]?.[m];if(d){s+=d[c.key+'S']||0;n+=d[c.key+'N']||0;}
+    });});
+    return{...c,val:n>0?Math.round(s/n):0};
+  });
 
   return(
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
@@ -3848,7 +3926,7 @@ function PageGeracionais(){
 
       {/* ── SEÇÃO: gráficos individuais por geracional (2025 vs 2026) ── */}
       <div>
-        <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Evolução por Geracional — Méd/Semana (Jan–Jun)</div>
+        <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Evolução por Geracional — Méd/Semana ({GEN_RANGE}) — {escopo}</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(380px,1fr))',gap:16}}>
           {GEN_CATS.map(function(cat){
             var tdata=genTrendData(cat.key);
@@ -3869,10 +3947,10 @@ function PageGeracionais(){
                     <Tooltip content={<TT/>} formatter={function(v,name){return[v.toLocaleString('pt-BR'),'méd/sem'];}}/>
                     <Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
                     {has25&&<Line isAnimationActive={false} type="monotone" dataKey="y2025" name="2025" stroke={C.mid} strokeWidth={2} dot={{r:3,fill:C.mid}} connectNulls={true}>
-                      <LabelList dataKey="y2025" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                      <LabelList dataKey="y2025" content={serieLabel(C.mid,false)}/>
                     </Line>}
                     {has26&&<Line isAnimationActive={false} type="monotone" dataKey="y2026" name="2026" stroke={cat.color} strokeWidth={2} dot={{r:3,fill:cat.color}} connectNulls={true}>
-                      <LabelList dataKey="y2026" position="top" style={{fill:C.cream,fontSize:10}} formatter={function(v){return v!=null?v.toLocaleString('pt-BR'):'';}}/>
+                      <LabelList dataKey="y2026" content={serieLabel(C.sage,true)}/>
                     </Line>}
                   </LineChart>
                 </ResponsiveContainer>
@@ -3885,12 +3963,7 @@ function PageGeracionais(){
 
       {/* ── SEÇÃO: visão por localidade ── */}
       <div>
-        <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Detalhe por Localidade</div>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
-          {LOCS.map(l=>(
-            <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
-          ))}
-        </div>
+        <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Detalhe — {escopo}</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:16}}>
           {kpiData.map(c=>(
             <Card key={c.key} style={{textAlign:'center'}}>
@@ -3902,8 +3975,8 @@ function PageGeracionais(){
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           <Card>
-            <ChartTitle>Média por Semana — {loc&&loc.name} ({PERIODS[period]&&PERIODS[period].label})</ChartTitle>
-            {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para esta localidade no período selecionado</div>:(
+            <ChartTitle>Média por Semana — {escopo} ({PERIODS[period]&&PERIODS[period].label})</ChartTitle>
+            {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para as localidades filtradas no período selecionado</div>:(
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData} margin={{top:20,right:8,bottom:0,left:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
@@ -3940,8 +4013,8 @@ function PageGeracionais(){
 
       {/* tabela por localidade */}
       <Card>
-        <ChartTitle>Tabela — {loc&&loc.name} ({PERIODS[period]&&PERIODS[period].label})</ChartTitle>
-        {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para esta localidade no período selecionado</div>:(
+        <ChartTitle>Tabela — {escopo} ({PERIODS[period]&&PERIODS[period].label})</ChartTitle>
+        {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para as localidades filtradas no período selecionado</div>:(
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
@@ -4701,7 +4774,7 @@ function PageDigital(){
               <Legend wrapperStyle={{fontSize:10,color:C.cream}}/>
               {['Recife','Quito','Campinas','Ribeirão Preto'].map((l,i)=>(
                 <Line key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i+1]} strokeWidth={2} dot={{r:3,fill:ytColors[i+1],strokeWidth:0}} connectNulls={true}>
-                  <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
+                  <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600,stroke:"#021a1a",strokeWidth:3,paintOrder:"stroke"}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
                 </Line>
               ))}
             </LineChart>
