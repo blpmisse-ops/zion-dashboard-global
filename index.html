@@ -3196,12 +3196,23 @@ const GLOBAL_OK={
 function expectedSundays(ym){
   const [y,m]=ym.split('-').map(Number);
   const d=new Date(y,m-1,1);
+  /* No mês corrente só contam os domingos que já aconteceram — senão o
+     dashboard cobra cultos de datas futuras. */
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
   let n=0;
-  while(d.getMonth()===m-1){if(d.getDay()===0)n++;d.setDate(d.getDate()+1);}
+  while(d.getMonth()===m-1){if(d.getDay()===0&&d<=hoje)n++;d.setDate(d.getDate()+1);}
   if(m===1) n=Math.max(0,n-1);
   return n;
 }
+/* Exceções confirmadas pelo responsável da localidade: nº real de cultos no mês.
+   Cuenca 2026-01: Pr Aldo confirmou por e-mail (13/08/2026) que o primeiro
+   culto do ano foi em 18/01, então janeiro teve apenas 2 cultos. */
+const CULTO_EXCECOES={
+  'Cuenca':{'2026-01':2},
+};
 function expectedSundaysForLoc(locId,ym){
+  const exc=CULTO_EXCECOES[locId]?.[ym];
+  if(exc!==undefined) return exc;
   if(CAMPUS_CONFIG[locId]?.monthlyCulto) return 1;
   return expectedSundays(ym);
 }
