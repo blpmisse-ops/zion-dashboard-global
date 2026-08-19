@@ -4313,6 +4313,61 @@ const CENSO_CROSS={
   },
 };
 const CENSO_CROSS_LOC={};
+
+/* ═══ INSIGHTS DOS CRUZAMENTOS
+   Lê as linhas do cruzamento selecionado e extrai o que importa: onde está a
+   maior alavanca, onde o efeito praticamente some, e o que anda na direção
+   oposta. Como parte dos números, adapta-se sozinho quando o filtro de
+   localidade muda.                                                        */
+function insightsCruzamento(chave,linhas,cx){
+  if(!linhas||linhas.length<3) return[];
+  const pos=linhas.filter(r=>r.delta>0).sort((a,b)=>b.delta-a.delta);
+  const neg=linhas.filter(r=>r.delta<0).sort((a,b)=>a.delta-b.delta);
+  const ins=[];
+  const grupo=cx.yesLabel, fora=cx.noLabel;
+  /* Como se refere ao grupo dentro da frase ("Ser membro", "Estar em Links"...) */
+  const serEstar={member:'Ser membro',link:'Estar em Links',ger:'Estar no Geracional',
+                  dom02:'Vir só 0-2 domingos'}[chave]||`Estar em ${grupo}`;
+  /* Em 0-2 domingos o grupo de referência é o de MENOR engajamento: ali um delta
+     positivo significa piora, não alavanca. As duas leituras se invertem. */
+  const inverso = chave==='dom02';
+
+  if(!inverso&&pos.length){
+    const t=pos[0];
+    ins.push({tom:'alta',titulo:'Maior alavanca',
+      texto:`${t.lbl} é onde a diferença mais aparece: ${t.yes}% entre ${grupo} contra ${t.no}% entre ${fora} — ${t.delta.toFixed(1)}pp de distância.`});
+  }
+  if(inverso&&neg.length){
+    const t=neg[0];
+    ins.push({tom:'inverso',titulo:'Maior queda',
+      texto:`${t.lbl} despenca ${Math.abs(t.delta).toFixed(1)}pp: ${t.yes}% entre ${grupo} contra ${t.no}% entre ${fora}.`});
+  }
+  if(!inverso&&pos.length>2){
+    const f=pos[pos.length-1];
+    ins.push({tom:'atencao',titulo:'Onde o efeito quase some',
+      texto:`${f.lbl} muda pouco (${f.delta.toFixed(1)}pp). ${serEstar} praticamente não altera esse indicador — se ele é prioridade, vai precisar de uma frente própria.`});
+  }
+  if(!inverso&&neg.length){
+    const n=neg[0];
+    ins.push({tom:'inverso',titulo:'Anda na direção oposta',
+      texto:`${n.lbl} cai ${Math.abs(n.delta).toFixed(1)}pp entre ${grupo} (${n.yes}% contra ${n.no}%).`});
+  }
+  if(inverso&&pos.length){
+    const p=pos[0];
+    ins.push({tom:'atencao',titulo:'O único que sobe',
+      texto:`${p.lbl} é maior justamente entre quem vem menos: ${p.yes}% contra ${p.no}%. Sobrecarga aparece antes do afastamento, não depois.`});
+  }
+  const media=pos.length?pos.reduce((s,r)=>s+r.delta,0)/pos.length:0;
+  const acao={
+    member:`A membresia concentra os maiores saltos. O gargalo não é engajar quem já é membro — é converter frequentador em membro. Vale medir quanto tempo alguém frequenta antes de se tornar membro.`,
+    link:`O Link é o acelerador mais forte da rede: média de +${media.toFixed(1)}pp nos indicadores positivos. Cada pessoa colocada num Link tende a puxar dízimo, serviço e vínculo junto.`,
+    ger:`O geracional funciona como porta de entrada para o Link, não como substituto. A leitura é que ele cria vínculo primeiro, e o resto vem depois.`,
+    dom02:`Quem vem 0-2 domingos está descolado de tudo. Frequência não é consequência do engajamento — é a condição dele. Recuperar consistência de presença destrava os outros indicadores.`,
+  }[chave];
+  if(acao) ins.push({tom:'acao',titulo:'O que isso sugere',texto:acao});
+  return ins;
+}
+
 function PageCenso(){
   const [selLoc,setSelLoc]=useState('todas');
   const [selMetric,setSelMetric]=useState('link');
@@ -4642,13 +4697,37 @@ function PageCenso(){
                     </div>
                   </div>
                 ))}
-                <div style={{marginTop:8,padding:'8px 12px',background:'rgba(67,155,106,0.07)',borderRadius:6,
-                  border:'1px solid rgba(67,155,106,0.2)',fontSize:11,color:'#888'}}>
-                  {selCross==='member'&&'Membros formalizados demonstram engajamento significativamente maior em todas as dimensões da vida eclesiástica.'}
-                  {selCross==='link'&&'Participantes de Links têm taxas de serviço, dízimo e saúde espiritual substancialmente maiores — o link é o principal acelerador de maturidade.'}
-                  {selCross==='ger'&&'O ministério geracional cria pontes: participantes têm maior engajamento em Links, serviço voluntário e vida espiritual.'}
-                  {selCross==='dom02'&&'Frequência baixa (0-2 domingos/mês) está fortemente correlacionada com menor engajamento em todas as dimensões — foco em consistência é chave.'}
-                </div>
+                {(()=>{
+                  const TONS={
+                    alta:   {cor:'#5dd68c',bg:'rgba(93,214,140,0.08)',bd:'rgba(93,214,140,0.28)',ic:'▲'},
+                    atencao:{cor:'#D4AF37',bg:'rgba(212,175,55,0.08)', bd:'rgba(212,175,55,0.28)', ic:'!'},
+                    inverso:{cor:'#f07070',bg:'rgba(240,112,112,0.08)',bd:'rgba(240,112,112,0.28)',ic:'▼'},
+                    acao:   {cor:C.teal,   bg:'rgba(7,135,128,0.08)',  bd:'rgba(7,135,128,0.3)',   ic:'→'},
+                  };
+                  const ins=insightsCruzamento(selCross,rows,globalCx);
+                  if(!ins.length) return null;
+                  return(
+                    <div style={{marginTop:16}}>
+                      <div style={{fontSize:11,color:C.teal,fontWeight:700,textTransform:'uppercase',letterSpacing:0.5,marginBottom:8}}>
+                        Leitura {isLocData?`— ${selLoc}`:'— rede global'}
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:10}}>
+                        {ins.map((x,i)=>{
+                          const t=TONS[x.tom];
+                          return(
+                            <div key={i} style={{background:t.bg,border:`1px solid ${t.bd}`,borderRadius:8,padding:'10px 12px'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                                <span style={{color:t.cor,fontWeight:700,fontSize:12}}>{t.ic}</span>
+                                <span style={{color:t.cor,fontWeight:700,fontSize:11,textTransform:'uppercase',letterSpacing:0.4}}>{x.titulo}</span>
+                              </div>
+                              <div style={{fontSize:11.5,color:C.cream,lineHeight:1.5}}>{x.texto}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </Card>
