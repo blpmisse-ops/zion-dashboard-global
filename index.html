@@ -2524,6 +2524,9 @@ function PageCultos(){
   const [period,setPeriod]=useState('2026-YTD');
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
   const [selMonth,setSelMonth]=useState('all');
+  /* Períodos do comparativo por localidade, escolhidos no próprio gráfico. */
+  const [cmpA,setCmpA]=useState('2025-S1');
+  const [cmpB,setCmpB]=useState('2026-S1');
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
   const months=selMonth==='all'?allMonths:allMonths.filter(m=>m===selMonth);
@@ -2564,8 +2567,8 @@ function PageCultos(){
   // Annual comparison
   const annualComp=filtLocs.map(loc=>({
     name:loc.name,
-    y24:avgSunday(loc.id,pMonths('2025-S1')),
-    y25:avgSunday(loc.id,pMonths('2026-S1')),
+    y24:avgSunday(loc.id,pMonths(cmpA)),
+    y25:avgSunday(loc.id,pMonths(cmpB)),
   })).sort((a,b)=>b.y25-a.y25);
 
   return(
@@ -2726,7 +2729,14 @@ function PageCultos(){
 
       {/* Annual comparison chart */}
       <Card>
-        <ChartTitle>Comparativo — Média de Pessoas por Domingo por Localidade (H1 2025 vs H1 2026)</ChartTitle>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:12}}>
+          <h4 style={{fontSize:15,color:C.teal,fontWeight:600}}>Comparativo — Média de Pessoas por Domingo por Localidade</h4>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <PeriodSelector value={cmpA} onChange={setCmpA}/>
+            <span style={{color:C.teal,fontSize:12,fontWeight:600}}>vs</span>
+            <PeriodSelector value={cmpB} onChange={setCmpB}/>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
@@ -2737,7 +2747,7 @@ function PageCultos(){
             <Bar isAnimationActive={false} dataKey="y24" name={PERIODS[cmpA]?.label||cmpA} fill={C.mid} radius={[3,3,0,0]}>
               <LabelList dataKey="y24" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
-            <Bar isAnimationActive={false} dataKey="y25" name="S1 2026" fill={C.teal} radius={[3,3,0,0]}>
+            <Bar isAnimationActive={false} dataKey="y25" name={PERIODS[cmpB]?.label||cmpB} fill={C.teal} radius={[3,3,0,0]}>
               <LabelList dataKey="y25" position="top" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
           </BarChart>
