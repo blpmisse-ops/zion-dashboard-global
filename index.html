@@ -2226,7 +2226,8 @@ function PageGlobal(){
         );})}
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+      {/* 3 colunas: os 6 indicadores ficam em duas fileiras de 3 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
         {kpis.map(k=><KpiCard key={k.label} {...k}/>)}
       </div>
 
@@ -3937,7 +3938,8 @@ function PageGeracionais(){
       {/* ── SEÇÃO: gráficos individuais por geracional (2025 vs 2026) ── */}
       <div>
         <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Evolução por Geracional — Méd/Semana ({GEN_RANGE}) — {escopo}</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(380px,1fr))',gap:16}}>
+        {/* 3 colunas fixas: os 6 geracionais ficam em duas fileiras de 3 */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
           {GEN_CATS.map(function(cat){
             var tdata=genTrendData(cat.key);
             var has25=tdata.some(function(r){return r.y2025!=null;});
