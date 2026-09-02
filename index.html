@@ -1764,9 +1764,8 @@ function Login({onLogin}){
   return(
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:32,background:`linear-gradient(135deg,${C.deepGreen} 0%,#021a1a 60%,${C.mid} 100%)`}}>
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
-        <Isologo size={76} style={{marginBottom:18}}/>
-        <div className="serif" style={{fontSize:52,color:C.cream,fontWeight:700,letterSpacing:3}}>ZION</div>
-        <div style={{fontSize:12,color:C.teal,letterSpacing:6,textTransform:'uppercase',marginTop:4}}>Dashboard Global</div>
+        <Isologo size={104} style={{marginBottom:22}}/>
+        <div style={{fontSize:13,color:C.teal,letterSpacing:7,textTransform:'uppercase'}}>Dashboard Global</div>
       </div>
       <form onSubmit={handle} style={{display:'flex',flexDirection:'column',gap:12,width:280}}>
         <input type="password" placeholder="Senha de acesso" value={pw} onChange={e=>setPw(e.target.value)}
@@ -4970,12 +4969,7 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
   return(
     <aside style={{width:collapsed?52:222,minWidth:collapsed?52:222,background:'#021a1a',borderRight:'1px solid rgba(7,135,128,0.2)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto',overflowX:'hidden',transition:'width 0.22s,min-width 0.22s'}}>
       <div style={{padding:collapsed?'14px 0':'14px 16px',borderBottom:'1px solid rgba(7,135,128,0.2)',display:'flex',alignItems:'center',justifyContent:collapsed?'center':'space-between',cursor:'pointer',minHeight:56,flexShrink:0}} title={collapsed?'Expandir menu':'Recolher menu'} onClick={()=>setCollapsed(!collapsed)}>
-        {collapsed
-          ?<Isologo size={24}/>
-          :<div style={{display:'flex',alignItems:'center',gap:9}}>
-             <Isologo size={26}/>
-             <div className="serif" style={{fontSize:19,fontWeight:700,color:C.cream,letterSpacing:2}}>ZION</div>
-           </div>}
+        <Isologo size={collapsed?24:30}/>
         {!collapsed&&<div style={{color:C.teal,fontSize:16,lineHeight:1}}>◀</div>}
       </div>
       <nav style={{flex:1,padding:'6px 0',overflowY:'auto'}}>
@@ -5034,8 +5028,7 @@ function App(){
       <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
       <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,#032525 0%,${C.deepGreen} 100%)`}}>
         <div style={{fontSize:11,color:'rgba(7,135,128,0.5)',marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
-          <Isologo size={13} opacity={0.55}/>
-          <span>ZION</span>
+          <Isologo size={14} opacity={0.5}/>
           <span style={{color:'rgba(7,135,128,0.3)'}}>›</span>
           <span style={{color:C.teal,fontWeight:600}}>{PAGES.find(p=>p.id===page)?.label||''}</span>
         </div>
