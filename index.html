@@ -6068,14 +6068,61 @@ function corHora(i,n){
   return p[Math.min(i,p.length-1)];
 }
 
-/* Numero dentro da propria faixa empilhada. Some quando a faixa fica baixa
-   demais para caber o texto. */
-function faixaLabel(props){
-  const {x,y,width,height,value}=props;
-  if(value===null||value===undefined||height<15||width<26) return null;
+/* Numeros dentro das barras.
+
+   Contorno escuro atras do texto (o serieLabel usado no resto do dashboard)
+   borra em fonte pequena. Aqui a barra tem cor conhecida, entao da' para usar
+   tinta solida escolhida pela luminancia do proprio preenchimento: fica bem
+   mais nitido e permite fonte maior. */
+function luz(hex){
+  const n=parseInt(hex.slice(1),16), c=[n>>16,(n>>8)&255,n&255].map(function(v){
+    v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);
+  });
+  return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+}
+function tintaSobre(fill){return luz(fill)>0.45?'#052222':'#FCFCEB';}
+
+/* Valor dentro da barra, encostado no topo. E' assim que o relatorio que esta
+   sendo substituido mostra os totais. */
+function numeroNaBarra(fill,tamanho){
+  const tinta=tintaSobre(fill);
+  return function(props){
+    const {x,y,width,height,value}=props;
+    if(value===null||value===undefined) return null;
+    const alto=height>=tamanho+10;
+    return(
+      <text x={x+width/2} y={alto?y+tamanho+4:y-6} textAnchor="middle"
+            fontSize={tamanho} fontWeight={700} fill={alto?tinta:'#FCFCEB'}
+            stroke={alto?'none':'#021a1a'} strokeWidth={alto?0:3} paintOrder="stroke">
+        {Number(value).toLocaleString('pt-BR')}
+      </text>
+    );
+  };
+}
+
+/* Valor no centro da faixa empilhada. */
+function faixaLabel(fill,tamanho){
+  const tinta=tintaSobre(fill);
+  return function(props){
+    const {x,y,width,height,value}=props;
+    if(value===null||value===undefined||height<tamanho+6||width<30) return null;
+    return(
+      <text x={x+width/2} y={y+height/2+tamanho/2-1} textAnchor="middle"
+            fontSize={tamanho} fontWeight={700} fill={tinta}>
+        {Number(value).toLocaleString('pt-BR')}
+      </text>
+    );
+  };
+}
+
+/* Total acima da barra empilhada — nao ha' onde por dentro sem colidir com o
+   numero da ultima faixa. Sobre o fundo da pagina, aqui o contorno ajuda. */
+function totalAcima(props){
+  const {x,y,width,value}=props;
+  if(value===null||value===undefined) return null;
   return(
-    <text x={x+width/2} y={y+height/2+4} textAnchor="middle" fontSize={9} fontWeight={700}
-          fill="#FCFCEB" stroke="#021a1a" strokeWidth={2.6} paintOrder="stroke">
+    <text x={x+width/2} y={y-8} textAnchor="middle" fontSize={15} fontWeight={700}
+          fill="#FCFCEB" stroke="#021a1a" strokeWidth={4} paintOrder="stroke">
       {Number(value).toLocaleString('pt-BR')}
     </text>
   );
@@ -6253,12 +6300,12 @@ function PageReport(){
           :horaInfo.linhas.length===0
           ?<div style={{color:C.teal,fontSize:12,padding:'20px 0',textAlign:'center'}}>Sem quebra por horário no período. O horário existe no export a partir de 11/01/2026.</div>
           :<React.Fragment>
-            <ScrollX n={horaInfo.linhas.length} porBarra={50}>
+            <ScrollX n={horaInfo.linhas.length} porBarra={62}>
             <ResponsiveContainer width="100%" height={330}>
-              <BarChart data={horaInfo.linhas} margin={{top:26,right:10,left:0,bottom:6}}>
+              <BarChart data={horaInfo.linhas} margin={{top:30,right:10,left:0,bottom:6}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:10}} interval={0} angle={-45} textAnchor="end" height={50}/>
-                <YAxis tick={{fill:C.cream,fontSize:10}}/>
+                <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:11}} interval={0} angle={-45} textAnchor="end" height={54}/>
+                <YAxis tick={{fill:C.cream,fontSize:11}}/>
                 <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
                          formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),n];}}/>
                 <Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
@@ -6266,9 +6313,9 @@ function PageReport(){
                                label={{value:'média '+fmt(horaInfo.media),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
                 {horaInfo.horas.map(function(h,i){
                   const ultimo=i===horaInfo.horas.length-1;
-                  return<Bar key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)} name={h}>
-                    <LabelList dataKey={h} content={faixaLabel}/>
-                    {ultimo&&<LabelList dataKey="total" position="top" content={serieLabel(C.cream,true)}/>}
+                  return<Bar isAnimationActive={false} key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)} name={h}>
+                    <LabelList dataKey={h} content={faixaLabel(corHora(i,horaInfo.horas.length),13)}/>
+                    {ultimo&&<LabelList dataKey="total" position="top" content={totalAcima}/>}
                   </Bar>;
                 })}
               </BarChart>
@@ -6284,21 +6331,21 @@ function PageReport(){
       <Card>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:4}}>
           <h3 className="serif" style={{fontSize:16,color:C.cream}}>Total por Domingo</h3>
-          <span style={{fontSize:11,color:C.teal}}>média {fmt(domInfo.media)} · {fmt(domInfo.total)} pessoas somadas</span>
+          <span style={{fontSize:12,color:C.teal}}>média {fmt(domInfo.media)}</span>
         </div>
         <LegendaExtremos/>
-        <ScrollX n={domInfo.linhas.length} porBarra={48}>
+        <ScrollX n={domInfo.linhas.length} porBarra={60}>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={domInfo.linhas} margin={{top:24,right:10,left:0,bottom:6}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-            <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:10}} interval={0} angle={-45} textAnchor="end" height={50}/>
-            <YAxis tick={{fill:C.cream,fontSize:10}}/>
+            <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:11}} interval={0} angle={-45} textAnchor="end" height={54}/>
+            <YAxis tick={{fill:C.cream,fontSize:11}}/>
             <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
                      formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
             <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"
                            label={{value:'média '+fmt(domInfo.media),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
-            <Bar dataKey="v" name="Pessoas">
-              <LabelList dataKey="v" position="top" content={serieLabel(C.cream,true)}/>
+            <Bar isAnimationActive={false} dataKey="v" name="Pessoas">
+              <LabelList dataKey="v" content={numeroNaBarra(C.teal,15)}/>
               {domInfo.linhas.map(function(r,i){return<Cell key={i} fill={corExtremo(exH,r.v)}/>;})}
             </Bar>
           </BarChart>
@@ -6316,13 +6363,13 @@ function PageReport(){
           <BarChart data={mensal} margin={{top:24,right:10,left:0,bottom:6}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
             <XAxis dataKey="mes" tick={{fill:C.cream,fontSize:11}}/>
-            <YAxis tick={{fill:C.cream,fontSize:10}}/>
+            <YAxis tick={{fill:C.cream,fontSize:11}}/>
             <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
                      formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
             <ReferenceLine y={mediaAnual} stroke={C.sand} strokeDasharray="6 4"
                            label={{value:'média do ano '+fmt(mediaAnual),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
-            <Bar dataKey="v" fill={C.sage} name="Média">
-              <LabelList dataKey="v" position="top" content={serieLabel(C.cream,true)}/>
+            <Bar isAnimationActive={false} dataKey="v" fill={C.sage} name="Média">
+              <LabelList dataKey="v" content={numeroNaBarra(C.sage,15)}/>
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -6339,22 +6386,22 @@ function PageReport(){
                 <span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:g.color,marginRight:8}}/>
                 {g.label}
               </h3>
-              <span style={{fontSize:11,color:C.teal}}>média {fmt(g.media)} · {fmt(g.total)} pessoas em {g.n} encontros</span>
+              <span style={{fontSize:12,color:C.teal}}>média {fmt(g.media)} · {g.n} encontros</span>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))',gap:16}}>
               <div>
                 <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Participantes por data</div>
-                <ScrollX n={g.linhas.length} porBarra={40} minimo={360}>
+                <ScrollX n={g.linhas.length} porBarra={54} minimo={400}>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={g.linhas} margin={{top:22,right:8,left:0,bottom:4}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                    <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:9}} interval={0} angle={-45} textAnchor="end" height={44}/>
-                    <YAxis tick={{fill:C.cream,fontSize:10}}/>
+                    <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:10}} interval={0} angle={-45} textAnchor="end" height={48}/>
+                    <YAxis tick={{fill:C.cream,fontSize:11}}/>
                     <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
                              formatter={function(v){return[Number(v).toLocaleString('pt-BR'),g.label];}}/>
                     <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
-                    <Bar dataKey="v" fill={g.color} name={g.label}>
-                      <LabelList dataKey="v" position="top" content={serieLabel(C.cream,true)}/>
+                    <Bar isAnimationActive={false} dataKey="v" fill={g.color} name={g.label}>
+                      <LabelList dataKey="v" content={numeroNaBarra(g.color,15)}/>
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -6362,17 +6409,17 @@ function PageReport(){
               </div>
               <div>
                 <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Média por mês</div>
-                <ScrollX n={g.mensais.length} porBarra={52} minimo={300}>
+                <ScrollX n={g.mensais.length} porBarra={66} minimo={340}>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={g.mensais} margin={{top:22,right:8,left:0,bottom:4}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                    <XAxis dataKey="mes" tick={{fill:C.cream,fontSize:10}}/>
-                    <YAxis tick={{fill:C.cream,fontSize:10}}/>
+                    <XAxis dataKey="mes" tick={{fill:C.cream,fontSize:11}}/>
+                    <YAxis tick={{fill:C.cream,fontSize:11}}/>
                     <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
                              formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
                     <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
-                    <Bar dataKey="v" fill={g.color} fillOpacity={0.75} name="Média">
-                      <LabelList dataKey="v" position="top" content={serieLabel(C.cream,true)}/>
+                    <Bar isAnimationActive={false} dataKey="v" fill={g.color} name="Média">
+                      <LabelList dataKey="v" content={numeroNaBarra(g.color,15)}/>
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
