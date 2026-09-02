@@ -6041,59 +6041,86 @@ const PAGES=[
 
 
 /* ═══ PAGE: REPORT EXECUTIVO
-   Modela o relatorio semanal do presbiterio: culto de domingo por horario,
-   totais e medias por domingo, e cada geracional por data. Segue o filtro de
-   localidades do topo, como as demais paginas. Escopo 2026. */
+   Modela o relatorio semanal do presbiterio. Segue o filtro de localidades do
+   topo, escopo 2026, com filtro de mes. */
 
-/* Cores por horario. Nenhuma igreja usa mais de 4 horarios — so a uniao de
-   varias passa disso, e por isso HORA_MAX e' 4: acima o empilhado nao tem
-   separacao de cor suficiente.
-
-   Conferido por simulacao de dicromacia + CIEDE2000 entre faixas vizinhas:
-   deuteranopia >=15,6 e tritanopia >=10,6; o pior par e' areia|verde sob
-   protanopia, 10,5. Fica na faixa 8-12, que so e' aceitavel com codificacao
-   secundaria — por isso cada faixa carrega o proprio numero, como no relatorio
-   que este substitui, e a legenda nomeia todos os horarios. A cor nunca e' o
-   unico canal. */
+/* Numeros sempre em creme. Isso obriga todo preenchimento a ser escuro o
+   bastante para 4,5:1 contra o creme — foi essa a escolha pedida, texto branco
+   com fundo escuro. O custo e' que a paleta perde a luminosidade como canal e
+   as cores se separam menos entre si (o pior par vizinho fica em 5,3 sob
+   deuteranopia). Fica aceitavel porque a cor nunca informa sozinha: cada faixa
+   empilhada carrega o proprio numero e a legenda nomeia todos os horarios. */
+const R_TINTA='#FCFCEB';
 const HORA_CORES={
-  1:['#009a85'],
-  2:['#e9de9d','#009a85'],
-  3:['#e9de9d','#61c395','#00767e'],
-  4:['#e9de9d','#61c395','#009a85','#00767e'],
+  1:['#12796d'],
+  2:['#2f7d4d','#0e6480'],
+  3:['#2f7d4d','#16736b','#27507e'],
+  4:['#2f7d4d','#16736b','#0e6480','#27507e'],
 };
 const HORA_MAX=4;
+const R_BARRA='#12796d';   /* serie unica */
+const R_MES  ='#1d6f57';   /* medias mensais */
+const R_ANO  ='#155e63';   /* medias anuais */
+const R_ALTO ='#2b7a4e';   /* 3 melhores */
+const R_BAIXO='#9b4444';   /* 3 piores */
+const R_GRID ='rgba(157,222,220,0.10)';
+const R_EIXO ='rgba(252,252,235,0.55)';
 
-function corHora(i,n){
-  const p=HORA_CORES[n]||HORA_CORES[4];
-  return p[Math.min(i,p.length-1)];
+function corHora(i,n){const p=HORA_CORES[n]||HORA_CORES[4];return p[Math.min(i,p.length-1)];}
+function ddmm(iso){const p=iso.split('-');return p[2]+'/'+p[1];}
+
+/* Medias anuais de Sao Paulo tiradas do relatorio que este substitui
+   (Services Report, 31/08/2026). Sao anos fechados, nao mudam mais. O ano
+   corrente NAO entra aqui: e' calculado ao vivo, senao congela. Diamantes nao
+   consta no relatorio. */
+const HIST_SP={
+  domingo:{2019:2166,2020:2935,2021:1212,2022:2079,2023:2969,2024:3113,2025:3763},
+  g52    :{2021:293,2022:273,2023:426,2024:404,2025:437},
+  rise   :{2021:66,2022:83,2023:105,2024:189,2025:177},
+  flow   :{2021:203,2022:117,2023:116,2024:162,2025:233},
+  vox    :{2021:491,2022:527,2023:548,2024:653,2025:669},
+  ekl    :{2023:329,2024:429,2025:472},
+  diam   :null,
+};
+
+/* Series por data podem ter 30+ barras. Rolam dentro do card em vez de
+   espremer os numeros. */
+function ScrollX({n,porBarra=46,minimo=560,children}){
+  return(
+    <div style={{overflowX:'auto',overflowY:'hidden'}}>
+      <div style={{minWidth:Math.max(minimo,n*porBarra)}}>{children}</div>
+    </div>
+  );
 }
 
-/* Numeros dentro das barras.
-
-   Contorno escuro atras do texto (o serieLabel usado no resto do dashboard)
-   borra em fonte pequena. Aqui a barra tem cor conhecida, entao da' para usar
-   tinta solida escolhida pela luminancia do proprio preenchimento: fica bem
-   mais nitido e permite fonte maior. */
-function luz(hex){
-  const n=parseInt(hex.slice(1),16), c=[n>>16,(n>>8)&255,n&255].map(function(v){
-    v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);
-  });
-  return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+/* Valor dentro da barra, encostado no topo. Volta para fora quando a barra e'
+   baixa demais para o texto caber. */
+function numeroNaBarra(tamanho){
+  return function(props){
+    const {x,y,width,height,value}=props;
+    if(value===null||value===undefined||width<20) return null;
+    const cabe=height>=tamanho+10;
+    return(
+      <text x={x+width/2} y={cabe?y+tamanho+5:y-6} textAnchor="middle"
+            fontSize={tamanho} fontWeight={700} fill={R_TINTA}
+            stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
+        {Number(value).toLocaleString('pt-BR')}
+      </text>
+    );
+  };
 }
-function tintaSobre(fill){return luz(fill)>0.45?'#052222':'#FCFCEB';}
 
-/* Valor dentro da barra, encostado no topo. E' assim que o relatorio que esta
-   sendo substituido mostra os totais. */
-function numeroNaBarra(fill,tamanho){
-  const tinta=tintaSobre(fill);
+/* Numero girado: cabe o ano inteiro numa tela so' sem encolher a fonte. */
+function numeroVertical(tamanho){
   return function(props){
     const {x,y,width,height,value}=props;
     if(value===null||value===undefined) return null;
-    const alto=height>=tamanho+10;
+    const cabe=height>=52;
+    const cx=x+width/2, cy=cabe?y+10:y-8;
     return(
-      <text x={x+width/2} y={alto?y+tamanho+4:y-6} textAnchor="middle"
-            fontSize={tamanho} fontWeight={700} fill={alto?tinta:'#FCFCEB'}
-            stroke={alto?'none':'#021a1a'} strokeWidth={alto?0:3} paintOrder="stroke">
+      <text x={cx} y={cy} textAnchor="start" fontSize={tamanho} fontWeight={700}
+            fill={R_TINTA} transform={'rotate(90 '+cx+' '+cy+')'}
+            stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
         {Number(value).toLocaleString('pt-BR')}
       </text>
     );
@@ -6101,14 +6128,13 @@ function numeroNaBarra(fill,tamanho){
 }
 
 /* Valor no centro da faixa empilhada. */
-function faixaLabel(fill,tamanho){
-  const tinta=tintaSobre(fill);
+function faixaLabel(tamanho){
   return function(props){
     const {x,y,width,height,value}=props;
     if(value===null||value===undefined||height<tamanho+6||width<30) return null;
     return(
       <text x={x+width/2} y={y+height/2+tamanho/2-1} textAnchor="middle"
-            fontSize={tamanho} fontWeight={700} fill={tinta}>
+            fontSize={tamanho} fontWeight={700} fill={R_TINTA}>
         {Number(value).toLocaleString('pt-BR')}
       </text>
     );
@@ -6116,27 +6142,66 @@ function faixaLabel(fill,tamanho){
 }
 
 /* Total acima da barra empilhada — nao ha' onde por dentro sem colidir com o
-   numero da ultima faixa. Sobre o fundo da pagina, aqui o contorno ajuda. */
+   numero da ultima faixa. */
 function totalAcima(props){
   const {x,y,width,value}=props;
   if(value===null||value===undefined) return null;
   return(
-    <text x={x+width/2} y={y-8} textAnchor="middle" fontSize={15} fontWeight={700}
-          fill="#FCFCEB" stroke="#021a1a" strokeWidth={4} paintOrder="stroke">
+    <text x={x+width/2} y={y-9} textAnchor="middle" fontSize={15} fontWeight={700}
+          fill={R_TINTA} stroke="#021a1a" strokeWidth={4} paintOrder="stroke">
       {Number(value).toLocaleString('pt-BR')}
     </text>
   );
 }
 
-function ddmm(iso){const p=iso.split('-');return p[2]+'/'+p[1];}
-
-/* Series por data podem ter 30+ barras. Em vez de esconder os rotulos, o
-   grafico rola dentro do proprio card, com largura minima por barra. */
-function ScrollX({n,porBarra=46,minimo=560,children}){
+/* Crescimento sobre o ano anterior, acima da barra. */
+function cresceLabel(props){
+  const {x,y,width,value}=props;
+  if(value===null||value===undefined) return null;
+  const pos=value>=0;
   return(
-    <div style={{overflowX:'auto',overflowY:'hidden'}}>
-      <div style={{minWidth:Math.max(minimo,n*porBarra)}}>{children}</div>
+    <text x={x+width/2} y={y-9} textAnchor="middle" fontSize={12} fontWeight={700}
+          fill={pos?'#7fd6a0':'#f08a8a'} stroke="#021a1a" strokeWidth={3.5} paintOrder="stroke">
+      {(pos?'+':'')+value.toFixed(1)+'%'}
+    </text>
+  );
+}
+
+function TituloGrafico({children,nota}){
+  return(
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',
+                 flexWrap:'wrap',gap:8,marginBottom:10}}>
+      <h3 className="serif" style={{fontSize:16,color:C.cream}}>{children}</h3>
+      {nota&&<span style={{fontSize:12,color:C.teal}}>{nota}</span>}
     </div>
+  );
+}
+function SubTitulo({children}){
+  return<div style={{fontSize:10,color:C.teal,textTransform:'uppercase',
+                     letterSpacing:1.4,marginBottom:6}}>{children}</div>;
+}
+const eixoX={tick:{fill:R_EIXO,fontSize:11},axisLine:{stroke:R_GRID},tickLine:false};
+const eixoY={tick:{fill:R_EIXO,fontSize:11},axisLine:false,tickLine:false,width:52};
+const dicaEstilo={background:'#062828',border:'1px solid rgba(7,135,128,0.45)',
+                  borderRadius:8,color:C.cream,fontSize:12};
+
+/* Grafico de medias anuais com o crescimento ano a ano. */
+function MediasAnuais({serie,cor}){
+  if(!serie||serie.length<2) return null;
+  return(
+    <ResponsiveContainer width="100%" height={230}>
+      <BarChart data={serie} margin={{top:32,right:10,left:0,bottom:4}}>
+        <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+        <XAxis dataKey="ano" {...eixoX}/>
+        <YAxis {...eixoY}/>
+        <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
+                 formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
+        <Bar dataKey="v" fill={cor} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
+          <LabelList dataKey="v" content={numeroNaBarra(14)}/>
+          <LabelList dataKey="cresc" content={cresceLabel}/>
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -6151,9 +6216,23 @@ function PageReport(){
   const escopo=filtLocs.length===1?filtLocs[0].name
               :filtLocs.length===LOCS.length?'Todas as Localidades'
               :filtLocs.length+' Localidades Filtradas';
+  /* O historico do relatorio antigo e' de Sao Paulo. So aparece quando o
+     recorte e' exatamente Sao Paulo — atribuir esses anos a outra igreja
+     seria inventar dado. */
+  const soSP=filtLocs.length===1&&filtLocs[0].id==='São Paulo';
   const noMes=function(iso){return selMonth==='all'||iso.slice(0,7)===selMonth;};
 
-  /* ---- domingo por horario ---- */
+  function comCrescimento(hist,mediaAtual){
+    if(!hist) return null;
+    const anos=Object.keys(hist).map(Number).sort();
+    const linhas=anos.map(function(a){return{ano:String(a),v:hist[a]};});
+    if(mediaAtual>0) linhas.push({ano:'2026',v:mediaAtual});
+    return linhas.map(function(r,i){
+      const ant=i>0?linhas[i-1].v:null;
+      return{ano:r.ano,v:r.v,cresc:(ant&&ant>0)?((r.v-ant)/ant)*100:null};
+    });
+  }
+
   const horaInfo=useMemo(function(){
     const datas={},horas={};
     filtLocs.forEach(function(l){
@@ -6162,8 +6241,7 @@ function PageReport(){
         if(!noMes(dt)) return;
         if(!datas[dt]) datas[dt]={};
         Object.keys(src[dt]).forEach(function(h){
-          datas[dt][h]=(datas[dt][h]||0)+src[dt][h];
-          horas[h]=true;
+          datas[dt][h]=(datas[dt][h]||0)+src[dt][h]; horas[h]=true;
         });
       });
     });
@@ -6177,7 +6255,6 @@ function PageReport(){
     return{horas:hs,linhas:linhas,media:linhas.length?Math.round(tot/linhas.length):0};
   },[selLocs.join(),selMonth]);
 
-  /* ---- total por domingo (RAW_CULTOS, fonte ja consolidada) ---- */
   const domInfo=useMemo(function(){
     const acc={};
     filtLocs.forEach(function(l){
@@ -6188,10 +6265,9 @@ function PageReport(){
     });
     const linhas=Object.keys(acc).sort().map(function(d){return{iso:d,rot:ddmm(d),v:acc[d]};});
     const tot=linhas.reduce(function(a,b){return a+b.v;},0);
-    return{linhas:linhas,media:linhas.length?Math.round(tot/linhas.length):0,total:tot};
+    return{linhas:linhas,media:linhas.length?Math.round(tot/linhas.length):0};
   },[selLocs.join(),selMonth]);
 
-  /* ---- media mensal do domingo (DATA, media ponderada) ---- */
   const mensal=useMemo(function(){
     return MESES.map(function(m){
       let s=0,n=0;
@@ -6199,40 +6275,39 @@ function PageReport(){
         const d=DATA[l.id]&&DATA[l.id][m];
         if(d&&d.sunN>0){s+=d.sunS;n+=d.sunN;}
       });
-      return{mes:MNAMES[parseInt(m.slice(5))-1],ym:m,v:n>0?Math.round(s/n):null};
+      return{mes:MNAMES[parseInt(m.slice(5))-1],v:n>0?Math.round(s/n):null};
     }).filter(function(r){return r.v!==null;});
   },[selLocs.join()]);
-  const mediaAnual=useMemo(function(){
+
+  const mediaAno=useMemo(function(){
     let s=0,n=0;
     filtLocs.forEach(function(l){
-      MESES.forEach(function(m){
-        const d=DATA[l.id]&&DATA[l.id][m];
-        if(d&&d.sunN>0){s+=d.sunS;n+=d.sunN;}
-      });
+      (RAW_CULTOS[l.id]||[]).forEach(function(r){if(r.d.slice(0,4)==='2026'){s+=r.v;n++;}});
     });
     return n>0?Math.round(s/n):0;
   },[selLocs.join()]);
 
-  /* ---- geracionais por data ---- */
   const gers=useMemo(function(){
     const CH=[{k:'g52',cat:'lumen'},{k:'rise',cat:'rise'},{k:'flow',cat:'flow'},
               {k:'vox',cat:'vox'},{k:'ekl',cat:'ekl'},{k:'diam',cat:'diam'}];
     return CH.map(function(c){
       const meta=GEN_CATS.find(function(g){return g.key===c.cat;});
-      const acc={};
+      const acc={},accAno={};
       filtLocs.forEach(function(l){
         const src=RAW_GER[l.id]; if(!src) return;
         Object.keys(src).forEach(function(dt){
-          if(!noMes(dt)) return;
           const v=src[dt][c.k];
-          if(typeof v==='number') acc[dt]=(acc[dt]||0)+v;
+          if(typeof v!=='number') return;
+          accAno[dt]=(accAno[dt]||0)+v;
+          if(noMes(dt)) acc[dt]=(acc[dt]||0)+v;
         });
       });
       const linhas=Object.keys(acc).sort()
         .map(function(d){return{iso:d,rot:ddmm(d),v:acc[d]};})
         .filter(function(r){return r.v>0;});
       const tot=linhas.reduce(function(a,b){return a+b.v;},0);
-      /* media mensal a partir do proprio por-data, para bater com o grafico */
+      const doAno=Object.keys(accAno).map(function(d){return accAno[d];}).filter(function(v){return v>0;});
+      const mediaAnoCat=doAno.length?Math.round(doAno.reduce(function(a,b){return a+b;},0)/doAno.length):0;
       const porMes={};
       linhas.forEach(function(r){
         const m=r.iso.slice(0,7);
@@ -6243,13 +6318,15 @@ function PageReport(){
         return{mes:MNAMES[parseInt(m.slice(5))-1],v:Math.round(porMes[m].s/porMes[m].n)};
       });
       return{key:c.k,label:meta.label,color:meta.color,linhas:linhas,mensais:mensais,
-             media:linhas.length?Math.round(tot/linhas.length):0,total:tot,n:linhas.length};
+             media:linhas.length?Math.round(tot/linhas.length):0,n:linhas.length,
+             anuais:soSP?comCrescimento(HIST_SP[c.k],mediaAnoCat):null};
     }).filter(function(g){return g.n>0;});
-  },[selLocs.join(),selMonth]);
+  },[selLocs.join(),selMonth,soSP]);
 
   const exH=extremos(domInfo.linhas,'v');
   const demais=horaInfo.horas.length>HORA_MAX;
   const semDado=horaInfo.linhas.length===0&&domInfo.linhas.length===0&&gers.length===0;
+  const anuaisDomingo=soSP?comCrescimento(HIST_SP.domingo,mediaAno):null;
 
   const kpis=[
     {label:'Média por Domingo',   value:domInfo.media},
@@ -6285,14 +6362,10 @@ function PageReport(){
         {kpis.map(function(k){return<KpiCard key={k.label} label={k.label} value={k.value}/>;})}
       </div>
 
-      {/* 1. por horario */}
       <Card>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:4}}>
-          <h3 className="serif" style={{fontSize:16,color:C.cream}}>Participantes por Culto de Domingo — por Horário</h3>
-          <span style={{fontSize:11,color:C.teal}}>média {fmt(horaInfo.media)}</span>
-        </div>
+        <TituloGrafico nota={'média '+fmt(horaInfo.media)}>Participantes por Culto de Domingo — por Horário</TituloGrafico>
         {demais
-          ?<div style={{color:C.sand,fontSize:12,padding:'20px 0',textAlign:'center',lineHeight:1.6}}>
+          ?<div style={{color:C.sand,fontSize:12,padding:'20px 0',textAlign:'center',lineHeight:1.7}}>
              As localidades filtradas somam {horaInfo.horas.length} horários distintos ({horaInfo.horas.join(', ')}).
              <br/>Acima de {HORA_MAX} faixas as cores deixam de se separar com segurança — filtre uma igreja de cada vez.
              <br/><span style={{color:C.teal}}>Os gráficos abaixo continuam somando todas as filtradas.</span>
@@ -6301,137 +6374,147 @@ function PageReport(){
           ?<div style={{color:C.teal,fontSize:12,padding:'20px 0',textAlign:'center'}}>Sem quebra por horário no período. O horário existe no export a partir de 11/01/2026.</div>
           :<React.Fragment>
             <ScrollX n={horaInfo.linhas.length} porBarra={62}>
-            <ResponsiveContainer width="100%" height={330}>
-              <BarChart data={horaInfo.linhas} margin={{top:30,right:10,left:0,bottom:6}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:11}} interval={0} angle={-45} textAnchor="end" height={54}/>
-                <YAxis tick={{fill:C.cream,fontSize:11}}/>
-                <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={horaInfo.linhas} margin={{top:34,right:12,left:0,bottom:6}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+                <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={54}/>
+                <YAxis {...eixoY}/>
+                <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                          formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),n];}}/>
-                <Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
+                <Legend wrapperStyle={{fontSize:12,color:C.cream,paddingTop:6}}/>
                 <ReferenceLine y={horaInfo.media} stroke={C.sand} strokeDasharray="6 4"
-                               label={{value:'média '+fmt(horaInfo.media),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
+                               label={{value:'média '+fmt(horaInfo.media),fill:C.sand,fontSize:11,position:'insideTopLeft',dy:-6}}/>
                 {horaInfo.horas.map(function(h,i){
                   const ultimo=i===horaInfo.horas.length-1;
-                  return<Bar isAnimationActive={false} key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)} name={h}>
-                    <LabelList dataKey={h} content={faixaLabel(corHora(i,horaInfo.horas.length),13)}/>
+                  return<Bar key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)}
+                             name={h} isAnimationActive={false}
+                             radius={ultimo?[4,4,0,0]:0}>
+                    <LabelList dataKey={h} content={faixaLabel(13)}/>
                     {ultimo&&<LabelList dataKey="total" position="top" content={totalAcima}/>}
                   </Bar>;
                 })}
               </BarChart>
             </ResponsiveContainer>
             </ScrollX>
-            <div style={{fontSize:10,color:'rgba(252,252,235,0.45)',marginTop:6}}>
-              Cor mais clara = horário mais cedo. Cada faixa traz o próprio número; o rótulo acima da barra é o total do domingo.
+            <div style={{fontSize:11,color:'rgba(252,252,235,0.5)',marginTop:8}}>
+              Cada faixa traz o próprio número; o rótulo acima da barra é o total do domingo.
             </div>
           </React.Fragment>}
       </Card>
 
-      {/* 2. total por domingo */}
+      {/* ano inteiro numa tela so': barras estreitas, numero girado */}
       <Card>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:4}}>
-          <h3 className="serif" style={{fontSize:16,color:C.cream}}>Total por Domingo</h3>
-          <span style={{fontSize:12,color:C.teal}}>média {fmt(domInfo.media)}</span>
-        </div>
+        <TituloGrafico nota={'média '+fmt(domInfo.media)}>Total por Domingo — Ano Inteiro</TituloGrafico>
         <LegendaExtremos/>
-        <ScrollX n={domInfo.linhas.length} porBarra={60}>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={domInfo.linhas} margin={{top:24,right:10,left:0,bottom:6}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-            <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:11}} interval={0} angle={-45} textAnchor="end" height={54}/>
-            <YAxis tick={{fill:C.cream,fontSize:11}}/>
-            <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
+        <ResponsiveContainer width="100%" height={330}>
+          <BarChart data={domInfo.linhas} margin={{top:14,right:12,left:0,bottom:6}} barCategoryGap="12%">
+            <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+            <XAxis dataKey="rot" {...eixoX} interval={0} angle={-90} textAnchor="end" height={56}
+                   tick={{fill:R_EIXO,fontSize:10}}/>
+            <YAxis {...eixoY}/>
+            <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                      formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
-            <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"
-                           label={{value:'média '+fmt(domInfo.media),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
-            <Bar isAnimationActive={false} dataKey="v" name="Pessoas">
-              <LabelList dataKey="v" content={numeroNaBarra(C.teal,15)}/>
-              {domInfo.linhas.map(function(r,i){return<Cell key={i} fill={corExtremo(exH,r.v)}/>;})}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        </ScrollX>
-      </Card>
-
-      {/* 3. media mensal */}
-      <Card>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:8}}>
-          <h3 className="serif" style={{fontSize:16,color:C.cream}}>Média de Pessoas por Domingo — por Mês</h3>
-          <span style={{fontSize:11,color:C.teal}}>média do ano {fmt(mediaAnual)}</span>
-        </div>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={mensal} margin={{top:24,right:10,left:0,bottom:6}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-            <XAxis dataKey="mes" tick={{fill:C.cream,fontSize:11}}/>
-            <YAxis tick={{fill:C.cream,fontSize:11}}/>
-            <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
-                     formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
-            <ReferenceLine y={mediaAnual} stroke={C.sand} strokeDasharray="6 4"
-                           label={{value:'média do ano '+fmt(mediaAnual),fill:C.sand,fontSize:10,position:'insideTopLeft',dy:-6}}/>
-            <Bar isAnimationActive={false} dataKey="v" fill={C.sage} name="Média">
-              <LabelList dataKey="v" content={numeroNaBarra(C.sage,15)}/>
+            <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"/>
+            <Bar dataKey="v" name="Pessoas" radius={[3,3,0,0]} isAnimationActive={false}>
+              <LabelList dataKey="v" content={numeroVertical(12)}/>
+              {domInfo.linhas.map(function(r,i){
+                return<Cell key={i} fill={exH.alto.has(r.v)?R_ALTO:exH.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
-      {/* geracionais */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))',gap:16}}>
+        {anuaisDomingo&&<Card>
+          <TituloGrafico nota="São Paulo">Médias Anuais — Domingo</TituloGrafico>
+          <SubTitulo>Média de pessoas por domingo, com crescimento</SubTitulo>
+          <MediasAnuais serie={anuaisDomingo} cor={R_ANO}/>
+        </Card>}
+        <Card>
+          <TituloGrafico nota={'média do ano '+fmt(mediaAno)}>Média por Mês — Domingo</TituloGrafico>
+          <SubTitulo>Média de pessoas por domingo em cada mês</SubTitulo>
+          <ScrollX n={mensal.length} porBarra={66} minimo={340}>
+          <ResponsiveContainer width="100%" height={230}>
+            <BarChart data={mensal} margin={{top:16,right:10,left:0,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+              <XAxis dataKey="mes" {...eixoX}/>
+              <YAxis {...eixoY}/>
+              <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
+                       formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
+              <ReferenceLine y={mediaAno} stroke={C.sand} strokeDasharray="6 4"/>
+              <Bar dataKey="v" fill={R_MES} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
+                <LabelList dataKey="v" content={numeroNaBarra(14)}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          </ScrollX>
+        </Card>
+      </div>
+
       <div style={{fontSize:11,color:C.sage,letterSpacing:2,textTransform:'uppercase',marginTop:8}}>— Geracionais —</div>
       {gers.length===0
         ?<Card><div style={{textAlign:'center',color:C.teal,padding:'20px 0',fontSize:12}}>Nenhum geracional lançado para {escopo} no período.</div></Card>
         :gers.map(function(g){return(
           <Card key={g.key}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:8}}>
-              <h3 className="serif" style={{fontSize:16,color:C.cream}}>
-                <span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:g.color,marginRight:8}}/>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:12}}>
+              <h3 className="serif" style={{fontSize:18,color:C.cream}}>
+                <span style={{display:'inline-block',width:11,height:11,borderRadius:3,background:g.color,marginRight:9}}/>
                 {g.label}
               </h3>
               <span style={{fontSize:12,color:C.teal}}>média {fmt(g.media)} · {g.n} encontros</span>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))',gap:16}}>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:16,marginBottom:16}}>
+              {g.anuais&&<div>
+                <SubTitulo>Médias anuais · São Paulo</SubTitulo>
+                <MediasAnuais serie={g.anuais} cor={R_ANO}/>
+              </div>}
               <div>
-                <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Participantes por data</div>
-                <ScrollX n={g.linhas.length} porBarra={54} minimo={400}>
+                <SubTitulo>Média por mês</SubTitulo>
+                <ScrollX n={g.mensais.length} porBarra={62} minimo={300}>
                 <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={g.linhas} margin={{top:22,right:8,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                    <XAxis dataKey="rot" tick={{fill:C.cream,fontSize:10}} interval={0} angle={-45} textAnchor="end" height={48}/>
-                    <YAxis tick={{fill:C.cream,fontSize:11}}/>
-                    <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
-                             formatter={function(v){return[Number(v).toLocaleString('pt-BR'),g.label];}}/>
-                    <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
-                    <Bar isAnimationActive={false} dataKey="v" fill={g.color} name={g.label}>
-                      <LabelList dataKey="v" content={numeroNaBarra(g.color,15)}/>
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                </ScrollX>
-              </div>
-              <div>
-                <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Média por mês</div>
-                <ScrollX n={g.mensais.length} porBarra={66} minimo={340}>
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={g.mensais} margin={{top:22,right:8,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)" vertical={false}/>
-                    <XAxis dataKey="mes" tick={{fill:C.cream,fontSize:11}}/>
-                    <YAxis tick={{fill:C.cream,fontSize:11}}/>
-                    <Tooltip contentStyle={{background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,color:C.cream,fontSize:12}}
+                  <BarChart data={g.mensais} margin={{top:16,right:10,left:0,bottom:4}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+                    <XAxis dataKey="mes" {...eixoX}/>
+                    <YAxis {...eixoY}/>
+                    <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                              formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
                     <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
-                    <Bar isAnimationActive={false} dataKey="v" fill={g.color} name="Média">
-                      <LabelList dataKey="v" content={numeroNaBarra(g.color,15)}/>
+                    <Bar dataKey="v" fill={R_MES} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
+                      <LabelList dataKey="v" content={numeroNaBarra(14)}/>
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
                 </ScrollX>
               </div>
             </div>
+
+            <SubTitulo>Participantes por data</SubTitulo>
+            <ScrollX n={g.linhas.length} porBarra={56} minimo={400}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={g.linhas} margin={{top:16,right:10,left:0,bottom:4}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
+                <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={48}
+                       tick={{fill:R_EIXO,fontSize:10}}/>
+                <YAxis {...eixoY}/>
+                <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
+                         formatter={function(v){return[Number(v).toLocaleString('pt-BR'),g.label];}}/>
+                <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
+                <Bar dataKey="v" fill={R_BARRA} radius={[4,4,0,0]} isAnimationActive={false} name={g.label}>
+                  <LabelList dataKey="v" content={numeroNaBarra(14)}/>
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            </ScrollX>
           </Card>
         );})}
 
-      <div style={{fontSize:10,color:'rgba(252,252,235,0.4)',lineHeight:1.7,paddingBottom:8}}>
+      <div style={{fontSize:11,color:'rgba(252,252,235,0.42)',lineHeight:1.8,paddingBottom:8}}>
         Fonte: export do MAC10 consolidado no Data Base. Horários disponíveis a partir de 11/01/2026.
-        Lumen e G5.2 são o mesmo dado. As datas seguem a convenção do MAC10 (domingo do lançamento).
+        Lumen e G5.2 são o mesmo dado. As médias de 2019 a 2025 vêm do Services Report de 31/08/2026
+        e são de São Paulo — por isso só aparecem quando o recorte é São Paulo. O ano de 2026 é
+        sempre calculado a partir dos dados atuais.
       </div>
       </React.Fragment>}
     </div>
