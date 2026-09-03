@@ -6435,7 +6435,7 @@ function PageReport(){
             <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                      formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
             <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"/>
-            <Bar dataKey="v" name="Pessoas" radius={[3,3,0,0]} isAnimationActive={false}>
+            <Bar dataKey="v" name="Pessoas" radius={[4,4,0,0]} isAnimationActive={false}>
               <LabelList dataKey="v" content={numeroApertado(12)}/>
               {domInfo.linhas.map(function(r,i){
                 return<Cell key={i} fill={exH.alto.has(r.v)?R_ALTO:exH.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
