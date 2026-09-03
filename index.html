@@ -6114,31 +6114,22 @@ function numeroNaBarra(tamanho){
   };
 }
 
-/* Ano inteiro numa tela so': com 30 domingos a barra fica com ~25px e
-   "5.626" precisa de ~37px na horizontal. Os rotulos alternam em duas
-   fileiras, o que da' duas colunas de espaco (~50px) a cada um — cabe sem
-   girar o texto nem encolher a fonte.
-
-   As fileiras sao medidas a partir da LINHA DE BASE, nao do topo da barra.
-   Ancorar no topo nao resolve: as barras tem alturas diferentes e a diferenca
-   entre duas vizinhas anula o escalonamento. A base e' comum a todas, entao
-   as duas fileiras ficam em alturas absolutas e nunca colidem. */
+/* Ano inteiro numa tela so'. Mesma colocacao dos demais graficos — o numero
+   no topo de dentro da barra — mas a folga e' medida pelo PASSO entre barras,
+   nao pela largura da barra: com 30 domingos a barra fica com ~36px e "5.626"
+   ocupa ~37px, entao o rotulo transborda alguns pixels para a calha vizinha
+   sem encostar no numero de ao lado. Se nem o passo bastar, some; o valor
+   exato continua no tooltip. */
 function numeroApertado(tamanho){
-  const linha1=tamanho+6, linha2=tamanho*2+14;
   return function(props){
-    const {x,y,width,height,value,index}=props;
+    const {x,y,width,height,value}=props;
     if(value===null||value===undefined) return null;
     const txt=Number(value).toLocaleString('pt-BR');
-    /* Escalonar da' a cada rotulo duas colunas de espaco. Em tela estreita
-       nem isso basta — melhor esconder do que empilhar numero sobre numero;
-       o valor exato continua no tooltip. */
     const passo=width/0.85;
-    if(txt.length*tamanho*0.62 > passo*2-6) return null;
-    const base=y+height;
-    const sobe=index%2===1?linha2:linha1;
-    const cabe=height>=sobe+6;
+    if(txt.length*tamanho*0.62 > passo-3) return null;
+    const cabe=height>=tamanho+12;
     return(
-      <text x={x+width/2} y={cabe?base-sobe+tamanho/2:y-6} textAnchor="middle"
+      <text x={x+width/2} y={cabe?y+tamanho+5:y-6} textAnchor="middle"
             fontSize={tamanho} fontWeight={700} fill={R_TINTA}
             stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
         {txt}
