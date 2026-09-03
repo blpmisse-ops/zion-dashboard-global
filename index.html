@@ -6098,30 +6098,50 @@ function ScrollX({n,porBarra=46,minimo=560,children}){
 function numeroNaBarra(tamanho){
   return function(props){
     const {x,y,width,height,value}=props;
-    if(value===null||value===undefined||width<20) return null;
+    if(value===null||value===undefined) return null;
+    const txt=Number(value).toLocaleString('pt-BR');
+    /* Montserrat bold ocupa ~0,62em por digito. Sem esta checagem o numero
+       transborda a barra quando o ano inteiro esta em tela. */
+    if(txt.length*tamanho*0.62>width-3) return null;
     const cabe=height>=tamanho+10;
     return(
       <text x={x+width/2} y={cabe?y+tamanho+5:y-6} textAnchor="middle"
             fontSize={tamanho} fontWeight={700} fill={R_TINTA}
             stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
-        {Number(value).toLocaleString('pt-BR')}
+        {txt}
       </text>
     );
   };
 }
 
-/* Numero girado: cabe o ano inteiro numa tela so' sem encolher a fonte. */
-function numeroVertical(tamanho){
+/* Ano inteiro numa tela so': com 30 domingos a barra fica com ~25px e
+   "5.626" precisa de ~37px na horizontal. Os rotulos alternam em duas
+   fileiras, o que da' duas colunas de espaco (~50px) a cada um — cabe sem
+   girar o texto nem encolher a fonte.
+
+   As fileiras sao medidas a partir da LINHA DE BASE, nao do topo da barra.
+   Ancorar no topo nao resolve: as barras tem alturas diferentes e a diferenca
+   entre duas vizinhas anula o escalonamento. A base e' comum a todas, entao
+   as duas fileiras ficam em alturas absolutas e nunca colidem. */
+function numeroApertado(tamanho){
+  const linha1=tamanho+6, linha2=tamanho*2+14;
   return function(props){
-    const {x,y,width,height,value}=props;
+    const {x,y,width,height,value,index}=props;
     if(value===null||value===undefined) return null;
-    const cabe=height>=52;
-    const cx=x+width/2, cy=cabe?y+10:y-8;
+    const txt=Number(value).toLocaleString('pt-BR');
+    /* Escalonar da' a cada rotulo duas colunas de espaco. Em tela estreita
+       nem isso basta — melhor esconder do que empilhar numero sobre numero;
+       o valor exato continua no tooltip. */
+    const passo=width/0.85;
+    if(txt.length*tamanho*0.62 > passo*2-6) return null;
+    const base=y+height;
+    const sobe=index%2===1?linha2:linha1;
+    const cabe=height>=sobe+6;
     return(
-      <text x={cx} y={cy} textAnchor="start" fontSize={tamanho} fontWeight={700}
-            fill={R_TINTA} transform={'rotate(90 '+cx+' '+cy+')'}
+      <text x={x+width/2} y={cabe?base-sobe+tamanho/2:y-6} textAnchor="middle"
+            fontSize={tamanho} fontWeight={700} fill={R_TINTA}
             stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
-        {Number(value).toLocaleString('pt-BR')}
+        {txt}
       </text>
     );
   };
@@ -6363,7 +6383,7 @@ function PageReport(){
       </div>
 
       <Card>
-        <TituloGrafico nota={'média '+fmt(horaInfo.media)}>Participantes por Culto de Domingo — por Horário</TituloGrafico>
+        <TituloGrafico nota={'Média '+fmt(horaInfo.media)}>Participantes por Culto de Domingo — por Horário</TituloGrafico>
         {demais
           ?<div style={{color:C.sand,fontSize:12,padding:'20px 0',textAlign:'center',lineHeight:1.7}}>
              As localidades filtradas somam {horaInfo.horas.length} horários distintos ({horaInfo.horas.join(', ')}).
@@ -6383,7 +6403,7 @@ function PageReport(){
                          formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),n];}}/>
                 <Legend wrapperStyle={{fontSize:12,color:C.cream,paddingTop:6}}/>
                 <ReferenceLine y={horaInfo.media} stroke={C.sand} strokeDasharray="6 4"
-                               label={{value:'média '+fmt(horaInfo.media),fill:C.sand,fontSize:11,position:'insideTopLeft',dy:-6}}/>
+                               label={{value:'Média '+fmt(horaInfo.media),fill:C.sand,fontSize:11,position:'insideTopLeft',dy:-6}}/>
                 {horaInfo.horas.map(function(h,i){
                   const ultimo=i===horaInfo.horas.length-1;
                   return<Bar key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)}
@@ -6404,10 +6424,10 @@ function PageReport(){
 
       {/* ano inteiro numa tela so': barras estreitas, numero girado */}
       <Card>
-        <TituloGrafico nota={'média '+fmt(domInfo.media)}>Total por Domingo — Ano Inteiro</TituloGrafico>
+        <TituloGrafico nota={'Média '+fmt(domInfo.media)}>Total por Domingo — Ano Inteiro</TituloGrafico>
         <LegendaExtremos/>
         <ResponsiveContainer width="100%" height={330}>
-          <BarChart data={domInfo.linhas} margin={{top:14,right:12,left:0,bottom:6}} barCategoryGap="12%">
+          <BarChart data={domInfo.linhas} margin={{top:22,right:12,left:0,bottom:6}} barCategoryGap="8%">
             <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
             <XAxis dataKey="rot" {...eixoX} interval={0} angle={-90} textAnchor="end" height={56}
                    tick={{fill:R_EIXO,fontSize:10}}/>
@@ -6416,7 +6436,7 @@ function PageReport(){
                      formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
             <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"/>
             <Bar dataKey="v" name="Pessoas" radius={[3,3,0,0]} isAnimationActive={false}>
-              <LabelList dataKey="v" content={numeroVertical(12)}/>
+              <LabelList dataKey="v" content={numeroApertado(12)}/>
               {domInfo.linhas.map(function(r,i){
                 return<Cell key={i} fill={exH.alto.has(r.v)?R_ALTO:exH.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
               })}
@@ -6432,7 +6452,7 @@ function PageReport(){
           <MediasAnuais serie={anuaisDomingo} cor={R_ANO}/>
         </Card>}
         <Card>
-          <TituloGrafico nota={'média do ano '+fmt(mediaAno)}>Média por Mês — Domingo</TituloGrafico>
+          <TituloGrafico nota={'Média do ano '+fmt(mediaAno)}>Média por Mês — Domingo</TituloGrafico>
           <SubTitulo>Média de pessoas por domingo em cada mês</SubTitulo>
           <ScrollX n={mensal.length} porBarra={66} minimo={340}>
           <ResponsiveContainer width="100%" height={230}>
@@ -6462,7 +6482,7 @@ function PageReport(){
                 <span style={{display:'inline-block',width:11,height:11,borderRadius:3,background:g.color,marginRight:9}}/>
                 {g.label}
               </h3>
-              <span style={{fontSize:12,color:C.teal}}>média {fmt(g.media)} · {g.n} encontros</span>
+              <span style={{fontSize:12,color:C.teal}}>Média {fmt(g.media)} · {g.n} encontros</span>
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:16,marginBottom:16}}>
