@@ -6140,41 +6140,6 @@ function ultimaData(filtLocs){
   return p[2]+'/'+p[1]+'/'+p[0];
 }
 
-const TONS_R={
-  alta:   {cor:'#7fd6a0',bg:'rgba(127,214,160,0.09)',bd:'rgba(127,214,160,0.3)', ic:'▲'},
-  inverso:{cor:'#f08a8a',bg:'rgba(240,138,138,0.09)',bd:'rgba(240,138,138,0.3)', ic:'▼'},
-  atencao:{cor:'#D4AF37',bg:'rgba(212,175,55,0.09)', bd:'rgba(212,175,55,0.3)',  ic:'!'},
-  acao:   {cor:C.teal,   bg:'rgba(7,135,128,0.10)',  bd:'rgba(7,135,128,0.32)',  ic:'→'},
-};
-function Leitura({titulo,itens}){
-  if(!itens||!itens.length) return null;
-  return(
-    <Card className="quebra-evitar" style={{breakInside:'avoid'}}>
-      <div style={{fontSize:11,color:C.teal,fontWeight:700,textTransform:'uppercase',letterSpacing:0.6,marginBottom:10}}>{titulo}</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(250px,1fr))',gap:10}}>
-        {itens.map(function(x,i){
-          const t=TONS_R[x.tom]||TONS_R.acao;
-          return(
-            <div key={i} style={{background:t.bg,border:'1px solid '+t.bd,borderRadius:8,padding:'11px 13px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
-                <span style={{color:t.cor,fontWeight:700,fontSize:12}}>{t.ic}</span>
-                <span style={{color:t.cor,fontWeight:700,fontSize:11,textTransform:'uppercase',letterSpacing:0.4}}>{x.titulo}</span>
-              </div>
-              <div style={{fontSize:12,color:C.cream,lineHeight:1.55}}>{x.texto}</div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-/* Ano inteiro numa tela so'. Mesma colocacao dos demais graficos — o numero
-   no topo de dentro da barra — mas a folga e' medida pelo PASSO entre barras,
-   nao pela largura da barra: com 30 domingos a barra fica com ~36px e "5.626"
-   ocupa ~37px, entao o rotulo transborda alguns pixels para a calha vizinha
-   sem encostar no numero de ao lado. Se nem o passo bastar, some; o valor
-   exato continua no tooltip. */
 /* Valor dentro da barra, encostado no topo. Volta para fora quando a barra e'
    baixa demais para o texto caber, e some quando nem a largura da barra
    comporta o numero — com as series quebradas em fileiras isso praticamente
@@ -6439,108 +6404,6 @@ function PageReport(){
     }).filter(function(g){return g.n>0;});
   },[selLocs.join(),selMonth,soSP,parciais]);
 
-  /* ---- Leitura: tudo derivado do dado, nada de frase fixa ---- */
-  const insights=useMemo(function(){
-    const out=[];
-    const compl=MESES.filter(function(m){return !parciais[m];});
-
-    /* 1. deslocamento entre horarios.
-       Comparar a media absoluta do primeiro mes com a do ultimo mistura
-       tendencia com sazonalidade: em SP janeiro e' o pico (4.536) e julho o
-       vale (3.545), entao TODO horario "cai" 20% e o numero nao informa nada.
-       A participacao de cada horario no total do dia e' independente disso e
-       mostra o que de fato mudou: para onde o publico se deslocou. */
-    if(horaInfo.horas.length>1&&horaInfo.linhas.length>=8){
-      const meio=Math.floor(horaInfo.linhas.length/2);
-      const share=function(ini,fim){
-        const acc={}; let tot=0;
-        horaInfo.linhas.slice(ini,fim).forEach(function(r){
-          horaInfo.horas.forEach(function(h){
-            const v=r[h]||0; acc[h]=(acc[h]||0)+v; tot+=v;
-          });
-        });
-        if(!tot) return null;
-        const o={}; horaInfo.horas.forEach(function(h){o[h]=acc[h]/tot*100;});
-        return o;
-      };
-      const a=share(0,meio), b=share(meio,horaInfo.linhas.length);
-      if(a&&b){
-        const dif=horaInfo.horas.map(function(h){return{h:h,pp:b[h]-a[h],de:a[h],para:b[h]};})
-          .sort(function(x,y){return y.pp-x.pp;});
-        const sobe=dif[0], desce=dif[dif.length-1];
-        if(sobe.pp>=1.5) out.push({tom:'alta',titulo:'Para onde o público migrou',
-          texto:'O culto das '+sobe.h+' passou de '+sobe.de.toFixed(0)+'% para '+sobe.para.toFixed(0)+
-                '% do público de domingo (+'+sobe.pp.toFixed(1)+'pp na segunda metade do período).'});
-        if(desce.pp<=-1.5) out.push({tom:'inverso',titulo:'Horário que esvazia',
-          texto:'O culto das '+desce.h+' caiu de '+desce.de.toFixed(0)+'% para '+desce.para.toFixed(0)+
-                '% do público ('+desce.pp.toFixed(1)+'pp). Vale rever escala e capacidade de sala.'});
-        if(sobe.pp<1.5&&desce.pp>-1.5) out.push({tom:'acao',titulo:'Distribuição estável',
-          texto:'A divisão do público entre os '+horaInfo.horas.length+' horários praticamente não mudou no período.'});
-      }
-    }
-
-    /* 2. domingos acima da media */
-    if(domInfo.linhas.length>=6){
-      const acima=domInfo.linhas.filter(function(r){return r.v>=domInfo.media;}).length;
-      const pct=Math.round(acima/domInfo.linhas.length*100);
-      out.push({tom:pct>=50?'alta':'atencao',titulo:'Consistência',
-        texto:acima+' de '+domInfo.linhas.length+' domingos ficaram na média ou acima ('+pct+'%). '+
-              'Média de '+fmt(domInfo.media)+' pessoas por domingo.'});
-    }
-
-    /* 3. geracional que mais destoa do proprio historico (so' com historico real) */
-    if(soSP){
-      const comp=gers.map(function(g){
-        const h=HIST_SP[g.key];
-        if(!h) return null;
-        const anos=Object.keys(h).map(Number).sort();
-        const ult=h[anos[anos.length-1]];
-        return(ult>0&&g.mediaAno>0)?{lbl:g.label,pct:((g.mediaAno-ult)/ult)*100,de:ult,para:g.mediaAno}:null;
-      }).filter(Boolean);
-      if(comp.length>1){
-        comp.sort(function(a,b){return b.pct-a.pct;});
-        const a=comp[0], b=comp[comp.length-1];
-        if(a.pct>2) out.push({tom:'alta',titulo:'Geracional em alta',
-          texto:a.lbl+' está '+a.pct.toFixed(1)+'% acima de 2025, de '+fmt(a.de)+' para '+fmt(a.para)+' por encontro.'});
-        if(b.pct<-2) out.push({tom:'inverso',titulo:'Geracional em queda',
-          texto:b.lbl+' está '+Math.abs(b.pct).toFixed(1)+'% abaixo de 2025, de '+fmt(b.de)+' para '+fmt(b.para)+' por encontro.'});
-      }
-    }
-
-    /* 4. proporcao geracional / culto, primeira metade vs segunda */
-    if(gers.length&&domInfo.linhas.length>=8){
-      const metade=Math.floor(domInfo.linhas.length/2);
-      const faixa=function(ini,fim){
-        let cul=0,ger=0;
-        domInfo.linhas.slice(ini,fim).forEach(function(r){
-          cul+=r.v;
-          gers.forEach(function(g){ger+=(g.porData[r.iso]||0);});
-        });
-        return cul>0?ger/cul*100:null;
-      };
-      const p1=faixa(0,metade), p2=faixa(metade,domInfo.linhas.length);
-      if(p1&&p2){
-        const dif=p2-p1;
-        out.push({tom:Math.abs(dif)<1?'acao':(dif>0?'alta':'atencao'),titulo:'Geracionais x domingo',
-          texto:Math.abs(dif)<1
-            ?'Os geracionais reúnem o equivalente a '+p2.toFixed(0)+'% do público de domingo, proporção estável no período.'
-            :'Os geracionais passaram de '+p1.toFixed(0)+'% para '+p2.toFixed(0)+'% do público de domingo ('+
-             (dif>0?'+':'')+dif.toFixed(1)+'pp).'});
-      }
-    }
-
-    /* 5. aviso de mes parcial, sempre por ultimo */
-    const pcs=Object.keys(parciais);
-    if(pcs.length){
-      const txt=pcs.map(function(m){
-        return MNAMES[parseInt(m.slice(5))-1]+' ('+parciais[m].tem+' de '+parciais[m].esperado+')';
-      }).join(', ');
-      out.push({tom:'atencao',titulo:'Meses incompletos',
-        texto:txt+' com menos domingos lançados que o esperado. As médias desses meses não são comparáveis às dos demais.'});
-    }
-    return out;
-  },[selLocs.join(),selMonth,horaInfo,domInfo,gers,parciais,soSP]);
-
   const exH=extremos(domInfo.linhas,'v');
   const demais=horaInfo.horas.length>HORA_MAX;
   const semDado=horaInfo.linhas.length===0&&domInfo.linhas.length===0&&gers.length===0;
@@ -6583,8 +6446,6 @@ function PageReport(){
       {semDado&&<Card><div style={{textAlign:'center',color:C.teal,padding:'24px 0',fontSize:13}}>Sem dados de 2026 para {escopo} no período selecionado.</div></Card>}
 
       {!semDado&&<React.Fragment>
-
-      <Leitura titulo={'Leitura — '+escopo} itens={insights}/>
 
       <div style={{fontSize:11,color:C.sage,letterSpacing:2,textTransform:'uppercase',marginTop:4}}>— Domingo —</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12}}>
