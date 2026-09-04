@@ -12,7 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/recharts@2.5.0/umd/Recharts.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7.26.10/babel.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
 html,body,#root{height:100%;background:#043030;font-family:'Montserrat',sans-serif;color:#FCFCEB}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#021a1a}
@@ -6256,7 +6257,15 @@ function Slide({children,pad=54}){
     <div ref={ref} className="slide" style={{position:'relative',width:'100%',
          aspectRatio:SL_W+' / '+SL_H,overflow:'hidden',borderRadius:14,
          background:'#062a2a',border:'1px solid rgba(7,135,128,0.22)'}}>
-      <div className="slide-canvas" style={{width:SL_W,height:SL_H,transformOrigin:'top left',
+      {/* O fundo e' um rect de SVG, nao background CSS: preenchimento de SVG
+          imprime sempre, background CSS so' com "Graficos de segundo plano"
+          marcado. Sem isto o PDF sai branco e o texto creme some. */}
+      <svg viewBox="0 0 4 4" preserveAspectRatio="none" aria-hidden="true"
+           style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:0}}>
+        <rect width="4" height="4" fill="#062a2a"/>
+      </svg>
+      <div className="slide-canvas" style={{position:'relative',zIndex:1,
+                   width:SL_W,height:SL_H,transformOrigin:'top left',
                    transform:'scale('+k+')',padding:pad,boxSizing:'border-box',
                    display:'flex',flexDirection:'column'}}>
         {children}
@@ -6282,12 +6291,21 @@ function TituloSlide({children,nota}){
    board "Elementos Detalhes" da identidade — nao a serifada que foi removida
    do restante do dashboard. */
 function FundoSlide({faixa=false}){
+  const gid='grad'+(faixa?'F':'C');
   /* Na divisoria a altura e' pequena. Esticar a composicao inteira achataria as
      elipses; melhor recortar uma faixa horizontal dela, onde as duas se cruzam. */
   return(
     <svg viewBox={faixa?'0 300 1920 420':'0 0 1920 1080'}
          preserveAspectRatio={faixa?'xMidYMid slice':'none'} aria-hidden="true"
-         style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+         style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:0}}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#00524d"/>
+          <stop offset="50%" stopColor="#008a81"/>
+          <stop offset="100%" stopColor="#00c3b6"/>
+        </linearGradient>
+      </defs>
+      <rect x="-40" y="-40" width="2000" height="1160" fill={'url(#'+gid+')'}/>
       <ellipse cx="1010" cy="540" rx="228" ry="508" fill="none"
                stroke="#FCFCEB" strokeOpacity="0.22" strokeWidth="2"/>
       <ellipse cx="1560" cy="560" rx="760" ry="492" fill="none"
@@ -6309,7 +6327,7 @@ function CapaSlide({titulo,subtitulo,data}){
     <div className="slide quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
          aspectRatio:'16 / 9',background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
       <FundoSlide/>
-      <div style={{position:'absolute',inset:0,display:'grid',gridTemplateColumns:'1fr 1fr',
+      <div style={{position:'absolute',inset:0,zIndex:1,display:'grid',gridTemplateColumns:'1fr 1fr',
                    alignItems:'center',gap:40,padding:'0 6.5%'}}>
         <MarcaSlide/>
         <div style={{textAlign:'left'}}>
@@ -6319,7 +6337,7 @@ function CapaSlide({titulo,subtitulo,data}){
                                    marginTop:14,fontWeight:400}}>{subtitulo}</div>}
         </div>
       </div>
-      {data&&<div style={{position:'absolute',left:0,right:0,bottom:'5%',textAlign:'center',
+      {data&&<div style={{position:'absolute',zIndex:1,left:0,right:0,bottom:'5%',textAlign:'center',
                           fontSize:'clamp(12px,1.3vw,22px)',color:'rgba(255,255,255,0.9)'}}>{data}</div>}
     </div>
   );
@@ -6331,7 +6349,7 @@ function DivisoriaSlide({titulo}){
     <div className="slide quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
          minHeight:150,background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
       <FundoSlide faixa/>
-      <div style={{position:'relative',display:'grid',gridTemplateColumns:'1fr 1fr',alignItems:'center',
+      <div style={{position:'relative',zIndex:1,display:'grid',gridTemplateColumns:'1fr 1fr',alignItems:'center',
                    gap:30,padding:'0 6.5%',minHeight:150,height:'100%'}}>
         <MarcaSlide escala={0.44}/>
         <div style={{fontSize:'clamp(22px,2.6vw,42px)',fontWeight:300,color:'#FFFFFF',letterSpacing:-0.3}}>
