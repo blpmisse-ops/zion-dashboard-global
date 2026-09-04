@@ -25,13 +25,22 @@ html,body,#root{height:100%;background:#043030;font-family:'Montserrat',sans-ser
      com um quadro por tela, sem zoom. */
   @page{size:1600px 900px;margin:0}
   aside,.sem-print{display:none!important}
+  /* O App envolve tudo num div com height:100vh e overflow:hidden. Sem soltar
+     esses dois, a impressao para na primeira tela e sai 1 pagina so'. */
+  html,body,#root,#root>div{height:auto!important;overflow:visible!important;
+       display:block!important;background:#062a2a!important}
   main{overflow:visible!important;height:auto!important;padding:0!important;
        background:#062a2a!important}
   .slide{break-after:page;page-break-after:always;border-radius:0!important;
          border:none!important;width:1600px!important;height:900px!important;
-         aspect-ratio:auto!important}
+         aspect-ratio:auto!important;overflow:visible!important}
+  /* Na tela o canvas de 1600x900 e' escalado para caber na largura disponivel.
+     No papel a pagina JA e' 1600x900, entao a escala tem de sair — senao o
+     quadro sai reduzido num canto da folha. */
+  .slide-canvas{transform:none!important}
   .slide:last-child{break-after:auto;page-break-after:auto}
-  .pilha-slides{gap:0!important}
+  .pilha-slides{gap:0!important;margin:0!important;padding:0!important}
+  .pilha-slides>*{margin:0!important}
 }
 .quebra-evitar{break-inside:avoid;page-break-inside:avoid}
 </style>
@@ -6247,7 +6256,7 @@ function Slide({children,pad=54}){
     <div ref={ref} className="slide" style={{position:'relative',width:'100%',
          aspectRatio:SL_W+' / '+SL_H,overflow:'hidden',borderRadius:14,
          background:'#062a2a',border:'1px solid rgba(7,135,128,0.22)'}}>
-      <div style={{width:SL_W,height:SL_H,transformOrigin:'top left',
+      <div className="slide-canvas" style={{width:SL_W,height:SL_H,transformOrigin:'top left',
                    transform:'scale('+k+')',padding:pad,boxSizing:'border-box',
                    display:'flex',flexDirection:'column'}}>
         {children}
@@ -6297,7 +6306,7 @@ function MarcaSlide({escala=1}){
 }
 function CapaSlide({titulo,subtitulo,data}){
   return(
-    <div className="quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
+    <div className="slide quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
          aspectRatio:'16 / 9',background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
       <FundoSlide/>
       <div style={{position:'absolute',inset:0,display:'grid',gridTemplateColumns:'1fr 1fr',
@@ -6319,11 +6328,11 @@ function CapaSlide({titulo,subtitulo,data}){
    tela inteira para separar duas partes de uma pagina rolavel. */
 function DivisoriaSlide({titulo}){
   return(
-    <div className="quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
+    <div className="slide quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
          minHeight:150,background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
       <FundoSlide faixa/>
       <div style={{position:'relative',display:'grid',gridTemplateColumns:'1fr 1fr',alignItems:'center',
-                   gap:30,padding:'0 6.5%',minHeight:150}}>
+                   gap:30,padding:'0 6.5%',minHeight:150,height:'100%'}}>
         <MarcaSlide escala={0.44}/>
         <div style={{fontSize:'clamp(22px,2.6vw,42px)',fontWeight:300,color:'#FFFFFF',letterSpacing:-0.3}}>
           {titulo}
@@ -6847,7 +6856,7 @@ function App(){
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
       <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
       <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,#032525 0%,${C.deepGreen} 100%)`}}>
-        <div style={{fontSize:11,color:'rgba(7,135,128,0.5)',marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
+        <div className="sem-print" style={{fontSize:11,color:'rgba(7,135,128,0.5)',marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
           <Isologo size={14} opacity={0.5}/>
           <span style={{color:'rgba(7,135,128,0.3)'}}>›</span>
           <span style={{color:C.teal,fontWeight:600}}>{PAGES.find(p=>p.id===page)?.label||''}</span>
