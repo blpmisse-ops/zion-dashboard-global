@@ -6214,6 +6214,74 @@ function cresceLabel(props){
   );
 }
 
+/* Capa e divisorias no mesmo desenho dos slides do Services Report: gradiente
+   horizontal #00524d -> #00c3b6 (amostrado do PDF), duas elipses finas se
+   cruzando, isologo + ZION a esquerda e o titulo a direita.
+
+   O ZION aqui e' Montserrat com entreletra aberta, que e' a forma da marca no
+   board "Elementos Detalhes" da identidade — nao a serifada que foi removida
+   do restante do dashboard. */
+function FundoSlide({faixa=false}){
+  /* Na divisoria a altura e' pequena. Esticar a composicao inteira achataria as
+     elipses; melhor recortar uma faixa horizontal dela, onde as duas se cruzam. */
+  return(
+    <svg viewBox={faixa?'0 300 1920 420':'0 0 1920 1080'}
+         preserveAspectRatio={faixa?'xMidYMid slice':'none'} aria-hidden="true"
+         style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <ellipse cx="1010" cy="540" rx="228" ry="508" fill="none"
+               stroke="#FCFCEB" strokeOpacity="0.22" strokeWidth="2"/>
+      <ellipse cx="1560" cy="560" rx="760" ry="492" fill="none"
+               stroke="#FCFCEB" strokeOpacity="0.22" strokeWidth="2"/>
+    </svg>
+  );
+}
+function MarcaSlide({escala=1}){
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:22*escala,flexShrink:0}}>
+      <Isologo size={92*escala}/>
+      <span style={{fontSize:64*escala,fontWeight:500,color:C.cream,
+                    letterSpacing:7*escala,lineHeight:1}}>ZION</span>
+    </div>
+  );
+}
+function CapaSlide({titulo,subtitulo,data}){
+  return(
+    <div className="quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
+         aspectRatio:'16 / 9',background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
+      <FundoSlide/>
+      <div style={{position:'absolute',inset:0,display:'grid',gridTemplateColumns:'1fr 1fr',
+                   alignItems:'center',gap:40,padding:'0 6.5%'}}>
+        <MarcaSlide/>
+        <div style={{textAlign:'left'}}>
+          <div style={{fontSize:'clamp(28px,3.6vw,62px)',fontWeight:300,color:'#FFFFFF',
+                       lineHeight:1.08,letterSpacing:-0.5}}>{titulo}</div>
+          {subtitulo&&<div style={{fontSize:'clamp(14px,1.5vw,26px)',color:'rgba(255,255,255,0.82)',
+                                   marginTop:14,fontWeight:400}}>{subtitulo}</div>}
+        </div>
+      </div>
+      {data&&<div style={{position:'absolute',left:0,right:0,bottom:'5%',textAlign:'center',
+                          fontSize:'clamp(12px,1.3vw,22px)',color:'rgba(255,255,255,0.9)'}}>{data}</div>}
+    </div>
+  );
+}
+/* Divisoria de secao: mesma faixa, sem a proporcao 16:9 — nao precisa de uma
+   tela inteira para separar duas partes de uma pagina rolavel. */
+function DivisoriaSlide({titulo}){
+  return(
+    <div className="quebra-evitar" style={{position:'relative',overflow:'hidden',borderRadius:14,
+         minHeight:150,background:'linear-gradient(90deg,#00524d 0%,#008a81 50%,#00c3b6 100%)'}}>
+      <FundoSlide faixa/>
+      <div style={{position:'relative',display:'grid',gridTemplateColumns:'1fr 1fr',alignItems:'center',
+                   gap:30,padding:'0 6.5%',minHeight:150}}>
+        <MarcaSlide escala={0.44}/>
+        <div style={{fontSize:'clamp(22px,2.6vw,42px)',fontWeight:300,color:'#FFFFFF',letterSpacing:-0.3}}>
+          {titulo}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TituloGrafico({children,nota}){
   return(
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',
@@ -6436,12 +6504,10 @@ function PageReport(){
 
   return(
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:12}}>
-        <div>
-          <h1 className="serif" style={{fontSize:26,fontWeight:700,color:C.cream}}>Report Executivo — 2026</h1>
-          <div style={{fontSize:12,color:C.teal,marginTop:2}}>{escopo} · culto de domingo, horários e geracionais</div>
-          {dataDados&&<div style={{fontSize:12,color:C.sand,marginTop:6,fontWeight:600}}>Dados até {dataDados}</div>}
-        </div>
+      <CapaSlide titulo="Services Analytics" subtitulo={escopo+' · 2026'}
+                 data={dataDados?'Dados até '+dataDados:null}/>
+
+      <div style={{display:'flex',justifyContent:'flex-end'}}>
         <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
       </div>
 
@@ -6460,7 +6526,7 @@ function PageReport(){
 
       {!semDado&&<React.Fragment>
 
-      <div style={{fontSize:11,color:C.sage,letterSpacing:2,textTransform:'uppercase',marginTop:4}}>— Domingo —</div>
+      <DivisoriaSlide titulo="Domingo"/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12}}>
         {kpis.map(function(k){return<KpiCard key={k.label} label={k.label} value={k.value}/>;})}
       </div>
@@ -6548,7 +6614,7 @@ function PageReport(){
         </Card>
       </div>
 
-      <div style={{fontSize:11,color:C.sage,letterSpacing:2,textTransform:'uppercase',marginTop:20,paddingTop:8}}>— Geracionais —</div>
+      <div style={{marginTop:14}}><DivisoriaSlide titulo="Geracionais"/></div>
       {gers.length===0
         ?<Card><div style={{textAlign:'center',color:C.teal,padding:'20px 0',fontSize:12}}>Nenhum geracional lançado para {escopo} no período.</div></Card>
         :gers.map(function(g){
