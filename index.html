@@ -6354,7 +6354,7 @@ const dicaEstilo={background:'#062828',border:'1px solid rgba(7,135,128,0.45)',
 /* Medias mensais. O mes incompleto sai hachurado e com o rotulo "parcial":
    ele entra no grafico ao lado de meses cheios e, sem marcacao, quem le o PDF
    compara agosto com julho como se fossem equivalentes. */
-function GraficoMensal({dados,cor,media,altura=230}){
+function GraficoMensal({dados,cor,media,altura=230,dom}){
   if(!dados||!dados.length) return null;
   const temParcial=dados.some(function(d){return d.parcial;});
   return(
@@ -6370,7 +6370,7 @@ function GraficoMensal({dados,cor,media,altura=230}){
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
           <XAxis dataKey="mes" {...eixoX}/>
-          <YAxis {...eixoY}/>
+          <YAxis {...eixoY} domain={dom||[0,'auto']}/>
           <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                    formatter={function(v,n,p){
                      return[Number(v).toLocaleString('pt-BR'),
@@ -6394,14 +6394,14 @@ function GraficoMensal({dados,cor,media,altura=230}){
 }
 
 /* Grafico de medias anuais com o crescimento ano a ano. */
-function MediasAnuais({serie,cor,altura=230}){
+function MediasAnuais({serie,cor,altura=230,dom}){
   if(!serie||serie.length<2) return null;
   return(
     <ResponsiveContainer width="100%" height={altura}>
       <BarChart data={serie} margin={{top:34,right:10,left:0,bottom:4}}>
         <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
         <XAxis dataKey="ano" {...eixoX}/>
-        <YAxis {...eixoY}/>
+        <YAxis {...eixoY} domain={dom||[0,'auto']}/>
         <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                  formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
         <Bar dataKey="v" fill={cor} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
@@ -6529,10 +6529,14 @@ function PageReport(){
         return{mes:MNAMES[parseInt(m.slice(5))-1],ym:m,
                v:Math.round(porMes[m].s/porMes[m].n),parcial:!!parciais[m]};
       });
-      return{key:c.k,label:meta.label,color:meta.color,linhas:linhas,mensais:mensais,
+      const anuais=soSP?comCrescimento(HIST_SP[c.k],mediaAnoCat):null;
+      let topo=0;
+      (anuais||[]).forEach(function(r){if(r.v>topo)topo=r.v;});
+      mensais.forEach(function(r){if(r.v>topo)topo=r.v;});
+      const domPar=[0,Math.ceil(topo*1.1/50)*50||100];
+      return{key:c.k,label:meta.label,color:meta.color,linhas:linhas,mensais:mensais,domPar:domPar,
              media:linhas.length?Math.round(tot/linhas.length):0,n:linhas.length,
-             mediaAno:mediaAnoCat, porData:accAno,
-             anuais:soSP?comCrescimento(HIST_SP[c.k],mediaAnoCat):null};
+             mediaAno:mediaAnoCat, porData:accAno, anuais:anuais};
     }).filter(function(g){return g.n>0;});
   },[selLocs.join(),selMonth,soSP,parciais]);
 
@@ -6547,6 +6551,14 @@ function PageReport(){
     {label:'Menor Domingo',       value:domInfo.linhas.length?Math.min.apply(null,domInfo.linhas.map(function(r){return r.v;})):0},
     {label:'Domingos Registrados',value:domInfo.linhas.length},
   ];
+
+  /* escala comum dos dois graficos do quadro de resumo */
+  const domResumo=useMemo(function(){
+    let max=0;
+    (anuaisDomingo||[]).forEach(function(r){if(r.v>max)max=r.v;});
+    mensal.forEach(function(r){if(r.v>max)max=r.v;});
+    return[0,Math.ceil(max*1.1/500)*500||1000];
+  },[anuaisDomingo,mensal]);
 
   const domFileiras=emFileiras(domInfo.linhas,POR_FILEIRA);
   const domDom=dominio(domInfo.linhas,['v']);
@@ -6593,14 +6605,23 @@ function PageReport(){
             </div>
           );})}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:anuaisDomingo?'1fr 1fr':'1fr',gap:24,marginTop:26,flex:1}}>
-          {anuaisDomingo&&<div style={{display:'flex',flexDirection:'column'}}>
+        {/* Os dois graficos medem a MESMA coisa (media de pessoas por domingo),
+            entao dividem a escala. Com dominios diferentes, 3.967 na esquerda
+            parecia maior que 4.536 na direita. Altura fixa em 400: a 1:1 as
+            barras ficam esticadas; perto de 2:1 o grafico respira. */}
+        <div style={{display:'grid',gridTemplateColumns:anuaisDomingo?'1fr 1fr':'1fr',
+                     gap:28,marginTop:30,height:550,flexShrink:0}}>
+          {anuaisDomingo&&<div style={{display:'flex',flexDirection:'column',minHeight:0}}>
             <SubTitulo>Médias anuais · São Paulo</SubTitulo>
-            <div style={{flex:1}}><MediasAnuais serie={anuaisDomingo} cor={R_ANO} altura="100%"/></div>
+            <div style={{flex:1,minHeight:0}}>
+              <MediasAnuais serie={anuaisDomingo} cor={R_ANO} altura="100%" dom={domResumo}/>
+            </div>
           </div>}
-          <div style={{display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',flexDirection:'column',minHeight:0}}>
             <SubTitulo>Média por mês</SubTitulo>
-            <div style={{flex:1}}><GraficoMensal dados={mensal} cor={R_MES} media={anoInfo.media} altura="100%"/></div>
+            <div style={{flex:1,minHeight:0}}>
+              <GraficoMensal dados={mensal} cor={R_MES} media={anoInfo.media} altura="100%" dom={domResumo}/>
+            </div>
           </div>
         </div>
       </Slide>
@@ -6700,15 +6721,19 @@ function PageReport(){
               <span style={{fontSize:20,color:C.teal,fontWeight:600,whiteSpace:'nowrap'}}>Média {fmt(g.media)} · {g.n} encontros</span>
             </div>
 
-            <div style={{display:'grid',gridTemplateColumns:g.anuais?'1fr 1fr':'1fr',gap:24,
-                         height:236,flexShrink:0,marginBottom:14}}>
+            <div style={{display:'grid',gridTemplateColumns:g.anuais?'1fr 1fr':'1fr',gap:26,
+                         height:250,flexShrink:0,marginBottom:16}}>
               {g.anuais&&<div style={{display:'flex',flexDirection:'column',minHeight:0}}>
                 <SubTitulo>Médias anuais · São Paulo</SubTitulo>
-                <div style={{flex:1,minHeight:0}}><MediasAnuais serie={g.anuais} cor={R_ANO} altura="100%"/></div>
+                <div style={{flex:1,minHeight:0}}>
+                  <MediasAnuais serie={g.anuais} cor={R_ANO} altura="100%" dom={g.domPar}/>
+                </div>
               </div>}
               <div style={{display:'flex',flexDirection:'column',minHeight:0}}>
                 <SubTitulo>Média por mês</SubTitulo>
-                <div style={{flex:1,minHeight:0}}><GraficoMensal dados={g.mensais} cor={R_MES} media={g.media} altura="100%"/></div>
+                <div style={{flex:1,minHeight:0}}>
+                  <GraficoMensal dados={g.mensais} cor={R_MES} media={g.media} altura="100%" dom={g.domPar}/>
+                </div>
               </div>
             </div>
 
