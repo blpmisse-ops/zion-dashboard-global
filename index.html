@@ -7698,7 +7698,11 @@ function PageReport(){
 
   const domFileiras=emFileiras(domInfo.linhas,POR_FILEIRA);
   const domDom=dominio(domInfo.linhas,['v']);
-  const horaFileiras=emFileiras(horaInfo.linhas,POR_FILEIRA);
+  /* No empilhado o que importa e' a ALTURA da faixa, nao a largura da barra:
+     cada fileira a mais divide a altura entre elas e o numero das faixas menores
+     some. Com 35 domingos foram 3 fileiras e 48 dos 139 numeros sumiram — o
+     16h e o 19h ficaram quase vazios. Este grafico fica sempre em 2 fileiras. */
+  const horaFileiras=emFileiras(horaInfo.linhas,Math.ceil(horaInfo.linhas.length/2));
   const horaDom=dominio(horaInfo.linhas,horaInfo.horas);
 
   return(
@@ -7792,7 +7796,7 @@ function PageReport(){
                         const ultimo=i===horaInfo.horas.length-1;
                         return<Bar key={h} dataKey={h} stackId="a" fill={corHora(i,horaInfo.horas.length)}
                                    name={h} isAnimationActive={false} radius={ultimo?[4,4,0,0]:0}>
-                          <LabelList dataKey={h} content={faixaLabel(15)}/>
+                          <LabelList dataKey={h} content={faixaLabel(14)}/>
                           {ultimo&&<LabelList dataKey="total" position="top" content={totalAcima}/>}
                         </Bar>;
                       })}
