@@ -573,7 +573,7 @@ const DATA = {
     "2026-04":{sunS:5471,sunN:4,bap:0,raiz:0,vol:392,zao:148,links:16,plinks:80,ig:54100,yt:12200},
     "2026-05":{sunS:4942,sunN:4,bap:0,raiz:60,vol:392,zao:199,links:16,plinks:77,ig:55005,yt:12350},
     "2026-06":{sunS:5174,sunN:4,bap:42,raiz:0,vol:392,zao:217,links:16,plinks:48,ig:55589,yt:12498},
-    "2026-07":{sunS:5272,sunN:4,bap:0,vol:392,zao:182,ig:56050,yt:0},
+    "2026-07":{sunS:5272,sunN:4,bap:0,vol:392,zao:182,ig:56050,yt:0,raiz:0},
   },
   "Ribeir\u00e3o Preto": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0},
@@ -692,9 +692,10 @@ const DATA = {
     "2026-01":{sunS:1563,sunN:3,bap:0,raiz:0,vol:80,ig:7739,yt:0},
     "2026-02":{sunS:1087,sunN:4,bap:0,raiz:0,vol:112,zao:0,links:14,plinks:67,ig:8316,yt:0},
     "2026-03":{sunS:1464,sunN:5,bap:7,raiz:7,vol:45,plinks:66,ig:8700,yt:0},
-    "2026-04":{sunS:1350,sunN:4,bap:9,raiz:9,vol:49,ig:9500,yt:0},
-    "2026-05":{sunS:1444,sunN:5,bap:0,raiz:1,vol:47,ig:10000,yt:0},
-    "2026-06":{sunS:978,sunN:3,vol:44,ig:10000,yt:0},
+    "2026-04":{sunS:1350,sunN:4,bap:9,raiz:9,vol:49,ig:9500,yt:0,links:15,plinks:203},
+    "2026-05":{sunS:1444,sunN:5,bap:11,raiz:1,vol:47,ig:10000,yt:0,links:15,plinks:203},
+    "2026-06":{sunS:978,sunN:3,vol:44,ig:10000,yt:0,raiz:11,bap:0},
+    "2026-07":{raiz:0,bap:0,vol:43,ig:10400},
   },
   "S\u00e3o Paulo": {
     "2023-01":{bap:0,raiz:98,vol:545,zao:0,links:122,ig:220360,yt:358918},
@@ -4041,6 +4042,9 @@ function expectedSundays(ym){
    culto do ano foi em 18/01, então janeiro teve apenas 2 cultos. */
 const CULTO_EXCECOES={
   'Cuenca':{'2026-01':2},
+  /* Gabriel Marques confirmou por e-mail (27/08/2026) que 21/06 foi VDS, sem
+     culto — junho teve 3 domingos, nao 4. */
+  'Santos':{'2026-06':3},
 };
 function expectedSundaysForLoc(locId,ym){
   const exc=CULTO_EXCECOES[locId]?.[ym];
