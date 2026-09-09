@@ -4051,6 +4051,8 @@ const CULTO_EXCECOES={
   /* Gabriel Marques confirmou por e-mail (27/08/2026) que 21/06 foi VDS, sem
      culto — junho teve 3 domingos, nao 4. */
   'Santos':{'2026-06':3},
+  /* Recife: 03/05 foi VDS, sem culto de domingo — maio teve 4 domingos, nao 5. */
+  'Recife':{'2026-05':4},
 };
 function expectedSundaysForLoc(locId,ym){
   const exc=CULTO_EXCECOES[locId]?.[ym];
