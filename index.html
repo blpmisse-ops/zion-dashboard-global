@@ -261,7 +261,7 @@ const DATA = {
     "2026-05":{sunS:526,sunN:4,bap:22,raiz:22,vol:58,zao:29,links:4,plinks:42,ig:2158,yt:0},
     "2026-06":{sunS:501,sunN:4,bap:0,raiz:0,vol:58,zao:13,links:4,plinks:68,ig:2249,yt:0},
     "2026-07":{sunS:462,sunN:4,bap:0,raiz:0,vol:58,zao:0,links:4,plinks:67,ig:2302,yt:0},
-    "2026-08":{sunS:493,sunN:5,bap:0,raiz:0,vol:58,zao:0,plinks:0},
+    "2026-08":{sunS:493,sunN:5,bap:0,raiz:0,vol:58,zao:0,plinks:0,ig:2369,yt:0},
     "2026-09":{vol:58,zao:45,sunS:107,sunN:1},
   },
   "Jundia\u00ed": {
@@ -740,10 +740,10 @@ const DATA = {
     "2026-03":{sunS:20874,sunN:5,bap:64,raiz:72,vol:892,zao:465,links:190,plinks:622,ig:346310,yt:439267},
     "2026-04":{sunS:17432,sunN:4,bap:0,raiz:87,vol:892,zao:452,links:190,plinks:363,ig:348097,yt:440734},
     "2026-05":{links:190,sunS:18000,sunN:5,bap:0,raiz:82,vol:892,zao:452,plinks:456,ig:346863,yt:442160},
-    "2026-06":{sunS:15603,sunN:4,bap:52,raiz:0,vol:892,zao:452,links:190,ig:350384,yt:443256},
+    "2026-06":{sunS:11877,sunN:3,bap:52,raiz:0,vol:892,zao:452,links:190,ig:350384,yt:443256},
     "2026-07":{sunS:13456,sunN:4,bap:48,raiz:0,vol:892,zao:452,links:190,ig:350005,yt:444034},
     "2026-08":{sunS:18459,sunN:5,zao:350,bap:0,raiz:117,vol:892,ig:351597,yt:445063},
-    "2026-09":{sunS:4887,sunN:1},
+    "2026-09":{sunS:8261,sunN:2},
   },
   "Vale do Ribeira": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0},
@@ -2515,7 +2515,6 @@ const RAW_CULTOS = {
     {d:"2026-05-31",v:3718},
     {d:"2026-06-07",v:3882},
     {d:"2026-06-14",v:4058},
-    {d:"2026-06-21",v:3726},
     {d:"2026-06-28",v:3937},
     {d:"2026-07-05",v:3124},
     {d:"2026-07-12",v:3436},
@@ -2527,6 +2526,7 @@ const RAW_CULTOS = {
     {d:"2026-08-23",v:3575},
     {d:"2026-08-30",v:3913},
     {d:"2026-09-06",v:4887},
+    {d:"2026-09-13",v:3374},
   ],
   "Vale do Ribeira": [
     {d:"2024-02-04",v:115},
@@ -2757,10 +2757,23 @@ function ChartTitle({children}){
    Marca os 3 maiores e os 3 menores valores de uma série semanal, para que
    os melhores e os piores domingos saltem à vista no gráfico.            */
 const C_TOP='#5dd68c', C_BOT='#f07070';
+/* So' destaca com pelo menos 10 datas: com 7 (Diamantes), 6 das 7 barras saiam
+   coloridas e o destaque deixava de apontar qualquer coisa. */
 function extremos(dados,campo){
   const v=dados.map(d=>d[campo]).filter(x=>typeof x==='number'&&x>0).sort((a,b)=>b-a);
-  if(v.length<6) return{alto:new Set(),baixo:new Set()};
+  if(v.length<10) return{alto:new Set(),baixo:new Set()};
   return{alto:new Set(v.slice(0,3)),baixo:new Set(v.slice(-3))};
+}
+/* Versao do Report: marca exatamente 3 datas de cada lado, pela chave iso.
+   Por valor, um empate na 3a posicao pintava 4 barras sob a legenda
+   "3 melhores" (Rise: 166 em 15/03 e em 12/04). Empate desfaz pela data
+   mais antiga. Mesmo minimo de 10 datas do extremos(). */
+function extremosPorData(linhas){
+  const v=linhas.filter(r=>typeof r.v==='number'&&r.v>0);
+  if(v.length<10) return{alto:new Set(),baixo:new Set()};
+  const desc=v.slice().sort((a,b)=>b.v-a.v||(a.iso<b.iso?-1:1));
+  const asc =v.slice().sort((a,b)=>a.v-b.v||(a.iso<b.iso?-1:1));
+  return{alto:new Set(desc.slice(0,3).map(r=>r.iso)),baixo:new Set(asc.slice(0,3).map(r=>r.iso))};
 }
 function corExtremo(ex,valor){
   if(ex.alto.has(valor)) return C_TOP;
@@ -4063,10 +4076,14 @@ function expectedSundays(ym){
    Cuenca 2026-01: Pr Aldo confirmou por e-mail (13/08/2026) que o primeiro
    culto do ano foi em 18/01, então janeiro teve apenas 2 cultos. */
 const CULTO_EXCECOES={
-  'Cuenca':{'2026-01':2},
+  /* Cuenca: 1o culto do ano em 18/01 (Pr Aldo, 13/08); 31/05 foi VDS (Jaziel, 09/09). */
+  'Cuenca':{'2026-01':2,'2026-05':4},
   /* Gabriel Marques confirmou por e-mail (27/08/2026) que 21/06 foi VDS, sem
      culto — junho teve 3 domingos, nao 4. */
   'Santos':{'2026-06':3},
+  /* São Paulo: 21/06 foi VDS. O MAC10 trazia uma cópia do 24/05 nessa data
+     (ver references/correcoes.json da skill). */
+  'São Paulo':{'2026-06':3},
   /* Recife: 03/05 foi VDS, sem culto de domingo — maio teve 4 domingos, nao 5. */
   'Recife':{'2026-05':4},
   /* Ribeirao e Vale do Ribeira: o domingo que falta em junho foi VDS (conferencia). */
@@ -4841,7 +4858,6 @@ const RAW_HORA={
     "2026-05-31":{"08:00":755,"11:00":915,"16:00":1124,"19:00":924},
     "2026-06-07":{"08:00":830,"11:00":1039,"16:00":1176,"19:00":837},
     "2026-06-14":{"08:00":1104,"11:00":956,"16:00":1140,"19:00":858},
-    "2026-06-21":{"08:00":851,"11:00":1042,"16:00":1145,"19:00":688},
     "2026-06-28":{"08:00":991,"11:00":1022,"16:00":1166,"19:00":758},
     "2026-07-05":{"08:00":1062,"11:00":1504,"16:00":558},
     "2026-07-12":{"08:00":604,"11:00":1112,"16:00":909,"19:00":811},
@@ -4853,6 +4869,7 @@ const RAW_HORA={
     "2026-08-23":{"08:00":761,"11:00":1131,"16:00":911,"19:00":772},
     "2026-08-30":{"08:00":937,"11:00":1393,"16:00":888,"19:00":695},
     "2026-09-06":{"08:00":1438,"11:00":1580,"16:00":892,"19:00":977},
+    "2026-09-13":{"08:00":709,"11:00":1144,"16:00":901,"19:00":620},
   },
   "Vale do Ribeira":{
     "2026-01-11":{"19:30":140},
@@ -5358,22 +5375,22 @@ const RAW_GER={
     "2026-05-03":{"g52":512,"rise":165,"flow":201,"vox":883,"diam":80},
     "2026-05-10":{"g52":430,"rise":151,"flow":165,"vox":717,"ekl":400},
     "2026-05-17":{"g52":462,"rise":164,"flow":218,"vox":709,"ekl":496},
-    "2026-05-24":{"g52":452,"rise":151,"flow":219,"vox":662,"ekl":452},
-    "2026-05-31":{"g52":509,"rise":125,"flow":184,"vox":833,"ekl":509},
-    "2026-06-07":{"g52":523,"rise":135,"flow":171,"ekl":523,"diam":81},
-    "2026-06-14":{"g52":444,"rise":99,"flow":120,"ekl":444},
-    "2026-06-21":{"g52":452,"rise":151,"flow":219,"vox":662,"ekl":452},
+    "2026-05-24":{"g52":452,"rise":151,"flow":219,"vox":662,"ekl":555},
+    "2026-05-31":{"g52":509,"rise":125,"flow":184,"vox":833,"ekl":436},
+    "2026-06-07":{"g52":523,"rise":135,"flow":171,"ekl":452,"diam":81},
+    "2026-06-14":{"g52":444,"rise":99,"flow":120,"ekl":373},
     "2026-06-28":{"g52":487,"flow":160,"vox":739,"ekl":343},
-    "2026-07-05":{"g52":395,"rise":100,"flow":151,"diam":85},
+    "2026-07-05":{"g52":395,"rise":100,"flow":151,"diam":85,"vox":621,"ekl":334},
     "2026-07-12":{"g52":413,"rise":97,"flow":146,"vox":733,"ekl":490},
     "2026-07-19":{"g52":394,"vox":601,"ekl":400},
     "2026-07-26":{"g52":420,"rise":110,"flow":173,"vox":607,"ekl":405},
     "2026-08-02":{"g52":550,"rise":127,"flow":169,"vox":719,"ekl":403,"diam":78},
     "2026-08-09":{"g52":448,"flow":152,"vox":635,"ekl":333},
     "2026-08-16":{"g52":465,"rise":133,"flow":164,"vox":802,"ekl":446},
-    "2026-08-23":{"g52":448,"rise":144,"flow":264,"vox":792,"ekl":404},
+    "2026-08-23":{"g52":448,"rise":144,"flow":264,"vox":792,"ekl":412},
     "2026-08-30":{"g52":512,"rise":95,"flow":143,"ekl":404},
     "2026-09-06":{"g52":482,"rise":128,"flow":111,"vox":670,"ekl":330},
+    "2026-09-13":{"g52":463,"rise":132,"flow":138,"vox":684,"ekl":475},
   },
   "Vale do Ribeira":{
     "2026-01-11":{"g52":24},
@@ -5444,11 +5461,11 @@ const GER_DATA={
     "2026-02":{lumenS:1941,lumenN:4,riseS:432,riseN:3,flowS:543,flowN:3,voxS:2365,voxN:3,eklS:1507,eklN:3,diamS:59,diamN:1},
     "2026-03":{lumenS:2658,lumenN:5,riseS:994,riseN:5,flowS:1167,flowN:5,voxS:3938,voxN:5,eklS:2365,eklN:5,diamS:93,diamN:1},
     "2026-04":{lumenS:2009,lumenN:4,riseS:298,riseN:2,flowS:885,flowN:4,voxS:3200,voxN:4,eklS:2061,eklN:4,diamS:73,diamN:1},
-    "2026-05":{lumenS:2365,lumenN:5,riseS:756,riseN:5,flowS:987,flowN:5,voxS:3804,voxN:5,eklS:1857,eklN:4,diamS:80,diamN:1},
-    "2026-06":{lumenS:1906,lumenN:4,riseS:385,riseN:3,flowS:670,flowN:4,voxS:1401,voxN:2,eklS:1762,eklN:4,diamS:81,diamN:1},
-    "2026-07":{lumenS:1622,lumenN:4,riseS:307,riseN:3,flowS:470,flowN:3,voxS:1941,voxN:3,eklS:1295,eklN:3,diamS:85,diamN:1},
-    "2026-08":{lumenS:2423,lumenN:5,riseS:499,riseN:4,flowS:892,flowN:5,voxS:2948,voxN:4,eklS:1990,eklN:5,diamS:78,diamN:1},
-    "2026-09":{lumenS:482,lumenN:1,riseS:128,riseN:1,flowS:111,flowN:1,voxS:670,voxN:1,eklS:330,eklN:1},
+    "2026-05":{lumenS:2365,lumenN:5,riseS:756,riseN:5,flowS:987,flowN:5,voxS:3804,voxN:5,eklS:1887,eklN:4,diamS:80,diamN:1},
+    "2026-06":{lumenS:1454,lumenN:3,riseS:234,riseN:2,flowS:451,flowN:3,voxS:739,voxN:1,eklS:1168,eklN:3,diamS:81,diamN:1},
+    "2026-07":{lumenS:1622,lumenN:4,riseS:307,riseN:3,flowS:470,flowN:3,voxS:2562,voxN:4,eklS:1629,eklN:4,diamS:85,diamN:1},
+    "2026-08":{lumenS:2423,lumenN:5,riseS:499,riseN:4,flowS:892,flowN:5,voxS:2948,voxN:4,eklS:1998,eklN:5,diamS:78,diamN:1},
+    "2026-09":{lumenS:945,lumenN:2,riseS:260,riseN:2,flowS:249,flowN:2,voxS:1354,voxN:2,eklS:805,eklN:2},
   },
   "Recife":{
     "2023-09":{lumenS:276,lumenN:4,riseS:203,riseN:4,voxS:605,voxN:4},
@@ -5590,7 +5607,6 @@ const GER_DATA={
     "2026-02":{lumenS:180,lumenN:4,riseS:50,riseN:3,voxS:208,voxN:3},
     "2026-03":{lumenS:276,lumenN:5,riseS:56,riseN:4,voxS:513,voxN:4},
     "2026-04":{lumenS:147,lumenN:3,riseS:72,riseN:3,voxS:150,voxN:2},
-    "2026-05":{lumenS:221,lumenN:4,riseS:36,riseN:2,voxS:721,voxN:4,diamS:43,diamN:2},
   },
   "Campo Grande":{
     "2024-03":{voxS:100,voxN:2},
@@ -5661,6 +5677,7 @@ const GER_DATA={
     "2026-05":{lumenS:18,lumenN:1,voxS:156,voxN:1},
     "2026-06":{lumenS:24,lumenN:1,voxS:107,voxN:1},
     "2026-08":{lumenS:47,lumenN:2,voxS:156,voxN:2},
+    "2026-09":{lumenS:18,lumenN:1,voxS:89,voxN:1},
   },
   "Lisboa":{
     "2023-09":{lumenS:293,lumenN:4,flowS:45,flowN:2,voxS:330,voxN:3},
@@ -5777,6 +5794,7 @@ const GER_DATA={
     "2026-06":{lumenS:67,lumenN:4},
     "2026-07":{lumenS:52,lumenN:4},
     "2026-08":{lumenS:68,lumenN:5,voxS:20,voxN:1},
+    "2026-09":{lumenS:14,lumenN:1},
   },
   "Santiago":{
     "2024-01":{lumenS:24,lumenN:2},
@@ -5866,6 +5884,7 @@ const GER_DATA={
     "2026-05":{lumenS:25,lumenN:1,voxS:176,voxN:1},
     "2026-06":{lumenS:26,lumenN:1},
     "2026-08":{lumenS:24,lumenN:2},
+    "2026-09":{lumenS:13,lumenN:1,voxS:109,voxN:1},
   },
   "Portim\u00e3o":{
     "2026-03":{lumenS:9,lumenN:1},
@@ -5874,6 +5893,7 @@ const GER_DATA={
     "2026-06":{lumenS:25,lumenN:4},
     "2026-07":{lumenS:21,lumenN:4},
     "2026-08":{lumenS:32,lumenN:5,voxS:50,voxN:1},
+    "2026-09":{lumenS:11,lumenN:1},
   },
 };;
 const GEN_CATS=[
@@ -7297,13 +7317,40 @@ function emFileiras(linhas,porFileira){
   for(let i=0;i<linhas.length;i+=tam) out.push(linhas.slice(i,i+tam));
   return out;
 }
-function dominio(linhas,campos){
+function dominio(linhas,campos,maxIntervalos){
   let max=0;
   linhas.forEach(function(r){
     let t=0; campos.forEach(function(c){t+=(r[c]||0);});
     if(t>max)max=t;
   });
-  return[0,Math.ceil(max*1.12/100)*100||100];
+  return escalaLimpa(max,maxIntervalos);
+}
+/* Eixo com passo uniforme. Antes o topo era arredondado para cima (x1,12 e
+   multiplo de 100/500) e o Recharts completava os ticks com um passo "bonito"
+   que nao cabia no topo: saia 0 / 2.000 / 4.000 / 6.400 e 0 / 400 / 700 — o
+   ultimo intervalo maior que os outros, lendo errado a altura das barras.
+   Aqui o topo e' sempre multiplo exato do passo, e os ticks vao junto no
+   proprio array (propriedade .ticks) para o YAxis usar. A folga acima da
+   barra mais alta vem da margem do grafico, nao do dominio.
+   maxIntervalos baixa quando o grafico e' curto (3 fileiras num slide): com
+   6 marcas em ~55px os numeros do eixo se sobrepunham. */
+function escalaLimpa(max,maxIntervalos){
+  const nMax=maxIntervalos||5, nMin=Math.min(3,nMax);
+  if(!(max>0)){const d=[0,100];d.ticks=[0,25,50,75,100];return d;}
+  const alvo=max*1.04;
+  const dec=Math.pow(10,Math.floor(Math.log10(alvo/4)));
+  let melhor=null;
+  [dec/10,dec,dec*10].forEach(function(p){
+    [1,1.5,2,2.5,3,4,5,6,8].forEach(function(m){
+      const passo=Math.round(m*p*1000)/1000, n=Math.ceil(alvo/passo), topo=n*passo;
+      if(passo%1!==0||n<nMin||n>nMax) return;   /* passo fracionado arredonda torto */
+      if(!melhor||topo<melhor.topo||(topo===melhor.topo&&n>melhor.n)) melhor={passo:passo,n:n,topo:topo};
+    });
+  });
+  if(!melhor) melhor={passo:Math.ceil(alvo/nMax),n:nMax,topo:Math.ceil(alvo/nMax)*nMax};
+  const d=[0,melhor.topo];
+  d.ticks=[]; for(let i=0;i<=melhor.n;i++) d.ticks.push(Math.round(melhor.passo*i));
+  return d;
 }
 
 /* Meses parciais: a coleta para na data do ultimo export, entao o mes corrente
@@ -7311,7 +7358,13 @@ function dominio(linhas,campos){
    completos sem nenhuma ressalva. Marcar e' questao de honestidade do relatorio. */
 function mesesParciais(filtLocs,meses){
   const out={};
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
   meses.forEach(function(m){
+    /* O mes corrente e' parcial mesmo com todos os domingos ja' passados
+       lancados: expectedSundays so' conta domingos ate' hoje, entao 2 de 2 em
+       meados de setembro parecia mes completo e a barra saia sem ressalva. */
+    const [y,mm]=m.split('-').map(Number);
+    if(new Date(y,mm,0)>=hoje){ out[m]={tem:0,esperado:0,emCurso:true}; return; }
     let tem=0,esperado=0;
     filtLocs.forEach(function(l){
       esperado+=expectedSundaysForLoc(l.id,m);
@@ -7556,7 +7609,7 @@ function GraficoMensal({dados,cor,media,altura=230,dom}){
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
           <XAxis dataKey="mes" {...eixoX}/>
-          <YAxis {...eixoY} domain={dom||[0,'auto']}/>
+          <YAxis {...eixoY} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
           <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                    formatter={function(v,n,p){
                      return[Number(v).toLocaleString('pt-BR'),
@@ -7587,7 +7640,7 @@ function MediasAnuais({serie,cor,altura=230,dom}){
       <BarChart data={serie} margin={{top:34,right:10,left:0,bottom:4}}>
         <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
         <XAxis dataKey="ano" {...eixoX}/>
-        <YAxis {...eixoY} domain={dom||[0,'auto']}/>
+        <YAxis {...eixoY} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
         <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                  formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
         <Bar dataKey="v" fill={cor} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
@@ -7605,7 +7658,20 @@ function PageReport(){
   const [selMonth,setSelMonth]=useState('all');
   const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const MESES=pMonths('2026-YTD');
+  /* Os meses saem dos proprios dados e nao de PERIODS['2026-YTD'], que e'
+     compartilhado com o resto do dashboard e termina em agosto. Com ele,
+     setembro entrava nos graficos dos geracionais mas sumia do domingo e dos
+     botoes de mes, e nunca era marcado como parcial. */
+  const MESES=useMemo(function(){
+    let ult='2026-01';
+    LOCS.forEach(function(l){
+      (RAW_CULTOS[l.id]||[]).forEach(function(r){if(r.d.slice(0,4)==='2026'&&r.d.slice(0,7)>ult)ult=r.d.slice(0,7);});
+      Object.keys(RAW_GER[l.id]||{}).forEach(function(d){if(d.slice(0,4)==='2026'&&d.slice(0,7)>ult)ult=d.slice(0,7);});
+    });
+    const out=[];
+    for(let m=1;m<=parseInt(ult.slice(5));m++) out.push('2026-'+String(m).padStart(2,'0'));
+    return out;
+  },[]);
   const POR_FILEIRA=16;
 
   const escopo=filtLocs.length===1?filtLocs[0].name
@@ -7633,7 +7699,7 @@ function PageReport(){
     filtLocs.forEach(function(l){
       const src=RAW_HORA[l.id]; if(!src) return;
       Object.keys(src).forEach(function(dt){
-        if(!noMes(dt)) return;
+        if(dt.slice(0,4)!=='2026'||!noMes(dt)) return;
         if(!datas[dt]) datas[dt]={};
         Object.keys(src[dt]).forEach(function(h){
           datas[dt][h]=(datas[dt][h]||0)+src[dt][h]; horas[h]=true;
@@ -7663,23 +7729,29 @@ function PageReport(){
     return{linhas:linhas,media:linhas.length?Math.round(tot/linhas.length):0};
   },[selLocs.join(),selMonth]);
 
+  /* Media = pessoas por DOMINGO do escopo, dividindo pelo numero de datas
+     distintas. Com varias igrejas, dividir pelo total de cultos (soma dos
+     sunN) dava a media de UMA igreja (~600) ao lado do KPI "Media por
+     Domingo", que e' o total da rede (~8.600) — mesmo nome, duas medidas.
+     Com uma igreja so' as duas formas coincidem. */
   const mensal=useMemo(function(){
     return MESES.map(function(m){
-      let s=0,n=0;
+      let s=0; const datas={};
       filtLocs.forEach(function(l){
-        const d=DATA[l.id]&&DATA[l.id][m];
-        if(d&&d.sunN>0){s+=d.sunS;n+=d.sunN;}
+        (RAW_CULTOS[l.id]||[]).forEach(function(r){if(r.d.slice(0,7)===m){s+=r.v;datas[r.d]=1;}});
       });
+      const n=Object.keys(datas).length;
       return{mes:MNAMES[parseInt(m.slice(5))-1],ym:m,v:n>0?Math.round(s/n):null,
              parcial:!!parciais[m]};
     }).filter(function(r){return r.v!==null;});
   },[selLocs.join(),parciais]);
 
   const anoInfo=useMemo(function(){
-    let s=0,n=0;
+    let s=0; const datas={};
     filtLocs.forEach(function(l){
-      (RAW_CULTOS[l.id]||[]).forEach(function(r){if(r.d.slice(0,4)==='2026'){s+=r.v;n++;}});
+      (RAW_CULTOS[l.id]||[]).forEach(function(r){if(r.d.slice(0,4)==='2026'){s+=r.v;datas[r.d]=1;}});
     });
+    const n=Object.keys(datas).length;
     return{media:n>0?Math.round(s/n):0,domingos:n};
   },[selLocs.join()]);
 
@@ -7693,7 +7765,7 @@ function PageReport(){
         const src=RAW_GER[l.id]; if(!src) return;
         Object.keys(src).forEach(function(dt){
           const v=src[dt][c.k];
-          if(typeof v!=='number') return;
+          if(dt.slice(0,4)!=='2026'||typeof v!=='number') return;
           accAno[dt]=(accAno[dt]||0)+v;
           if(noMes(dt)) acc[dt]=(acc[dt]||0)+v;
         });
@@ -7719,14 +7791,14 @@ function PageReport(){
       let topo=0;
       (anuais||[]).forEach(function(r){if(r.v>topo)topo=r.v;});
       mensais.forEach(function(r){if(r.v>topo)topo=r.v;});
-      const domPar=[0,Math.ceil(topo*1.1/50)*50||100];
+      const domPar=escalaLimpa(topo);
       return{key:c.k,label:meta.label,color:meta.color,linhas:linhas,mensais:mensais,domPar:domPar,
              media:linhas.length?Math.round(tot/linhas.length):0,n:linhas.length,
              mediaAno:mediaAnoCat, porData:accAno, anuais:anuais};
     }).filter(function(g){return g.n>0;});
   },[selLocs.join(),selMonth,soSP,parciais]);
 
-  const exH=extremos(domInfo.linhas,'v');
+  const exH=extremosPorData(domInfo.linhas);
   const demais=horaInfo.horas.length>HORA_MAX;
   const semDado=horaInfo.linhas.length===0&&domInfo.linhas.length===0&&gers.length===0;
   const anuaisDomingo=soSP?comCrescimento(HIST_SP.domingo,anoInfo.media):null;
@@ -7743,7 +7815,7 @@ function PageReport(){
     let max=0;
     (anuaisDomingo||[]).forEach(function(r){if(r.v>max)max=r.v;});
     mensal.forEach(function(r){if(r.v>max)max=r.v;});
-    return[0,Math.ceil(max*1.1/500)*500||1000];
+    return escalaLimpa(max);
   },[anuaisDomingo,mensal]);
 
   const domFileiras=emFileiras(domInfo.linhas,POR_FILEIRA);
@@ -7837,7 +7909,7 @@ function PageReport(){
                       <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
                       <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={56}
                              tick={{fill:R_EIXO,fontSize:14}}/>
-                      <YAxis {...eixoY} domain={horaDom} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
+                      <YAxis {...eixoY} domain={horaDom} ticks={horaDom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
                       <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                                formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),n];}}/>
                       {ultimaFila&&<Legend wrapperStyle={{fontSize:16,color:C.cream}}/>}
@@ -7861,7 +7933,7 @@ function PageReport(){
       {/* total por domingo */}
       <Slide>
         <TituloSlide nota={'Média '+fmt(domInfo.media)}>Total por Domingo — Ano Inteiro</TituloSlide>
-        <div style={{marginBottom:6,flexShrink:0}}><LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/></div>
+        {exH.alto.size>0&&<div style={{marginBottom:6,flexShrink:0}}><LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/></div>}
         <div style={{flex:1,display:'flex',flexDirection:'column'}}>
           {domFileiras.map(function(fila,fi){
             return(
@@ -7871,14 +7943,14 @@ function PageReport(){
                     <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
                     <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={54}
                            tick={{fill:R_EIXO,fontSize:14}}/>
-                    <YAxis {...eixoY} domain={domDom} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
+                    <YAxis {...eixoY} domain={domDom} ticks={domDom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
                     <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                              formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
                     <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"/>
                     <Bar dataKey="v" name="Pessoas" radius={[4,4,0,0]} isAnimationActive={false}>
                       <LabelList dataKey="v" content={numeroNaBarra(17)}/>
                       {fila.map(function(r,i){
-                        return<Cell key={i} fill={exH.alto.has(r.v)?R_ALTO:exH.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
+                        return<Cell key={i} fill={exH.alto.has(r.iso)?R_ALTO:exH.baixo.has(r.iso)?R_BAIXO:R_BARRA}/>;
                       })}
                     </Bar>
                   </BarChart>
@@ -7889,16 +7961,25 @@ function PageReport(){
         </div>
       </Slide>
 
-      <DivisoriaSlide titulo="Geracionais"/>
+      {/* Sem geracional, a divisoria nao entra: no PDF ficaria uma pagina
+          "Geracionais" seguida de nada. O aviso fica so' na tela. */}
+      {gers.length>0&&<DivisoriaSlide titulo="Geracionais"/>}
 
       {gers.length===0
-        ?<Card><div style={{textAlign:'center',color:C.teal,padding:'20px 0',fontSize:13}}>Nenhum geracional lançado para {escopo} no período.</div></Card>
+        ?<div className="sem-print"><Card><div style={{textAlign:'center',color:C.teal,padding:'20px 0',fontSize:13}}>Nenhum geracional lançado para {escopo} no período.</div></Card></div>
         :gers.map(function(g){
-          const filas=emFileiras(g.linhas,POR_FILEIRA);
-          const dom=dominio(g.linhas,['v']);
+          /* No slide do geracional sobra ~380px para as datas (os dois graficos
+             de media ficam em cima). Tres fileiras ai' viram faixas de ~40px em
+             que toda barra parece da mesma altura, e quatro (fim de ano, ~50
+             datas) sobrepoem ate' os numeros do eixo. Ate' 40 datas: duas
+             fileiras; acima disso, tres — nunca mais que tres. */
+          const porFila=g.linhas.length<=40?Math.max(POR_FILEIRA,Math.ceil(g.linhas.length/2))
+                                           :Math.max(POR_FILEIRA,Math.ceil(g.linhas.length/3));
+          const filas=emFileiras(g.linhas,porFila);
+          const dom=dominio(g.linhas,['v'],filas.length>=3?2:4);
           /* mesmo destaque do Total por Domingo: extremos do ano inteiro,
              calculados antes de dividir em fileiras */
-          const exG=extremos(g.linhas,'v');
+          const exG=extremosPorData(g.linhas);
           return(
           <Slide key={g.key}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,
@@ -7932,7 +8013,7 @@ function PageReport(){
 
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexShrink:0}}>
               <SubTitulo>Participantes por data</SubTitulo>
-              <LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/>
+              {exG.alto.size>0&&<LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/>}
             </div>
             <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
               {filas.map(function(fila,fi){
@@ -7943,14 +8024,14 @@ function PageReport(){
                         <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
                         <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={48}
                                tick={{fill:R_EIXO,fontSize:13}}/>
-                        <YAxis {...eixoY} domain={dom} tick={{fill:R_EIXO,fontSize:13}} width={58}/>
+                        <YAxis {...eixoY} domain={dom} ticks={dom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:13}} width={58}/>
                         <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                                  formatter={function(v){return[Number(v).toLocaleString('pt-BR'),g.label];}}/>
                         <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
                         <Bar dataKey="v" fill={R_BARRA} radius={[4,4,0,0]} isAnimationActive={false} name={g.label}>
                           <LabelList dataKey="v" content={numeroNaBarra(16)}/>
                           {fila.map(function(r,i){
-                            return<Cell key={i} fill={exG.alto.has(r.v)?R_ALTO:exG.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
+                            return<Cell key={i} fill={exG.alto.has(r.iso)?R_ALTO:exG.baixo.has(r.iso)?R_BAIXO:R_BARRA}/>;
                           })}
                         </Bar>
                       </BarChart>
