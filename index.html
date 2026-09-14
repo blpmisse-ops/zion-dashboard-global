@@ -2767,11 +2767,14 @@ function corExtremo(ex,valor){
   if(ex.baixo.has(valor)) return C_BOT;
   return C.teal;
 }
-function LegendaExtremos(){
+/* `tam` e as cores são opcionais: o Report Executivo usa letra maior (o slide
+   vira PDF) e as cores escuras R_ALTO/R_BAIXO, que são as das próprias barras. */
+function LegendaExtremos({tam=11,alto=C_TOP,baixo=C_BOT}){
+  const q=Math.round(tam*0.9);
   return(
-    <div style={{display:'flex',gap:16,alignItems:'center',fontSize:11,color:C.cream,marginTop:-4,marginBottom:8}}>
-      <span><span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:C_TOP,marginRight:5}}/>3 melhores</span>
-      <span><span style={{display:'inline-block',width:10,height:10,borderRadius:2,background:C_BOT,marginRight:5}}/>3 piores</span>
+    <div style={{display:'flex',gap:tam*1.4,alignItems:'center',fontSize:tam,color:C.cream,marginTop:-4,marginBottom:8}}>
+      <span><span style={{display:'inline-block',width:q,height:q,borderRadius:2,background:alto,marginRight:tam*0.45,verticalAlign:'-1px'}}/>3 melhores</span>
+      <span><span style={{display:'inline-block',width:q,height:q,borderRadius:2,background:baixo,marginRight:tam*0.45,verticalAlign:'-1px'}}/>3 piores</span>
     </div>
   );
 }
@@ -7858,7 +7861,7 @@ function PageReport(){
       {/* total por domingo */}
       <Slide>
         <TituloSlide nota={'Média '+fmt(domInfo.media)}>Total por Domingo — Ano Inteiro</TituloSlide>
-        <div style={{marginBottom:6,flexShrink:0}}><LegendaExtremos/></div>
+        <div style={{marginBottom:6,flexShrink:0}}><LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/></div>
         <div style={{flex:1,display:'flex',flexDirection:'column'}}>
           {domFileiras.map(function(fila,fi){
             return(
@@ -7893,6 +7896,9 @@ function PageReport(){
         :gers.map(function(g){
           const filas=emFileiras(g.linhas,POR_FILEIRA);
           const dom=dominio(g.linhas,['v']);
+          /* mesmo destaque do Total por Domingo: extremos do ano inteiro,
+             calculados antes de dividir em fileiras */
+          const exG=extremos(g.linhas,'v');
           return(
           <Slide key={g.key}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,
@@ -7924,7 +7930,10 @@ function PageReport(){
               </div>
             </div>
 
-            <SubTitulo>Participantes por data</SubTitulo>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexShrink:0}}>
+              <SubTitulo>Participantes por data</SubTitulo>
+              <LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/>
+            </div>
             <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
               {filas.map(function(fila,fi){
                 return(
@@ -7940,6 +7949,9 @@ function PageReport(){
                         <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
                         <Bar dataKey="v" fill={R_BARRA} radius={[4,4,0,0]} isAnimationActive={false} name={g.label}>
                           <LabelList dataKey="v" content={numeroNaBarra(16)}/>
+                          {fila.map(function(r,i){
+                            return<Cell key={i} fill={exG.alto.has(r.v)?R_ALTO:exG.baixo.has(r.v)?R_BAIXO:R_BARRA}/>;
+                          })}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
