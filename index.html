@@ -8125,6 +8125,10 @@ function PageReport(){
           /* mesmo destaque do Total por Domingo: extremos do ano inteiro,
              calculados antes de dividir em fileiras */
           const exG=extremosPorData(g.linhas);
+          /* Com um encontro por mes (Diamantes), o grafico por data repete o de
+             media mensal barra a barra. Nesse caso ele sai e a media por mes
+             ocupa o slide inteiro. */
+          const porDataUtil=g.linhas.length>g.mensais.length;
           return(
           <Slide key={g.key}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,
@@ -8141,7 +8145,8 @@ function PageReport(){
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:g.anuais?'1fr 1fr':'1fr',gap:26,
-                         height:250,flexShrink:0,marginBottom:16}}>
+                         marginBottom:porDataUtil?16:0,
+                         ...(porDataUtil?{height:250,flexShrink:0}:{flex:1,minHeight:0})}}>
               {g.anuais&&<div style={{display:'flex',flexDirection:'column',minHeight:0}}>
                 <SubTitulo>Médias anuais · São Paulo</SubTitulo>
                 <div style={{flex:1,minHeight:0}}>
@@ -8156,11 +8161,11 @@ function PageReport(){
               </div>
             </div>
 
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexShrink:0}}>
+            {porDataUtil&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexShrink:0}}>
               <SubTitulo>Participantes por data</SubTitulo>
               {exG.alto.size>0&&<LegendaExtremos tam={17} alto={R_ALTO} baixo={R_BAIXO}/>}
-            </div>
-            <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+            </div>}
+            {porDataUtil&&<div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
               {filas.map(function(fila,fi){
                 return(
                   <div key={fi} style={{flex:1,minHeight:0}}>
@@ -8184,7 +8189,7 @@ function PageReport(){
                   </div>
                 );
               })}
-            </div>
+            </div>}
           </Slide>
         );})}
 
