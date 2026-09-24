@@ -3360,6 +3360,8 @@ function PageLocal({lockedLocId=null}){
         </div>
       </Card>
 
+      <RxSaude locId={locId}/>
+
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
         {[
           {label:'Média de Pessoas por Domingo',value:s.avgSun,d:p?delta(s.avgSun,p.avgSun):null},
@@ -3837,6 +3839,8 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
         <KpiCard label={isGlobal?`Global — ${isStock?'Último mês':'Total período'}`:curLoc?.name||''} value={gCur} d={gD}/>
         {isGlobal&&locRows.slice(0,3).map(r=><KpiCard key={r.loc.id} label={r.loc.name} value={r.cur} d={r.d}/>)}
       </div>
+
+      {RX_CAMPOS[field]&&<RxMetrica campo={field} rotulo={RX_CAMPOS[field].rotulo} unidade={RX_CAMPOS[field].unidade} nota={RX_CAMPOS[field].nota} destaque={isGlobal?null:locFilter}/>}
 
       {(()=>{const showLabels=months.length<10;return(
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
@@ -6172,6 +6176,8 @@ function PageGeracionais(){
         </div>
       </div>
 
+      <RxGeracionais/>
+
       {/* ── SEÇÃO: gráficos individuais por geracional (2025 vs 2026) ── */}
       <div>
         <div style={{fontSize:13,color:C.teal,fontWeight:700,marginBottom:12,letterSpacing:0.5,textTransform:'uppercase'}}>Evolução por Geracional — Méd/Semana ({GEN_RANGE}) — {escopo}</div>
@@ -7556,41 +7562,151 @@ function RxLinha({label,ind,mediana,unidade,nota}){
     </div>
   );
 }
-function PageRaioX({lockedLocId=null}){
-  const [locId,setLocId]=useState(lockedLocId||'São Paulo');
+/* Bloco Raio-X de uma metrica, usado dentro da propria aba da metrica: o
+   numero absoluto so' ganha sentido ao lado do tamanho da igreja. */
+const RX_ESCOPOS=[{id:'global',label:'Todas'},{id:'br',label:'Brasil'},{id:'int',label:'Internacional'}];
+function rxFiltro(escopo){
+  return escopo==='br'?(id=>rxRegiao(id)==='BR'):escopo==='int'?(id=>rxRegiao(id)==='INT'):null;
+}
+function RxMetrica({campo,rotulo,unidade,nota,destaque}){
   const [escopo,setEscopo]=useState('global');
-  const loc=LOCS.find(l=>l.id===locId);
-  const ind=rxIndices(locId);
+  const filtro=rxFiltro(escopo);
+  const linhas=LOCS.filter(l=>!filtro||filtro(l.id)).map(l=>{
+    const base=rxMediaCulto(l.id,3);
+    return{loc:l,x:rxIndices(l.id)[campo],base,porte:rxPorte(base||0)};
+  });
+  const com=linhas.filter(r=>r.x&&!r.x.na&&isFinite(r.x.pct)).sort((a,b)=>b.x.pct-a.x.pct);
+  const fora=linhas.filter(r=>!com.includes(r));
+  const med=rxMediana(campo,filtro);
+  const medG=rxMediana(campo,null), medBR=rxMediana(campo,id=>rxRegiao(id)==='BR'), medINT=rxMediana(campo,id=>rxRegiao(id)==='INT');
+  const max=Math.max(...com.map(r=>r.x.pct),med||0,1);
+  const num=v=>v==null?'—':v.toFixed(1)+'%';
+  return(
+    <Card>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <ChartTitle>Raio-X — {rotulo} como % da média de culto</ChartTitle>
+        <div style={{display:'flex',gap:6}}>
+          {RX_ESCOPOS.map(e=>(
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+          ))}
+        </div>
+      </div>
+      <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>
+        {nota||'Valor dividido pela média de culto dos últimos 3 meses da própria igreja.'} A referência é a <strong>mediana</strong> da rede, não a média — com São Paulo dentro, a média da rede seria a de São Paulo.
+      </p>
+      <div style={{display:'flex',gap:18,flexWrap:'wrap',fontSize:12,color:C.cream,marginBottom:10}}>
+        <span>Mediana global <strong style={{color:C.sand}}>{num(medG)}</strong></span>
+        <span>Brasil <strong style={{color:C.sand}}>{num(medBR)}</strong></span>
+        <span>Internacional <strong style={{color:C.sand}}>{num(medINT)}</strong></span>
+      </div>
+      <div style={{overflowY:'auto',maxHeight:420}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+          <thead><tr>
+            {['Localidade','Porte','Média/dom.',rotulo,'% da igreja','','vs mediana'].map((h,i)=>(
+              <th key={i} style={{textAlign:i<2?'left':i===5?'left':'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)',position:'sticky',top:0,background:'#04292a'}}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {com.map(r=>{
+              const razao=med?r.x.pct/med:null;
+              const cor=razao==null?C.cream:razao>=1.5?C_TOP:razao<=0.5?C_BOT:C.cream;
+              const sel=destaque===r.loc.id;
+              return(
+                <tr key={r.loc.id} style={{background:sel?'rgba(7,135,128,0.18)':'transparent'}}>
+                  <td style={{padding:'4px 6px',color:C.cream,fontWeight:sel?700:400}}>{r.loc.flag} {r.loc.name}</td>
+                  <td style={{padding:'4px 6px',color:C.teal}}>{r.porte.label}</td>
+                  <td style={{padding:'4px 6px',color:C.teal,textAlign:'right'}}>{fmt(r.base)}</td>
+                  <td style={{padding:'4px 6px',color:C.cream,textAlign:'right'}}>{fmt(r.x.v)}{unidade?' '+unidade:''}</td>
+                  <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:cor}}>{r.x.pct.toFixed(1)}%</td>
+                  <td style={{padding:'4px 6px',minWidth:120}}><RxBarra pct={r.x.pct} max={max} mediana={med}/></td>
+                  <td style={{padding:'4px 6px',textAlign:'right',color:razao>=1?C.sage:'#e0a05c'}}>{razao==null?'—':(razao>=1?'+':'')+((razao-1)*100).toFixed(0)+'%'}</td>
+                </tr>
+              );
+            })}
+            {fora.map(r=>(
+              <tr key={r.loc.id}>
+                <td style={{padding:'4px 6px',color:'#6b7b7b'}}>{r.loc.flag} {r.loc.name}</td>
+                <td style={{padding:'4px 6px',color:'#6b7b7b'}}>{r.porte.label}</td>
+                <td style={{padding:'4px 6px',color:'#6b7b7b',textAlign:'right'}}>{fmt(r.base)}</td>
+                <td colSpan={4} style={{padding:'4px 6px',color:r.x?.na?'#6b7b7b':'#c8a020'}}>{r.x?.na?'não realizado nesta localidade':'sem dado lançado — não dá para avaliar'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:8}}>A marca clara em cada barra é a mediana do escopo selecionado. Igrejas abaixo de 150 pessoas movem mais de 0,7 ponto percentual por pessoa — ler como ordem de grandeza.</div>
+    </Card>
+  );
+}
+/* Metricas que ganham bloco Raio-X na propria aba. */
+const RX_CAMPOS={
+  vol:  {rotulo:'Voluntários', unidade:'pessoas'},
+  zao:  {rotulo:'IBZAO',       unidade:'matrículas'},
+  raiz: {rotulo:'Raízes',      unidade:'no ano', nota:'Raízes finalizados acumulados em 2026, divididos pela média de culto do ano.'},
+  bap:  {rotulo:'Batismo',     unidade:'no ano', nota:'Batismos acumulados em 2026, divididos pela média de culto do ano.'},
+  links:{rotulo:'Links ativos',unidade:'links',  nota:'Quantidade de links (grupos, não pessoas) por 100 pessoas de média de culto dos últimos 3 meses.'},
+};
+/* Tabela unica dos seis geracionais: campus x geracional, em % do culto. */
+function RxGeracionais(){
+  const [escopo,setEscopo]=useState('global');
+  const filtro=rxFiltro(escopo);
+  const locs=LOCS.filter(l=>!filtro||filtro(l.id));
+  const meds={}; RX_GER.forEach(g=>{meds[g.pref]=rxMediana(g.pref,filtro);});
+  const linhas=locs.map(l=>({loc:l,ind:rxIndices(l.id),base:rxMediaCulto(l.id,3)}))
+    .sort((a,b)=>(b.base||0)-(a.base||0));
+  return(
+    <Card>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <ChartTitle>Raio-X — participação de cada geracional no culto</ChartTitle>
+        <div style={{display:'flex',gap:6}}>
+          {RX_ESCOPOS.map(e=>(
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+          ))}
+        </div>
+      </div>
+      <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>Média de participantes por encontro nos últimos 3 meses, dividida pela média de culto do mesmo período. Verde acima de 1,5× a mediana do escopo, vermelho na metade ou menos. Lumen alto indica igreja de família jovem.</p>
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+          <thead><tr>
+            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Localidade</th>
+            <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Média/dom.</th>
+            {RX_GER.map(g=><th key={g.pref} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{g.label}</th>)}
+          </tr></thead>
+          <tbody>
+            {linhas.map(r=>(
+              <tr key={r.loc.id}>
+                <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
+                <td style={{padding:'4px 6px',color:C.teal,textAlign:'right'}}>{fmt(r.base)}</td>
+                {RX_GER.map(g=>{
+                  const x=r.ind[g.pref], m=meds[g.pref];
+                  if(!x) return<td key={g.pref} style={{padding:'4px 6px',textAlign:'right',color:'#4a5a5a'}}>—</td>;
+                  const razao=m?x.pct/m:null;
+                  const cor=razao==null?C.cream:razao>=1.5?C_TOP:razao<=0.5?C_BOT:C.cream;
+                  return<td key={g.pref} style={{padding:'4px 6px',textAlign:'right',color:cor,fontWeight:razao&&(razao>=1.5||razao<=0.5)?700:400}} title={fmt(x.v)+' por encontro'}>{x.pct.toFixed(1)}%</td>;
+                })}
+              </tr>
+            ))}
+            <tr>
+              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>Mediana do escopo</td>
+              <td style={{borderTop:'1px solid rgba(7,135,128,0.3)'}}/>
+              {RX_GER.map(g=><td key={g.pref} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>{meds[g.pref]==null?'—':meds[g.pref].toFixed(1)+'%'}</td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+/* Sintese por igreja: vive no Zion Local, que e' a pagina de uma localidade so'. */
+function RxSaude({locId}){
+  const ind=rxIndices(locId), mom=rxMomentum(locId), cons=rxConsistencia(locId);
   const porte=rxPorte(ind.base3||0);
-  const mom=rxMomentum(locId), cons=rxConsistencia(locId);
-  const filtro=escopo==='br'?(id=>rxRegiao(id)==='BR')
-              :escopo==='int'?(id=>rxRegiao(id)==='INT')
-              :escopo==='porte'?(id=>rxPorte(rxMediaCulto(id,3)||0).id===porte.id)
-              :null;
-  const med=campo=>rxMediana(campo,filtro);
-  const ESCOPOS=[{id:'global',label:'Rede global'},{id:'br',label:'Brasil'},{id:'int',label:'Internacional'},{id:'porte',label:'Mesmo porte ('+porte.label+')'}];
-
-  /* Funil na ordem definida pelo escritorio: culto → batismo → links → Raízes
-     → IBZAO → voluntário. Links e' quantidade de grupos, nao de pessoas: entra
-     na sequencia com unidade propria e rotulo por 100 pessoas. */
-  const funil=[
-    {label:'Presença no culto', v:ind.base3, pct:100, unidade:'pessoas/domingo', obs:'base de cálculo'},
-    {label:'Batismo',          ind:ind.bap,  campo:'bap',  unidade:'no ano'},
-    {label:'Links ativos',     ind:ind.links,campo:'links',unidade:'links', porCem:true},
-    {label:'Raízes',           ind:ind.raiz, campo:'raiz', unidade:'no ano'},
-    {label:'IBZAO',            ind:ind.zao,  campo:'zao',  unidade:'matrículas'},
-    {label:'Voluntários',      ind:ind.vol,  campo:'vol',  unidade:'pessoas'},
-  ];
-
-  /* Alertas por regra, nunca por um mes isolado: metade ou dobro da mediana,
-     queda de 10% no momentum, oscilacao acima de 25%. */
   const destaques=[],alertas=[];
-  const ROT={vol:'Voluntários',zao:'IBZAO',raiz:'Raízes',bap:'Batismo',links:'Links'};
-  Object.keys(ROT).forEach(k=>{
-    const x=ind[k],m=med(k);
+  Object.keys(RX_CAMPOS).forEach(k=>{
+    const x=ind[k],m=rxMediana(k,null);
     if(!x||x.na||!m) return;
-    if(x.pct>=1.5*m) destaques.push(ROT[k]+' em '+x.pct.toFixed(1)+'% da igreja, contra '+m.toFixed(1)+'% da mediana da rede.');
-    if(x.pct<=0.5*m) alertas.push(ROT[k]+' em '+x.pct.toFixed(1)+'% da igreja, metade ou menos da mediana da rede ('+m.toFixed(1)+'%).');
+    if(x.pct>=1.5*m) destaques.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, contra '+m.toFixed(1)+'% da mediana da rede.');
+    if(x.pct<=0.5*m) alertas.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, metade ou menos da mediana da rede ('+m.toFixed(1)+'%).');
   });
   if(ind.raiz&&!ind.raiz.na&&ind.bap&&!ind.bap.na&&ind.raiz.pct>=10&&ind.bap.pct<=2)
     alertas.push('Gargalo entre formação e batismo: '+ind.raiz.pct.toFixed(1)+'% da igreja passou por Raízes e só '+ind.bap.pct.toFixed(1)+'% foi batizado no ano.');
@@ -7598,83 +7714,52 @@ function PageRaioX({lockedLocId=null}){
   if(mom&&mom.d>=10)  destaques.push('Aceleração: média dos últimos 3 meses '+fmtPct(mom.d)+' sobre a média do ano.');
   if(cons&&cons.cv>25) alertas.push('Oscilação alta entre domingos ('+cons.cv.toFixed(0)+'% de variação) — constância antes de crescimento.');
   if(cons&&cons.cv<12) destaques.push('Frequência muito estável entre os domingos ('+cons.cv.toFixed(0)+'% de variação).');
-  const lum=ind.lumen,medLum=med('lumen');
+  const lum=ind.lumen,medLum=rxMediana('lumen',null);
   if(lum&&medLum&&lum.pct>=1.4*medLum) destaques.push('Perfil de família jovem: Lumen representa '+lum.pct.toFixed(1)+'% do culto, bem acima da rede ('+medLum.toFixed(1)+'%).');
 
+  /* Ordem do funil definida pelo escritorio. As etapas nao sao subconjuntos
+     umas das outras, entao cada uma se le como % do culto — razao entre etapas
+     daria numero sem sentido. */
+  const funil=[
+    {label:'Presença no culto',v:ind.base3,pct:100,unidade:'pessoas/domingo',obs:'base de cálculo'},
+    {label:'Batismo',      ind:ind.bap,  campo:'bap',  unidade:'no ano'},
+    {label:'Links ativos', ind:ind.links,campo:'links',unidade:'links',porCem:true},
+    {label:'Raízes',       ind:ind.raiz, campo:'raiz', unidade:'no ano'},
+    {label:'IBZAO',        ind:ind.zao,  campo:'zao',  unidade:'matrículas'},
+    {label:'Voluntários',  ind:ind.vol,  campo:'vol',  unidade:'pessoas'},
+  ];
   return(
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
-        <h2 className="serif" style={{fontSize:22,color:C.cream}}>Raio-X da Localidade</h2>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          {ESCOPOS.map(e=>(
-            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>comparar com {e.label}</button>
-          ))}
-        </div>
-      </div>
-      <p style={{fontSize:12,color:C.teal,marginTop:-12}}>Cada indicador aparece como percentual da média de culto da própria igreja, ao lado da mediana da rede. Estoque (voluntários, IBZAO, links, geracionais) sobre a média dos últimos 3 meses; fluxo (Raízes, Batismo) acumulado de 2026 sobre a média do ano.</p>
-
-      {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        {LOCS.map(l=>(
-          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
-        ))}
-      </div>}
-
-      <Card style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
-        <div style={{fontSize:36}}>{loc.flag}</div>
-        <div>
-          <div className="serif" style={{fontSize:22,color:C.cream,fontWeight:700}}>{loc.name}</div>
-          <div style={{fontSize:11,color:C.teal}}>porte {porte.label} · {fmt(ind.base3)} pessoas/domingo nos últimos 3 meses</div>
-        </div>
-        <div style={{marginLeft:'auto',display:'flex',gap:26,flexWrap:'wrap'}}>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Momentum</div>
-            <div className="serif" style={{fontSize:20,fontWeight:700,color:!mom?C.cream:mom.d>=0?C.sage:'#e05c5c'}}>{mom?fmtPct(mom.d):'—'}</div>
-            <div style={{fontSize:10,color:C.teal}}>3 meses vs. ano</div>
-          </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Previsibilidade</div>
-            <div className="serif" style={{fontSize:20,fontWeight:700,color:!cons?C.cream:cons.cv<=12?C.sage:cons.cv<=25?C.cream:'#e05c5c'}}>{cons?cons.cv.toFixed(0)+'%':'—'}</div>
-            <div style={{fontSize:10,color:C.teal}}>oscilação entre domingos</div>
-          </div>
-        </div>
-      </Card>
-
-      <div style={{display:'flex',flexDirection:'column',gap:20}}>
-        <Card>
-          <ChartTitle>Índices de penetração</ChartTitle>
-          <RxLinha label="Voluntários"  ind={ind.vol}   mediana={med('vol')}   unidade="pessoas"/>
-          <RxLinha label="IBZAO"        ind={ind.zao}   mediana={med('zao')}   unidade="matrículas"/>
-          <RxLinha label="Raízes"       ind={ind.raiz}  mediana={med('raiz')}  unidade="no ano" nota="acumulado 2026"/>
-          <RxLinha label="Batismo"      ind={ind.bap}   mediana={med('bap')}   unidade="no ano" nota="acumulado 2026"/>
-          <RxLinha label="Links ativos" ind={ind.links} mediana={med('links')} unidade="links" nota="links por 100 pessoas"/>
-        </Card>
-
-        <Card>
-          <ChartTitle>Geracionais — participação no culto</ChartTitle>
-          <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginBottom:6}}>Média de participantes por encontro nos últimos 3 meses, sobre a média de culto do mesmo período.</div>
-          {RX_GER.map(g=>(
-            <RxLinha key={g.pref} label={g.label} ind={ind[g.pref]} mediana={med(g.pref)} unidade="por encontro"/>
-          ))}
-        </Card>
-      </div>
-
       <Card>
-        <ChartTitle>Funil de discipulado</ChartTitle>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
+          <div>
+            <ChartTitle>Funil de discipulado</ChartTitle>
+            <div style={{fontSize:11,color:C.teal,marginTop:-6,marginBottom:10}}>Porte {porte.label} · cada etapa como percentual da média de culto dos últimos 3 meses, ao lado da mediana da rede.</div>
+          </div>
+          <div style={{display:'flex',gap:26,flexWrap:'wrap'}}>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Momentum</div>
+              <div className="serif" style={{fontSize:20,fontWeight:700,color:!mom?C.cream:mom.d>=0?C.sage:'#e05c5c'}}>{mom?fmtPct(mom.d):'—'}</div>
+              <div style={{fontSize:10,color:C.teal}}>3 meses vs. ano</div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Previsibilidade</div>
+              <div className="serif" style={{fontSize:20,fontWeight:700,color:!cons?C.cream:cons.cv<=12?C.sage:cons.cv<=25?C.cream:'#e05c5c'}}>{cons?cons.cv.toFixed(0)+'%':'—'}</div>
+              <div style={{fontSize:10,color:C.teal}}>oscilação entre domingos</div>
+            </div>
+          </div>
+        </div>
         <div style={{display:'flex',flexDirection:'column',gap:6}}>
           {funil.map((f,i)=>{
             const x=f.ind!==undefined?f.ind:{v:f.v,pct:f.pct};
-            const na=x?.na, sem=!x;
-            const pct=na||sem?0:x.pct;
-            /* Etapas nao sao subconjuntos umas das outras (voluntario nao sai
-               de dentro do IBZAO), entao razao entre etapas dava numero sem
-               sentido — 220%. Cada etapa se compara com a rede. */
-            const m=f.campo?med(f.campo):null;
+            const na=x?.na, sem=!x, pct=na||sem?0:x.pct;
+            const m=f.campo?rxMediana(f.campo,null):null;
             return(
-              <div key={f.label} style={{display:'grid',gridTemplateColumns:'150px 1fr 150px',gap:12,alignItems:'center'}}>
+              <div key={f.label} style={{display:'grid',gridTemplateColumns:'170px 1fr 170px',gap:12,alignItems:'center'}}>
                 <div style={{fontSize:12,color:C.cream}}>{f.label}
                   <div style={{fontSize:10,color:C.teal}}>{na?'N/A':sem?'sem dado':fmt(x.v)+' '+(f.unidade||'')}</div>
                 </div>
-                <div style={{height:26,background:'rgba(7,135,128,0.12)',borderRadius:6,position:'relative'}}>
+                <div style={{height:26,background:'rgba(7,135,128,0.12)',borderRadius:6}}>
                   <div style={{width:Math.max(1.5,Math.min(100,pct))+'%',height:'100%',background:i===0?C.sage:C.teal,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:8}}>
                     <span style={{fontSize:11,color:C.cream,fontWeight:600,whiteSpace:'nowrap'}}>{na?'N/A':sem?'—':pct.toFixed(1)+(f.porCem?' por 100':'%')}</span>
                   </div>
@@ -7687,26 +7772,24 @@ function PageRaioX({lockedLocId=null}){
             );
           })}
         </div>
-        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>Cada etapa é lida como percentual da média de culto, não como conversão da etapa anterior — as etapas não são subconjuntos umas das outras. Links ativos é quantidade de grupos, não de pessoas, e vai em links por 100 pessoas.</div>
+        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>Links ativos é quantidade de grupos, não de pessoas, e por isso vai em links por 100 pessoas. O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
       </Card>
-
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
         <Card>
           <ChartTitle>Destaques</ChartTitle>
           {destaques.length?destaques.map((t,i)=>(
             <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_TOP,marginRight:8}}>▲</span>{t}</div>
-          )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana da rede neste escopo.</div>}
+          )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana da rede.</div>}
         </Card>
         <Card>
           <ChartTitle>Alertas</ChartTitle>
           {alertas.length?alertas.map((t,i)=>(
             <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_BOT,marginRight:8}}>▼</span>{t}</div>
-          )):<div style={{fontSize:12,color:C.teal}}>Nenhum alerta neste escopo.</div>}
+          )):<div style={{fontSize:12,color:C.teal}}>Nenhum alerta.</div>}
         </Card>
       </div>
-
       {(ind.base3||0)<150&&<Card style={{borderColor:'rgba(200,160,32,0.4)'}}>
-        <div style={{fontSize:11,color:'#c8a020'}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza, e comparar preferencialmente com o mesmo porte.</div>
+        <div style={{fontSize:11,color:'#c8a020'}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza e comparar com localidades do mesmo porte.</div>
       </Card>}
     </div>
   );
@@ -7714,7 +7797,6 @@ function PageRaioX({lockedLocId=null}){
 
 const PAGES=[
   {id:'ranking',    label:'Ranking de Localidades', icon:'🏅'},
-  {id:'raiox',      label:'Raio-X da Localidade',    icon:'🩺'},
   {id:'global',     label:'Visão Global',            icon:'🌍'},
   {id:'local',      label:'Zion Local',              icon:'📍'},
   {id:'cultos',     label:'Cultos — Domingos',       icon:'⛪'},
@@ -8571,7 +8653,7 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
         {[
           {sep:'— VISÃO GERAL —',ids:campusLock?['local']:['ranking','global','local']},
           {sep:'— MÉTRICAS —',ids:['cultos','geracionais','batismo','links','plinks','voluntarios','raizes','zao','digital']},
-          {sep:'— ANÁLISES —',ids:campusLock?['raiox','report','predios','dados','censo','dsm']:['raiox','report','predios','dados','censo','dsm','pul']},
+          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados','censo','dsm']:['report','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
@@ -8598,7 +8680,6 @@ function App(){
   function renderPage(){
     switch(page){
       case 'ranking':     return<PageRanking/>;
-      case 'raiox':       return<PageRaioX lockedLocId={campusFilter}/>;
       case 'global':      return<PageGlobal/>;
       case 'local':       return<PageLocal lockedLocId={campusFilter}/>;
       case 'cultos':      return<PageCultos/>;
