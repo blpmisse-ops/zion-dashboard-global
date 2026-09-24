@@ -7405,8 +7405,316 @@ function PagePUL(){
 /* ═══ SIDEBAR */
 const CampusCtx=React.createContext(null);
 const CAMPUS_BLOCKED=['ranking','global','pul'];
+
+/* ═══ PAGE: RAIO-X DA LOCALIDADE
+   Numero absoluto nao diz nada sem o tamanho da igreja: 50 pessoas em Raizes
+   e' 25% de Campo Grande e 1,3% de Sao Paulo. Aqui todo indicador vira
+   percentual da media de culto e ganha a mediana da rede como referencia.
+   Mediana, e nao media: com Sao Paulo dentro, a media da rede e' a de Sao Paulo.
+   Denominadores: estoque (voluntarios, IBZAO, links, geracionais) sobre a media
+   dos ultimos 3 meses com culto; fluxo (raizes, batismo) sobre a media do ano,
+   porque o proprio numerador e' acumulado do ano. */
+const RX_PORTES=[
+  {id:'P', label:'até 150',   min:0,    max:150},
+  {id:'M', label:'150 a 400', min:150,  max:400},
+  {id:'G', label:'400 a 1.000',min:400, max:1000},
+  {id:'XG',label:'1.000+',    min:1000, max:Infinity},
+];
+function rxPorte(media){return RX_PORTES.find(t=>media>=t.min&&media<t.max)||RX_PORTES[0];}
+function rxRegiao(locId){return LOCS.find(l=>l.id===locId)?.flag==='🇧🇷'?'BR':'INT';}
+function rxMeses(){
+  const set=new Set();
+  LOCS.forEach(l=>Object.keys(DATA[l.id]||{}).forEach(m=>{if(m.startsWith('2026'))set.add(m);}));
+  return[...set].sort();
+}
+function rxMesesComCulto(locId){
+  return rxMeses().filter(m=>DATA[locId]?.[m]?.sunN>0);
+}
+/* Media de culto dos ultimos `n` meses que tiveram culto — nao dos ultimos n
+   meses do calendario. Igreja que ficou dois meses sem lancar nao pode ter a
+   base dividida por zero. */
+function rxMediaCulto(locId,n){
+  const ms=rxMesesComCulto(locId); if(!ms.length) return null;
+  return avgSunday(locId,n?ms.slice(-n):ms)||null;
+}
+function rxGerMedia(locId,pref,n){
+  const ms=rxMeses().filter(m=>GER_DATA[locId]?.[m]?.[pref+'N']>0);
+  if(!ms.length) return null;
+  const use=n?ms.slice(-n):ms;
+  let S=0,N=0; use.forEach(m=>{S+=GER_DATA[locId][m][pref+'S'];N+=GER_DATA[locId][m][pref+'N'];});
+  return N?S/N:null;
+}
+const RX_GER=[
+  {pref:'lumen',label:'Lumen (crianças)'},
+  {pref:'rise', label:'Rise'},
+  {pref:'flow', label:'Flow'},
+  {pref:'vox',  label:'Vox'},
+  {pref:'ekl',  label:'Eklektos'},
+  {pref:'diam', label:'Diamantes'},
+];
+/* Cada indice devolve {v, pct} ou null quando nao ha dado, e 'na' quando a
+   localidade nao realiza aquilo (CAMPUS_CONFIG). */
+function rxIndices(locId){
+  const base3=rxMediaCulto(locId,3), baseAno=rxMediaCulto(locId,null);
+  const meses=rxMeses(), sem=CAMPUS_CONFIG[locId]?.sem||[];
+  const mesesLoc=CAMPUS_CONFIG[locId]?.desde?meses.filter(m=>m>=CAMPUS_CONFIG[locId].desde):meses;
+  function estoque(campo,base){
+    if(sem.includes(campo)) return{na:true};
+    const ms=mesesLoc.filter(m=>DATA[locId]?.[m]?.[campo]!==undefined);
+    if(!ms.length||!base) return null;
+    const v=DATA[locId][ms[ms.length-1]][campo];
+    return{v,pct:100*v/base,mes:ms[ms.length-1]};
+  }
+  function fluxo(campo,base){
+    if(sem.includes(campo)) return{na:true};
+    const ms=mesesLoc.filter(m=>DATA[locId]?.[m]?.[campo]!==undefined);
+    if(!ms.length||!base) return null;
+    const v=ms.reduce((t,m)=>t+DATA[locId][m][campo],0);
+    return{v,pct:100*v/base,n:ms.length};
+  }
+  const out={
+    base3,baseAno,
+    vol:  estoque('vol',base3),
+    zao:  estoque('zao',base3),
+    links:estoque('links',base3),
+    raiz: fluxo('raiz',baseAno),
+    bap:  fluxo('bap',baseAno),
+  };
+  RX_GER.forEach(g=>{
+    const m=rxGerMedia(locId,g.pref,3);
+    out[g.pref]=(m==null||!base3)?null:{v:m,pct:100*m/base3};
+  });
+  return out;
+}
+/* Mediana entre as localidades que tem o indice — a media seria puxada por SP. */
+function rxMediana(campo,filtro){
+  const v=LOCS.filter(l=>!filtro||filtro(l.id)).map(l=>rxIndices(l.id)[campo])
+    .filter(x=>x&&!x.na&&isFinite(x.pct)).map(x=>x.pct).sort((a,b)=>a-b);
+  if(!v.length) return null;
+  const i=Math.floor(v.length/2);
+  return v.length%2?v[i]:(v[i-1]+v[i])/2;
+}
+/* Momentum: ultimos 3 meses contra o ano. Separa igreja grande parada de
+   igreja pequena acelerando. */
+function rxMomentum(locId){
+  const ms=rxMesesComCulto(locId);
+  if(ms.length<4) return null;
+  const rec=avgSunday(locId,ms.slice(-3)), ant=avgSunday(locId,ms.slice(0,-3));
+  if(!ant) return null;
+  return{rec,ant,d:100*(rec-ant)/ant};
+}
+/* Previsibilidade: coeficiente de variacao dos ultimos 12 domingos. Oscilacao
+   alta e' problema de constancia, nao de tamanho. */
+function rxConsistencia(locId){
+  const v=(RAW_CULTOS[locId]||[]).filter(e=>e.d.startsWith('2026')).slice(-12).map(e=>e.v);
+  if(v.length<6) return null;
+  const m=v.reduce((a,b)=>a+b,0)/v.length;
+  if(!m) return null;
+  const dp=Math.sqrt(v.reduce((s,x)=>s+(x-m)*(x-m),0)/v.length);
+  return{cv:100*dp/m,n:v.length};
+}
+function RxBarra({pct,max,mediana}){
+  const w=Math.max(0,Math.min(100,100*(pct||0)/(max||1)));
+  const mk=Math.max(0,Math.min(100,100*(mediana||0)/(max||1)));
+  return(
+    <div style={{position:'relative',height:8,background:'rgba(7,135,128,0.15)',borderRadius:4,overflow:'visible'}}>
+      <div style={{width:w+'%',height:'100%',background:C.teal,borderRadius:4}}/>
+      {mediana!=null&&<div title="mediana da rede" style={{position:'absolute',left:mk+'%',top:-3,width:2,height:14,background:C.sand}}/>}
+    </div>
+  );
+}
+function RxLinha({label,ind,mediana,unidade,nota}){
+  if(ind?.na) return(
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+      <div style={{fontSize:12,color:C.cream}}>{label}</div>
+      <div style={{fontSize:12,color:'#6b7b7b'}}>N/A</div>
+      <div style={{fontSize:11,color:'#6b7b7b'}}>não realizado nesta localidade</div><div/>
+    </div>
+  );
+  if(!ind) return(
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+      <div style={{fontSize:12,color:C.cream}}>{label}</div>
+      <div style={{fontSize:12,color:'#c8a020'}}>sem dado</div>
+      <div style={{fontSize:11,color:'#c8a020'}}>não dá para avaliar sem o lançamento</div><div/>
+    </div>
+  );
+  const razao=mediana?ind.pct/mediana:null;
+  const cor=razao==null?C.cream:razao>=1.5?C_TOP:razao<=0.5?C_BOT:C.cream;
+  const maxRede=Math.max(mediana?mediana*2.2:0,ind.pct*1.1,1);
+  return(
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+      <div style={{fontSize:12,color:C.cream}}>{label}
+        {nota&&<div style={{fontSize:9,color:'rgba(7,135,128,0.7)'}}>{nota}</div>}</div>
+      <div>
+        <div style={{fontSize:14,fontWeight:700,color:cor}}>{ind.pct.toFixed(1)}%</div>
+        <div style={{fontSize:10,color:C.teal}}>{fmt(ind.v)}{unidade?' '+unidade:''}</div>
+      </div>
+      <RxBarra pct={ind.pct} max={maxRede} mediana={mediana}/>
+      <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
+        {mediana==null?'—':<>rede {mediana.toFixed(1)}%<span style={{color:razao>=1?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{razao>=1?'+':''}{((razao-1)*100).toFixed(0)}%</span></>}
+      </div>
+    </div>
+  );
+}
+function PageRaioX({lockedLocId=null}){
+  const [locId,setLocId]=useState(lockedLocId||'São Paulo');
+  const [escopo,setEscopo]=useState('global');
+  const loc=LOCS.find(l=>l.id===locId);
+  const ind=rxIndices(locId);
+  const porte=rxPorte(ind.base3||0);
+  const mom=rxMomentum(locId), cons=rxConsistencia(locId);
+  const filtro=escopo==='br'?(id=>rxRegiao(id)==='BR')
+              :escopo==='int'?(id=>rxRegiao(id)==='INT')
+              :escopo==='porte'?(id=>rxPorte(rxMediaCulto(id,3)||0).id===porte.id)
+              :null;
+  const med=campo=>rxMediana(campo,filtro);
+  const ESCOPOS=[{id:'global',label:'Rede global'},{id:'br',label:'Brasil'},{id:'int',label:'Internacional'},{id:'porte',label:'Mesmo porte ('+porte.label+')'}];
+
+  /* Funil na ordem definida pelo escritorio: culto → batismo → links → Raízes
+     → IBZAO → voluntário. Links e' quantidade de grupos, nao de pessoas: entra
+     na sequencia com unidade propria e rotulo por 100 pessoas. */
+  const funil=[
+    {label:'Presença no culto', v:ind.base3, pct:100, unidade:'pessoas/domingo', obs:'base de cálculo'},
+    {label:'Batismo',          ind:ind.bap,  campo:'bap',  unidade:'no ano'},
+    {label:'Links ativos',     ind:ind.links,campo:'links',unidade:'links', porCem:true},
+    {label:'Raízes',           ind:ind.raiz, campo:'raiz', unidade:'no ano'},
+    {label:'IBZAO',            ind:ind.zao,  campo:'zao',  unidade:'matrículas'},
+    {label:'Voluntários',      ind:ind.vol,  campo:'vol',  unidade:'pessoas'},
+  ];
+
+  /* Alertas por regra, nunca por um mes isolado: metade ou dobro da mediana,
+     queda de 10% no momentum, oscilacao acima de 25%. */
+  const destaques=[],alertas=[];
+  const ROT={vol:'Voluntários',zao:'IBZAO',raiz:'Raízes',bap:'Batismo',links:'Links'};
+  Object.keys(ROT).forEach(k=>{
+    const x=ind[k],m=med(k);
+    if(!x||x.na||!m) return;
+    if(x.pct>=1.5*m) destaques.push(ROT[k]+' em '+x.pct.toFixed(1)+'% da igreja, contra '+m.toFixed(1)+'% da mediana da rede.');
+    if(x.pct<=0.5*m) alertas.push(ROT[k]+' em '+x.pct.toFixed(1)+'% da igreja, metade ou menos da mediana da rede ('+m.toFixed(1)+'%).');
+  });
+  if(ind.raiz&&!ind.raiz.na&&ind.bap&&!ind.bap.na&&ind.raiz.pct>=10&&ind.bap.pct<=2)
+    alertas.push('Gargalo entre formação e batismo: '+ind.raiz.pct.toFixed(1)+'% da igreja passou por Raízes e só '+ind.bap.pct.toFixed(1)+'% foi batizado no ano.');
+  if(mom&&mom.d<=-10) alertas.push('Queda de frequência: média dos últimos 3 meses '+mom.d.toFixed(1)+'% abaixo da média do ano.');
+  if(mom&&mom.d>=10)  destaques.push('Aceleração: média dos últimos 3 meses '+fmtPct(mom.d)+' sobre a média do ano.');
+  if(cons&&cons.cv>25) alertas.push('Oscilação alta entre domingos ('+cons.cv.toFixed(0)+'% de variação) — constância antes de crescimento.');
+  if(cons&&cons.cv<12) destaques.push('Frequência muito estável entre os domingos ('+cons.cv.toFixed(0)+'% de variação).');
+  const lum=ind.lumen,medLum=med('lumen');
+  if(lum&&medLum&&lum.pct>=1.4*medLum) destaques.push('Perfil de família jovem: Lumen representa '+lum.pct.toFixed(1)+'% do culto, bem acima da rede ('+medLum.toFixed(1)+'%).');
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <h2 className="serif" style={{fontSize:22,color:C.cream}}>Raio-X da Localidade</h2>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {ESCOPOS.map(e=>(
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>comparar com {e.label}</button>
+          ))}
+        </div>
+      </div>
+      <p style={{fontSize:12,color:C.teal,marginTop:-12}}>Cada indicador aparece como percentual da média de culto da própria igreja, ao lado da mediana da rede. Estoque (voluntários, IBZAO, links, geracionais) sobre a média dos últimos 3 meses; fluxo (Raízes, Batismo) acumulado de 2026 sobre a média do ano.</p>
+
+      {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {LOCS.map(l=>(
+          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
+        ))}
+      </div>}
+
+      <Card style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+        <div style={{fontSize:36}}>{loc.flag}</div>
+        <div>
+          <div className="serif" style={{fontSize:22,color:C.cream,fontWeight:700}}>{loc.name}</div>
+          <div style={{fontSize:11,color:C.teal}}>porte {porte.label} · {fmt(ind.base3)} pessoas/domingo nos últimos 3 meses</div>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',gap:26,flexWrap:'wrap'}}>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Momentum</div>
+            <div className="serif" style={{fontSize:20,fontWeight:700,color:!mom?C.cream:mom.d>=0?C.sage:'#e05c5c'}}>{mom?fmtPct(mom.d):'—'}</div>
+            <div style={{fontSize:10,color:C.teal}}>3 meses vs. ano</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Previsibilidade</div>
+            <div className="serif" style={{fontSize:20,fontWeight:700,color:!cons?C.cream:cons.cv<=12?C.sage:cons.cv<=25?C.cream:'#e05c5c'}}>{cons?cons.cv.toFixed(0)+'%':'—'}</div>
+            <div style={{fontSize:10,color:C.teal}}>oscilação entre domingos</div>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{display:'flex',flexDirection:'column',gap:20}}>
+        <Card>
+          <ChartTitle>Índices de penetração</ChartTitle>
+          <RxLinha label="Voluntários"  ind={ind.vol}   mediana={med('vol')}   unidade="pessoas"/>
+          <RxLinha label="IBZAO"        ind={ind.zao}   mediana={med('zao')}   unidade="matrículas"/>
+          <RxLinha label="Raízes"       ind={ind.raiz}  mediana={med('raiz')}  unidade="no ano" nota="acumulado 2026"/>
+          <RxLinha label="Batismo"      ind={ind.bap}   mediana={med('bap')}   unidade="no ano" nota="acumulado 2026"/>
+          <RxLinha label="Links ativos" ind={ind.links} mediana={med('links')} unidade="links" nota="links por 100 pessoas"/>
+        </Card>
+
+        <Card>
+          <ChartTitle>Geracionais — participação no culto</ChartTitle>
+          <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginBottom:6}}>Média de participantes por encontro nos últimos 3 meses, sobre a média de culto do mesmo período.</div>
+          {RX_GER.map(g=>(
+            <RxLinha key={g.pref} label={g.label} ind={ind[g.pref]} mediana={med(g.pref)} unidade="por encontro"/>
+          ))}
+        </Card>
+      </div>
+
+      <Card>
+        <ChartTitle>Funil de discipulado</ChartTitle>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {funil.map((f,i)=>{
+            const x=f.ind!==undefined?f.ind:{v:f.v,pct:f.pct};
+            const na=x?.na, sem=!x;
+            const pct=na||sem?0:x.pct;
+            /* Etapas nao sao subconjuntos umas das outras (voluntario nao sai
+               de dentro do IBZAO), entao razao entre etapas dava numero sem
+               sentido — 220%. Cada etapa se compara com a rede. */
+            const m=f.campo?med(f.campo):null;
+            return(
+              <div key={f.label} style={{display:'grid',gridTemplateColumns:'150px 1fr 150px',gap:12,alignItems:'center'}}>
+                <div style={{fontSize:12,color:C.cream}}>{f.label}
+                  <div style={{fontSize:10,color:C.teal}}>{na?'N/A':sem?'sem dado':fmt(x.v)+' '+(f.unidade||'')}</div>
+                </div>
+                <div style={{height:26,background:'rgba(7,135,128,0.12)',borderRadius:6,position:'relative'}}>
+                  <div style={{width:Math.max(1.5,Math.min(100,pct))+'%',height:'100%',background:i===0?C.sage:C.teal,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:8}}>
+                    <span style={{fontSize:11,color:C.cream,fontWeight:600,whiteSpace:'nowrap'}}>{na?'N/A':sem?'—':pct.toFixed(1)+(f.porCem?' por 100':'%')}</span>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
+                  {f.obs?f.obs:(m==null||na||sem)?'—':
+                    <>rede {m.toFixed(1)}{f.porCem?' por 100':'%'}<span style={{color:pct>=m?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{pct>=m?'+':''}{(100*(pct/m-1)).toFixed(0)}%</span></>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>Cada etapa é lida como percentual da média de culto, não como conversão da etapa anterior — as etapas não são subconjuntos umas das outras. Links ativos é quantidade de grupos, não de pessoas, e vai em links por 100 pessoas.</div>
+      </Card>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+        <Card>
+          <ChartTitle>Destaques</ChartTitle>
+          {destaques.length?destaques.map((t,i)=>(
+            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_TOP,marginRight:8}}>▲</span>{t}</div>
+          )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana da rede neste escopo.</div>}
+        </Card>
+        <Card>
+          <ChartTitle>Alertas</ChartTitle>
+          {alertas.length?alertas.map((t,i)=>(
+            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_BOT,marginRight:8}}>▼</span>{t}</div>
+          )):<div style={{fontSize:12,color:C.teal}}>Nenhum alerta neste escopo.</div>}
+        </Card>
+      </div>
+
+      {(ind.base3||0)<150&&<Card style={{borderColor:'rgba(200,160,32,0.4)'}}>
+        <div style={{fontSize:11,color:'#c8a020'}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza, e comparar preferencialmente com o mesmo porte.</div>
+      </Card>}
+    </div>
+  );
+}
+
 const PAGES=[
   {id:'ranking',    label:'Ranking de Localidades', icon:'🏅'},
+  {id:'raiox',      label:'Raio-X da Localidade',    icon:'🩺'},
   {id:'global',     label:'Visão Global',            icon:'🌍'},
   {id:'local',      label:'Zion Local',              icon:'📍'},
   {id:'cultos',     label:'Cultos — Domingos',       icon:'⛪'},
@@ -8263,7 +8571,7 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
         {[
           {sep:'— VISÃO GERAL —',ids:campusLock?['local']:['ranking','global','local']},
           {sep:'— MÉTRICAS —',ids:['cultos','geracionais','batismo','links','plinks','voluntarios','raizes','zao','digital']},
-          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados','censo','dsm']:['report','predios','dados','censo','dsm','pul']},
+          {sep:'— ANÁLISES —',ids:campusLock?['raiox','report','predios','dados','censo','dsm']:['raiox','report','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
@@ -8290,6 +8598,7 @@ function App(){
   function renderPage(){
     switch(page){
       case 'ranking':     return<PageRanking/>;
+      case 'raiox':       return<PageRaioX lockedLocId={campusFilter}/>;
       case 'global':      return<PageGlobal/>;
       case 'local':       return<PageLocal lockedLocId={campusFilter}/>;
       case 'cultos':      return<PageCultos/>;
