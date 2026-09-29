@@ -5053,7 +5053,8 @@ const RAW_HORA={
     "2026-09-20":{"10:00":18},
   },
 };
-/* Geracionais por data. Lumen == G5.2, conferido contra GER_DATA. */
+/* Geracionais por data. A chave g52 e' o nome antigo; o geracional se chama
+   Lumen e e' assim que aparece em tela. Conferido contra GER_DATA. */
 const RAW_GER={
   "Campinas":{
     "2026-01-11":{"g52":109},
@@ -6118,7 +6119,7 @@ const GER_DATA={
   },
 };;
 const GEN_CATS=[
-  {key:'lumen',label:'Lumen/G5.2', color:'#5BC4BF'},
+  {key:'lumen',label:'Lumen',      color:'#5BC4BF'},
   {key:'rise', label:'Rise',       color:'#78C47A'},
   {key:'flow', label:'Flow',       color:'#D4AF37'},
   {key:'vox',  label:'Vox',        color:'#078780'},
@@ -7486,7 +7487,7 @@ function rxGerMedia(locId,pref,n){
   return N?S/N:null;
 }
 const RX_GER=[
-  {pref:'lumen',label:'Lumen (crianças)'},
+  {pref:'lumen',label:'Lumen'},
   {pref:'rise', label:'Rise'},
   {pref:'flow', label:'Flow'},
   {pref:'vox',  label:'Vox'},
