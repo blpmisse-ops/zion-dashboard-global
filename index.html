@@ -3867,6 +3867,8 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
       {RX_CAMPOS[field]&&<RxMetrica campo={field} rotulo={RX_CAMPOS[field].rotulo} unidade={RX_CAMPOS[field].unidade} nota={RX_CAMPOS[field].nota} destaque={isGlobal?null:locFilter}/>}
 
+      {RX_CAMPOS[field]&&<RxEvolucao campo={field} rotulo={RX_CAMPOS[field].rotulo}/>}
+
       {(()=>{const showLabels=months.length<10;return(
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
         <Card>
@@ -7627,6 +7629,121 @@ const RX_ESCOPOS=[{id:'global',label:'Todas'},{id:'br',label:'Brasil'},{id:'int'
 function rxFiltro(escopo){
   return escopo==='br'?(id=>rxRegiao(id)==='BR'):escopo==='int'?(id=>rxRegiao(id)==='INT'):null;
 }
+/* ═══ COMPARATIVO DE PERIODOS
+   O indice sozinho diz onde a igreja esta'; so' a serie diz para onde ela vai.
+   Mesma normalizacao do Raio-X — tudo dividido pela media de culto DO PROPRIO
+   periodo, senao a comparacao entre anos vira comparacao de tamanho. */
+function rxMesesDe(ini,fim){
+  const out=[]; const hoje=new Date();
+  const ultimo=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+  for(let m=ini;m<=fim;m++){
+    const ym=`${Math.floor(m/12)}-${String(m%12+1).padStart(2,'0')}`;
+    if(ym<ultimo) out.push(ym);   // mes em curso nunca entra
+  }
+  return out;
+}
+function rxPeriodos(gran){
+  const anos=[2024,2025,2026];
+  if(gran==='ano') return anos.map(a=>({k:String(a),label:String(a),meses:rxMesesDe(a*12,a*12+11)}));
+  if(gran==='sem'){
+    const out=[]; anos.forEach(a=>{
+      out.push({k:a+'S1',label:'S1 '+String(a).slice(2),meses:rxMesesDe(a*12,a*12+5)});
+      out.push({k:a+'S2',label:'S2 '+String(a).slice(2),meses:rxMesesDe(a*12+6,a*12+11)});
+    });
+    return out.filter(p=>p.meses.length);
+  }
+  const out=[]; anos.forEach(a=>{ for(let q=0;q<4;q++)
+    out.push({k:a+'Q'+(q+1),label:'Q'+(q+1)+' '+String(a).slice(2),meses:rxMesesDe(a*12+q*3,a*12+q*3+2)}); });
+  return out.filter(p=>p.meses.length);
+}
+/* Fluxo soma o periodo; estoque pega o ultimo mes com dado dentro dele;
+   geracional e' a media ponderada do periodo. Sempre sobre a media de culto
+   do mesmo recorte. */
+function rxIndicePeriodo(locId,campo,meses){
+  const sem=CAMPUS_CONFIG[locId]?.sem||[];
+  if(sem.includes(campo)) return null;
+  let S=0,N=0; meses.forEach(m=>{const d=DATA[locId]?.[m]; if(d?.sunS&&d?.sunN){S+=d.sunS;N+=d.sunN;}});
+  const base=N?S/N:0; if(!base) return null;
+  if(RX_GER.some(g=>g.pref===campo)){
+    let s=0,n=0; meses.forEach(m=>{const d=GER_DATA[locId]?.[m]; if(d&&d[campo+'N']){s+=d[campo+'S'];n+=d[campo+'N'];}});
+    return n?100*(s/n)/base:null;
+  }
+  const tem=meses.filter(m=>DATA[locId]?.[m]?.[campo]!==undefined);
+  if(!tem.length) return null;
+  if(campo==='raiz'||campo==='bap')
+    return 100*tem.reduce((t,m)=>t+DATA[locId][m][campo],0)/base;
+  return 100*DATA[locId][tem[tem.length-1]][campo]/base;
+}
+const RX_GRANS=[{id:'ano',label:'Anos'},{id:'sem',label:'Semestres'},{id:'tri',label:'Trimestres'}];
+function RxCelula({v,ant}){
+  if(v==null) return<td style={{padding:'4px 6px',textAlign:'right',color:'#4a5a5a'}}>—</td>;
+  const d=(ant==null||ant===0)?null:100*(v/ant-1);
+  const cor=d==null?C.cream:d>=10?C_TOP:d<=-10?C_BOT:C.cream;
+  return(
+    <td style={{padding:'4px 6px',textAlign:'right',whiteSpace:'nowrap'}}>
+      <span style={{color:cor,fontWeight:d!=null&&Math.abs(d)>=10?700:400}}>{v.toFixed(1)}%</span>
+      {d!=null&&<span style={{fontSize:9,color:d>=0?C.sage:'#e0a05c',marginLeft:4}}>{d>=0?'+':''}{d.toFixed(0)}%</span>}
+    </td>
+  );
+}
+/* Duas formas da mesma tabela: uma metrica para varias localidades (aba da
+   metrica) ou varias metricas para uma localidade (Zion Local). */
+function RxEvolucao({campo,rotulo,locId}){
+  const [gran,setGran]=useState('ano');
+  const per=rxPeriodos(gran);
+  const porMetrica=!campo;
+  const linhas=porMetrica
+    ? [...Object.keys(RX_CAMPOS).map(k=>({k,nome:RX_CAMPOS[k].rotulo})),
+       ...RX_GER.map(g=>({k:g.pref,nome:g.label}))]
+       .map(r=>({nome:r.nome,vals:per.map(p=>rxIndicePeriodo(locId,r.k,p.meses))}))
+    : locsVis().map(l=>({nome:l.flag+' '+l.name,
+        vals:per.map(p=>rxIndicePeriodo(l.id,campo,p.meses))}))
+        .filter(r=>r.vals.some(v=>v!=null))
+        .sort((a,b)=>(b.vals[b.vals.length-1]??-1)-(a.vals[a.vals.length-1]??-1));
+  const medianas=per.map((p,i)=>{
+    const v=linhas.map(r=>r.vals[i]).filter(x=>x!=null).sort((a,b)=>a-b);
+    if(!v.length) return null;
+    const j=Math.floor(v.length/2);
+    return v.length%2?v[j]:(v[j-1]+v[j])/2;
+  });
+  return(
+    <Card>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <ChartTitle>{porMetrica?'Evolução dos índices':'Evolução do índice — '+rotulo}</ChartTitle>
+        <div style={{display:'flex',gap:6}}>
+          {RX_GRANS.map(g=>(
+            <button key={g.id} onClick={()=>setGran(g.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:gran===g.id?C.teal:'rgba(7,135,128,0.12)',color:gran===g.id?C.cream:C.teal}}>{g.label}</button>
+          ))}
+        </div>
+      </div>
+      <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>Cada período é dividido pela média de culto do próprio período — crescer de tamanho não muda o índice sozinho. O número pequeno ao lado é a variação sobre o período anterior; verde e vermelho a partir de 10%.</p>
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+          <thead><tr>
+            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{porMetrica?'Indicador':'Localidade'}</th>
+            {per.map(p=><th key={p.k} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>{p.label}</th>)}
+          </tr></thead>
+          <tbody>
+            {linhas.map(r=>(
+              <tr key={r.nome}>
+                <td style={{padding:'4px 6px',color:C.cream,whiteSpace:'nowrap'}}>{r.nome}</td>
+                {r.vals.map((v,i)=><RxCelula key={i} v={v} ant={i>0?r.vals[i-1]:null}/>)}
+              </tr>
+            ))}
+            {!porMetrica&&<tr>
+              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>Mediana</td>
+              {medianas.map((m,i)=>(
+                <td key={i} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>{m==null?'—':m.toFixed(1)+'%'}</td>
+              ))}
+            </tr>}
+          </tbody>
+        </table>
+      </div>
+      {!linhas.length&&<div style={{fontSize:12,color:C.teal,padding:'10px 0'}}>Sem dado suficiente para montar a série.</div>}
+    </Card>
+  );
+}
+
 function RxMetrica({campo,rotulo,unidade,nota,destaque}){
   const [escopo,setEscopo]=useState('global');
   const filtro=rxFiltro(escopo);
@@ -7703,7 +7820,6 @@ const RX_CAMPOS={
   zao:  {rotulo:'IBZAO',       unidade:'matrículas'},
   raiz: {rotulo:'Raízes',      unidade:'no ano', nota:'Raízes finalizados acumulados em 2026, divididos pela média de culto do ano.'},
   bap:  {rotulo:'Batismo',     unidade:'no ano', nota:'Batismos acumulados em 2026, divididos pela média de culto do ano.'},
-  links:{rotulo:'Links ativos',unidade:'links',  nota:'Quantidade de links (grupos, não pessoas) por 100 pessoas de média de culto dos últimos 3 meses.'},
 };
 /* Tabela unica dos seis geracionais: campus x geracional, em % do culto. */
 function RxGeracionais(){
@@ -7782,7 +7898,6 @@ function RxSaude({locId}){
   const funil=[
     {label:'Presença no culto',v:ind.base3,pct:100,unidade:'pessoas/domingo',obs:'base de cálculo'},
     {label:'Batismo',      ind:ind.bap,  campo:'bap',  unidade:'no ano'},
-    {label:'Links ativos', ind:ind.links,campo:'links',unidade:'links',porCem:true},
     {label:'Raízes',       ind:ind.raiz, campo:'raiz', unidade:'no ano'},
     {label:'IBZAO',        ind:ind.zao,  campo:'zao',  unidade:'matrículas'},
     {label:'Voluntários',  ind:ind.vol,  campo:'vol',  unidade:'pessoas'},
@@ -7831,7 +7946,7 @@ function RxSaude({locId}){
             );
           })}
         </div>
-        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>Links ativos é quantidade de grupos, não de pessoas, e por isso vai em links por 100 pessoas. O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
+        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
       </Card>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
         <Card>
@@ -7847,6 +7962,8 @@ function RxSaude({locId}){
           )):<div style={{fontSize:12,color:C.teal}}>Nenhum alerta.</div>}
         </Card>
       </div>
+      <RxEvolucao locId={locId}/>
+
       {(ind.base3||0)<150&&<Card style={{borderColor:'rgba(200,160,32,0.4)'}}>
         <div style={{fontSize:11,color:'#c8a020'}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza e comparar com localidades do mesmo porte.</div>
       </Card>}
