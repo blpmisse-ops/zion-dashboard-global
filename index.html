@@ -7642,19 +7642,9 @@ function rxMesesDe(ini,fim){
   }
   return out;
 }
-function rxPeriodos(gran){
-  const anos=[2024,2025,2026];
-  if(gran==='ano') return anos.map(a=>({k:String(a),label:String(a),meses:rxMesesDe(a*12,a*12+11)}));
-  if(gran==='sem'){
-    const out=[]; anos.forEach(a=>{
-      out.push({k:a+'S1',label:'S1 '+String(a).slice(2),meses:rxMesesDe(a*12,a*12+5)});
-      out.push({k:a+'S2',label:'S2 '+String(a).slice(2),meses:rxMesesDe(a*12+6,a*12+11)});
-    });
-    return out.filter(p=>p.meses.length);
-  }
-  const out=[]; anos.forEach(a=>{ for(let q=0;q<4;q++)
-    out.push({k:a+'Q'+(q+1),label:'Q'+(q+1)+' '+String(a).slice(2),meses:rxMesesDe(a*12+q*3,a*12+q*3+2)}); });
-  return out.filter(p=>p.meses.length);
+function rxPeriodos(){
+  return [2024,2025,2026].map(a=>({k:String(a),label:String(a),meses:rxMesesDe(a*12,a*12+11)}))
+    .filter(p=>p.meses.length);
 }
 /* Fluxo soma o periodo; estoque pega o ultimo mes com dado dentro dele;
    geracional e' a media ponderada do periodo. Sempre sobre a media de culto
@@ -7674,7 +7664,6 @@ function rxIndicePeriodo(locId,campo,meses){
     return 100*tem.reduce((t,m)=>t+DATA[locId][m][campo],0)/base;
   return 100*DATA[locId][tem[tem.length-1]][campo]/base;
 }
-const RX_GRANS=[{id:'ano',label:'Anos'},{id:'sem',label:'Semestres'},{id:'tri',label:'Trimestres'}];
 function RxCelula({v,ant}){
   if(v==null) return<td style={{padding:'4px 6px',textAlign:'right',color:'#4a5a5a'}}>—</td>;
   const d=(ant==null||ant===0)?null:100*(v/ant-1);
@@ -7689,8 +7678,7 @@ function RxCelula({v,ant}){
 /* Duas formas da mesma tabela: uma metrica para varias localidades (aba da
    metrica) ou varias metricas para uma localidade (Zion Local). */
 function RxEvolucao({campo,rotulo,locId}){
-  const [gran,setGran]=useState('ano');
-  const per=rxPeriodos(gran);
+  const per=rxPeriodos();
   const porMetrica=!campo;
   const linhas=porMetrica
     ? [...Object.keys(RX_CAMPOS).map(k=>({k,nome:RX_CAMPOS[k].rotulo})),
@@ -7709,14 +7697,9 @@ function RxEvolucao({campo,rotulo,locId}){
   return(
     <Card>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
-        <ChartTitle>{porMetrica?'Evolução dos índices':'Evolução do índice — '+rotulo}</ChartTitle>
-        <div style={{display:'flex',gap:6}}>
-          {RX_GRANS.map(g=>(
-            <button key={g.id} onClick={()=>setGran(g.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:gran===g.id?C.teal:'rgba(7,135,128,0.12)',color:gran===g.id?C.cream:C.teal}}>{g.label}</button>
-          ))}
-        </div>
+        <ChartTitle>{porMetrica?'Evolução anual dos índices':'Evolução anual do índice — '+rotulo}</ChartTitle>
       </div>
-      <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>Cada período é dividido pela média de culto do próprio período — crescer de tamanho não muda o índice sozinho. O número pequeno ao lado é a variação sobre o período anterior; verde e vermelho a partir de 10%.</p>
+      <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>Cada ano é dividido pela média de culto do próprio ano — crescer de tamanho não muda o índice sozinho. O número pequeno ao lado é a variação sobre o ano anterior; verde e vermelho a partir de 10%. 2026 vai até o último mês fechado.</p>
       <div style={{overflowX:'auto'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
           <thead><tr>
