@@ -125,6 +125,17 @@ const LOCS=[
   {id:'Miami',           name:'Miami',            flag:'🇺🇸'},
   {id:'Orlando',         name:'Orlando',          flag:'🇺🇸'},
 ];
+/* ═══ ESCOPO DE VISIBILIDADE
+   Quem entra com a senha de uma localidade nao pode ver dados das outras —
+   nem em filtro, nem em tabela comparativa. LOC_LOCK e' definido no login e
+   locsVis() e' a unica lista que a interface percorre. LOCS cru so' continua
+   valendo para achar nome/bandeira de um id ja' conhecido.
+   Atencao: isto e' escopo de interface. O index.html carrega o DATA inteiro,
+   entao quem abrir o codigo-fonte da pagina ainda alcanca o resto. Separar de
+   verdade exige servir os dados por localidade, fora do arquivo. */
+let LOC_LOCK=null;
+function locsVis(){ return LOC_LOCK?LOCS.filter(l=>l.id===LOC_LOCK):LOCS; }
+
 /* ═══ PERIODS */
 const PERIODS={
   '2023-S1':{label:'H1 2023',           months:['2023-01','2023-02','2023-03','2023-04','2023-05','2023-06']},
@@ -449,12 +460,12 @@ const DATA = {
     "2026-09":{sunS:275,sunN:2,bap:0,raiz:0,zao:56},
   },
   "Portim\u00e3o": {
-    "2026-03":{sunS:67,sunN:2,vol:4,raiz:0},
-    "2026-04":{sunS:169,sunN:4,vol:10,raiz:0},
-    "2026-05":{sunS:127,sunN:3,vol:14,ig:3523,yt:0,raiz:0},
-    "2026-06":{sunS:126,sunN:4,vol:15,ig:3568,yt:0,raiz:0},
-    "2026-07":{sunS:168,sunN:4,vol:15,ig:3997,yt:0,raiz:0},
-    "2026-08":{sunS:262,sunN:5,ig:4212,yt:0,vol:16,raiz:0},
+    "2026-03":{sunS:67,sunN:2,vol:4,raiz:0,bap:0},
+    "2026-04":{sunS:169,sunN:4,vol:10,raiz:0,bap:0},
+    "2026-05":{sunS:127,sunN:3,vol:14,ig:3523,yt:0,raiz:0,bap:0},
+    "2026-06":{sunS:126,sunN:4,vol:15,ig:3568,yt:0,raiz:0,bap:0},
+    "2026-07":{sunS:168,sunN:4,vol:15,ig:3997,yt:0,raiz:0,bap:0},
+    "2026-08":{sunS:262,sunN:5,ig:4212,yt:0,vol:16,raiz:0,bap:0},
     "2026-09":{sunS:202,sunN:3,vol:24,ig:4324,yt:0,raiz:0},
   },
   "Porto": {
@@ -3008,7 +3019,8 @@ function Login({onLogin}){
 /* ═══ MULTI-LOCATION FILTER DROPDOWN */
 function LocMultiFilter({selected,onChange}){
   const [open,setOpen]=useState(false);
-  const allSel=selected.length===LOCS.length;
+  const VIS=locsVis();
+  const allSel=selected.length===VIS.length;
   function toggle(id){
     if(selected.includes(id)){
       const nx=selected.filter(x=>x!==id);
@@ -3016,8 +3028,8 @@ function LocMultiFilter({selected,onChange}){
     } else onChange([...selected,id]);
   }
   const nSel=selected.length;
-  const labelText=allSel?'Todas as igrejas (20)':nSel===0?'Nenhuma':
-    nSel<=3?LOCS.filter(l=>selected.includes(l.id)).map(l=>l.name).join(', '):
+  const labelText=allSel?`Todas as igrejas (${VIS.length})`:nSel===0?'Nenhuma':
+    nSel<=3?VIS.filter(l=>selected.includes(l.id)).map(l=>l.name).join(', '):
     nSel+' igrejas selecionadas';
   const btnBorder=open?'1px solid '+C.teal:'1px solid rgba(7,135,128,0.3)';
   return(
@@ -3029,27 +3041,27 @@ function LocMultiFilter({selected,onChange}){
       {open&&(
         <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:999,background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:10,padding:'8px 0',minWidth:240,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
           <div style={{display:'flex',gap:6,padding:'6px 12px 8px',borderBottom:'1px solid rgba(7,135,128,0.15)'}}>
-            <button onClick={()=>allSel?onChange([LOCS[0].id]):onChange(LOCS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:'rgba(7,135,128,0.2)',color:allSel?C.cream:C.teal}}>Todas</button>
-            <button onClick={()=>onChange(LOCS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇧🇷</button>
-            <button onClick={()=>onChange(LOCS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇵🇹</button>
-            <button onClick={()=>onChange(LOCS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🌎</button>
-            <button onClick={()=>onChange(LOCS.filter(l=>l.id!=='São Paulo').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>Sem SP</button>
+            <button onClick={()=>allSel?onChange([VIS[0].id]):onChange(VIS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:'rgba(7,135,128,0.2)',color:allSel?C.cream:C.teal}}>Todas</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇧🇷</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇵🇹</button>
+            <button onClick={()=>onChange(VIS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🌎</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.id!=='São Paulo').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>Sem SP</button>
           </div>
           <div style={{maxHeight:320,overflowY:'auto',padding:'4px 0'}}>
-            {LOCS.map(l=>{
+            {VIS.map(l=>{
               const ck=selected.includes(l.id);
               const ckBg=ck?C.teal:'transparent';
               const ckBorder=ck?'2px solid '+C.teal:'2px solid rgba(7,135,128,0.4)';
               const ckRowBg=ck?'rgba(7,135,128,0.12)':'transparent';
               return(
-                <div key={l.id} onClick={()=>toggle(l.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',cursor:'pointer',background:ckRowBg}}>
+                <div key={l.id} onClick={()=>toggle(l.id)} onDoubleClick={()=>onChange([l.id])} title="Duplo clique: só esta localidade" style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',cursor:'pointer',background:ckRowBg,userSelect:'none'}}>
                   <span style={{width:16,height:16,borderRadius:4,border:ckBorder,background:ckBg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,color:C.cream,lineHeight:1}}>{ck?'✓':''}</span>
                   <span style={{fontSize:12,color:ck?C.cream:'#aaa'}}>{l.flag} {l.name}</span>
                 </div>
               );
             })}
           </div>
-          <div style={{padding:'8px 12px 4px',borderTop:'1px solid rgba(7,135,128,0.15)',fontSize:10,color:'#666',textAlign:'right'}}>{nSel}/{LOCS.length} selecionadas</div>
+          <div style={{padding:'8px 12px 4px',borderTop:'1px solid rgba(7,135,128,0.15)',fontSize:10,color:'#666',textAlign:'right'}}>{nSel}/{VIS.length} selecionadas · duplo clique isola uma</div>
         </div>
       )}
     </div>
@@ -3062,7 +3074,7 @@ function PageRanking(){
   const prev=prevPeriod(period);
   const prevMonths=prev?pMonths(prev):[];
 
-  const rows=LOCS.map(loc=>{
+  const rows=locsVis().map(loc=>{
     const avg=avgSunday(loc.id,months);
     const prv=prev?avgSunday(loc.id,prevMonths):null;
     return{loc,avg,tier:getTier(avg),d:prv!==null?delta(avg,prv):null,prv};
@@ -3135,11 +3147,11 @@ function PageRanking(){
 /* ═══ PAGE: VISÃO GLOBAL */
 function PageGlobal(){
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(locsVis().map(l=>l.id));
   const [cmpA,setCmpA]=useState('2025-S1');
   const [cmpB,setCmpB]=useState('2026-YTD');
   const [selMonth,setSelMonth]=useState('all');
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
   const months=selMonth==='all'?allMonths:allMonths.filter(m=>m===selMonth);
   const prev=prevPeriod(period);
@@ -3189,7 +3201,7 @@ function PageGlobal(){
   function AllLocBar({data,dataKey,label,color}){
     return(
       <Card>
-        <ChartTitle>{label} — {selLocs.length===LOCS.length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
+        <ChartTitle>{label} — {selLocs.length===locsVis().length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={data} margin={{top:22,right:8,bottom:50,left:55}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
@@ -3357,7 +3369,7 @@ function PageLocal({lockedLocId=null}){
       </div>
 
       {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        {LOCS.map(l=>(
+        {locsVis().map(l=>(
           <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>}
@@ -3527,12 +3539,12 @@ function PageLocal({lockedLocId=null}){
 function PageCultos(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
   const [selMonth,setSelMonth]=useState('all');
   /* Períodos do comparativo por localidade, escolhidos no próprio gráfico. */
   const [cmpA,setCmpA]=useState('2025-S1');
   const [cmpB,setCmpB]=useState('2026-S1');
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
   const months=selMonth==='all'?allMonths:allMonths.filter(m=>m===selMonth);
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -3778,8 +3790,8 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
   const [locFilter,setLocFilter]=useState(campusLock?campusLock:'global');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   /* Períodos do comparativo por localidade — antes eram fixos em H1 2025 vs
      H1 2026, agora são escolhidos no próprio gráfico. */
   const [cmpA,setCmpA]=useState('2025-S1');
@@ -3843,7 +3855,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
       {/* Drill-down filter: Global or single location */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:'rgba(7,135,128,0.12)',color:isGlobal?C.cream:C.teal}}>🌍 Global</button>
-        {LOCS.map(l=>(
+        {locsVis().map(l=>(
           <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>
@@ -3973,11 +3985,11 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 /* ═══ PAGE: TAXAS */
 function PageTaxas(){
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(LOCS.map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(locsVis().map(l=>l.id));
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevM=prev?pMonths(prev):[];
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
 
   function rates(locId,ms){
     const sun=avgSunday(locId,ms);
@@ -4138,6 +4150,10 @@ const CAMPUS_CONFIG={
    deve ser cobrado. Confirmado pelo usuario em 09/09/2026.
    YT_OK guarda isencoes pontuais de YouTube (campus -> meses ja dispensados). */
 const YT_OK={ 'Miami':['2026-03'] };
+/* METRICA_OK: isencao pontual de uma metrica em meses especificos, quando o dado
+   nao existe e gravar 0 seria falso. Portimao so' passou a ter Instagram em maio
+   (confirmado pelo usuario em 30/09/2026). */
+const METRICA_OK={ 'Portimão':{ ig:['2026-03','2026-04'] } };
 // Métricas globais que ficam OK sem dado em meses específicos
 const GLOBAL_OK={
   links:  [1,7],  // Janeiro e Julho = férias de Links
@@ -4176,7 +4192,7 @@ const CULTO_EXCECOES={
   /* Vale do Ribeira: junho VDS; janeiro dispensado pelo usuario (dado antigo demais). */
   'Vale do Ribeira':{'2026-06':3,'2026-01':2},
   /* Portimao: 1o culto oficial em 22/03 (Nathalia, 17/09) — marco tem 2. */
-  'Portim\u00e3o':{'2026-03':2},
+  'Portim\u00e3o':{'2026-03':2,'2026-05':3},
   /* Campinas: 21/06 foi a conferencia Voz de Siao (Daniel, 17/09). */
   'Campinas':{'2026-06':3},
 };
@@ -4251,7 +4267,8 @@ function PageDataControl(){
           const monthNum=parseInt(mo.split('-')[1]);
           // férias de links (jan/jul) OU mês globalmente dispensado (ex: zao em janeiro)
           const isVacation=(isLinkMetric&&[1,7].includes(monthNum))||
-                           (!isLinkMetric&&globalOkMonths.includes(monthNum)&&!filled);
+                           (!isLinkMetric&&globalOkMonths.includes(monthNum)&&!filled)||
+                           (!filled&&(METRICA_OK[locId]?.[m.key]||[]).includes(mo));
           return{mo,val,filled,isVacation};
         });
         const activeMos=monthDetails.filter(r=>!r.isVacation);
@@ -4276,7 +4293,7 @@ function PageDataControl(){
     return{metRows,okCount,partialCount,total:METRIC_DEFS.length};
   }
 
-  const locData=LOCS.map(loc=>({loc,...locStatus(loc.id)}));
+  const locData=locsVis().map(loc=>({loc,...locStatus(loc.id)}));
   const filtered=locFilter==='all'?locData:locData.filter(r=>r.loc.id===locFilter);
   const totalOk=locData.filter(r=>r.okCount===r.total).length;
   const totalPartial=locData.filter(r=>(r.okCount>0&&r.okCount<r.total)||r.partialCount>0).length;
@@ -4335,7 +4352,7 @@ function PageDataControl(){
         <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Campus</div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
           <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:'rgba(7,135,128,0.12)',color:locFilter==='all'?C.cream:C.teal}}>Todos</button>
-          {LOCS.map(l=>(
+          {locsVis().map(l=>(
             <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
           ))}
         </div>
@@ -6137,14 +6154,14 @@ function gerAvg(locId,months,cat){
 function PageGeracionais(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
   /* Toda a página passou a seguir o filtro de localidades do topo.
      Antes havia um segundo seletor só para esta página, então o bloco de
      baixo continuava mostrando São Paulo mesmo com outra igreja filtrada. */
   const escopo=filtLocs.length===1?filtLocs[0].name
-              :filtLocs.length===LOCS.length?'Todas as Localidades'
+              :filtLocs.length===locsVis().length?'Todas as Localidades'
               :`${filtLocs.length} Localidades Filtradas`;
   const hasData=filtLocs.some(l=>GER_DATA[l.id]&&months.some(m=>GER_DATA[l.id][m]));
 
@@ -6370,8 +6387,8 @@ Object.values(PRED_DATA).forEach(d=>{d.seats=TIER_SEATS[d.tier]||0;d.cap=d.seats
 function PagePredios(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:LOCS.map(l=>l.id));
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
 
   const rows=filtLocs.map(loc=>{
@@ -6399,7 +6416,7 @@ function PagePredios(){
         </div>
       </div>
       <div style={{background:'rgba(123,92,62,0.15)',border:'1px solid rgba(123,92,62,0.4)',borderRadius:10,padding:'12px 16px',fontSize:12,color:'#c8a07a',display:'flex',gap:8,alignItems:'center'}}>
-        🏨 <span><b>HOTEL</b> = campus sem prédio próprio (SJCampos, Vitória, Cascais) — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
+        🏨 <span><b>HOTEL</b> = campus sem prédio próprio{campusLock?'':' (SJCampos, Vitória, Cascais)'} — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
         <Card style={{textAlign:'center'}}>
@@ -7048,11 +7065,14 @@ function PageDigital(){
   const igRows=visLocs.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'ig')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
   const ytRows=visLocs.map(loc=>({name:loc.name,flag:loc.flag,val:lastVal(loc.id,months,'yt')})).filter(r=>r.val>0).sort((a,b)=>b.val-a.val);
 
-  const ytLocs=['São Paulo','Recife','Quito'];
-  const ytLocsAll=['Campinas','Ribeirão Preto','Miami','Orlando','Lisboa','Porto'];
+  /* As series dos graficos eram listas fixas; com senha de localidade elas
+     mostravam campus que o usuario nao pode ver. */
+  const soVis=a=>a.filter(n=>!campusLock||n===campusLock);
+  const ytLocs=soVis(['São Paulo','Recife','Quito']);
+  const ytLocsAll=soVis(['Campinas','Ribeirão Preto','Miami','Orlando','Lisboa','Porto']);
   const MM=['01','02','03','04','05','06','07','08','09','10','11','12'];
   const ML=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const igLocsMain=['Recife','Quito','Campinas','Lisboa','Ribeirão Preto'];
+  const igLocsMain=soVis(['Recife','Quito','Campinas','Lisboa','Ribeirão Preto']);
   const trendData=MM.map(function(mm,i){
     const pt={name:ML[i]};
     ytLocs.forEach(function(l){const v=DATA[l]?.['2026-'+mm]?.yt;pt[l]=v||null;});
@@ -7137,7 +7157,7 @@ function PageDigital(){
           </ResponsiveContainer>
         </Card>
         <Card>
-          <ChartTitle>YouTube — Recife, Quito e Outras (Evolução 2026)</ChartTitle>
+          <ChartTitle>{campusLock?'YouTube — Evolução 2026':'YouTube — Recife, Quito e Outras (Evolução 2026)'}</ChartTitle>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={trendData} margin={{top:22,right:16,bottom:0,left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
@@ -7145,7 +7165,7 @@ function PageDigital(){
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={44}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
               <Legend wrapperStyle={{fontSize:10,color:C.cream}}/>
-              {['Recife','Quito','Campinas','Ribeirão Preto'].map((l,i)=>(
+              {soVis(['Recife','Quito','Campinas','Ribeirão Preto']).map((l,i)=>(
                 <Line key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i+1]} strokeWidth={2} dot={{r:3,fill:ytColors[i+1],strokeWidth:0}} connectNulls={true}>
                   <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600,stroke:"#021a1a",strokeWidth:3,paintOrder:"stroke"}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
                 </Line>
@@ -7172,7 +7192,7 @@ function PageDigital(){
           </ResponsiveContainer>
         </Card>
         <Card>
-          <ChartTitle>Instagram — Recife, Quito, Campinas e Outras (Evolução 2026)</ChartTitle>
+          <ChartTitle>{campusLock?'Instagram — Evolução 2026':'Instagram — Recife, Quito, Campinas e Outras (Evolução 2026)'}</ChartTitle>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={igTrendData} margin={{top:22,right:16,bottom:0,left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
@@ -7610,7 +7630,7 @@ function rxFiltro(escopo){
 function RxMetrica({campo,rotulo,unidade,nota,destaque}){
   const [escopo,setEscopo]=useState('global');
   const filtro=rxFiltro(escopo);
-  const linhas=LOCS.filter(l=>!filtro||filtro(l.id)).map(l=>{
+  const linhas=locsVis().filter(l=>!filtro||filtro(l.id)).map(l=>{
     const base=rxMediaCulto(l.id,3);
     return{loc:l,x:rxIndices(l.id)[campo],base,porte:rxPorte(base||0)};
   });
@@ -7689,7 +7709,7 @@ const RX_CAMPOS={
 function RxGeracionais(){
   const [escopo,setEscopo]=useState('global');
   const filtro=rxFiltro(escopo);
-  const locs=LOCS.filter(l=>!filtro||filtro(l.id));
+  const locs=locsVis().filter(l=>!filtro||filtro(l.id));
   const meds={}; RX_GER.forEach(g=>{meds[g.pref]=rxMediana(g.pref,filtro);});
   const linhas=locs.map(l=>({loc:l,ind:rxIndices(l.id),base:rxMediaCulto(l.id,3)}))
     .sort((a,b)=>(b.base||0)-(a.base||0));
@@ -8267,7 +8287,7 @@ function PageReport(){
   const campusLock=React.useContext(CampusCtx);
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:['São Paulo']);
   const [selMonth,setSelMonth]=useState('all');
-  const filtLocs=LOCS.filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   /* Os meses saem dos proprios dados e nao de PERIODS['2026-YTD'], que e'
      compartilhado com o resto do dashboard e termina em agosto. Com ele,
@@ -8286,7 +8306,7 @@ function PageReport(){
   const POR_FILEIRA=16;
 
   const escopo=filtLocs.length===1?filtLocs[0].name
-              :filtLocs.length===LOCS.length?'Todas as Localidades'
+              :filtLocs.length===locsVis().length?'Todas as Localidades'
               :filtLocs.length+' Localidades Filtradas';
   const soSP=filtLocs.length===1&&filtLocs[0].id==='São Paulo';
   const noMes=function(iso){return selMonth==='all'||iso.slice(0,7)===selMonth;};
@@ -8680,6 +8700,18 @@ function PageReport(){
   );
 }
 
+/* Paginas de rede inteira: bloqueadas para quem entra com senha de localidade,
+   mesmo que alguem force o estado por fora do menu. */
+function SemAcesso(){
+  return(
+    <Card style={{textAlign:'center',padding:'48px 24px'}}>
+      <div style={{fontSize:32,marginBottom:12}}>🔒</div>
+      <div className="serif" style={{fontSize:18,color:C.cream,marginBottom:6}}>Página da rede global</div>
+      <div style={{fontSize:12,color:C.teal}}>Seu acesso é da localidade. Esta página mostra todas as igrejas e não está disponível.</div>
+    </Card>
+  );
+}
+
 function Sidebar({page,setPage,collapsed,setCollapsed}){
   const campusLock=React.useContext(CampusCtx);
   return(
@@ -8692,7 +8724,9 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
         {[
           {sep:'— VISÃO GERAL —',ids:campusLock?['local']:['ranking','global','local']},
           {sep:'— MÉTRICAS —',ids:['cultos','geracionais','batismo','links','plinks','voluntarios','raizes','zao','digital']},
-          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados','censo','dsm']:['report','predios','dados','censo','dsm','pul']},
+          /* censo e dsm sao relatorios de rede inteira (listam todas as
+             localidades nominalmente) — ficam fora do acesso por localidade */
+          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
@@ -8715,11 +8749,13 @@ function App(){
   const [campusFilter,setCampusFilter]=useState(undefined);
   const [page,setPage]=useState('global');
   const [collapsed,setCollapsed]=useState(false);
-  if(campusFilter===undefined)return<Login onLogin={c=>{setCampusFilter(c);setPage(c?'local':'global');}}/>;
+  if(campusFilter===undefined)return<Login onLogin={c=>{LOC_LOCK=c||null;setCampusFilter(c);setPage(c?'local':'global');}}/>;
+  /* redundante de proposito: garante a trava mesmo num re-render fora do login */
+  LOC_LOCK=campusFilter||null;
   function renderPage(){
     switch(page){
-      case 'ranking':     return<PageRanking/>;
-      case 'global':      return<PageGlobal/>;
+      case 'ranking':     return campusFilter?<SemAcesso/>:<PageRanking/>;
+      case 'global':      return campusFilter?<SemAcesso/>:<PageGlobal/>;
       case 'local':       return<PageLocal lockedLocId={campusFilter}/>;
       case 'cultos':      return<PageCultos/>;
       case 'batismo':     return<MetricPage title="Total de Batismos" pageTitle="Batismo" field="bap" isStock={false} aggFn={sumFlow} description="Total de batismos realizados no período — métrica de fluxo (soma acumulada dos meses)" color={C.teal} compTitle="Total de Batismos"/>;
@@ -8730,10 +8766,10 @@ function App(){
       case 'zao':         return<MetricPage title="Matrículas ZAO" pageTitle="ZAO" field="zao" isStock={true} aggFn={maxVal} description="Matrículas ativas no ZAO — valor do último mês (métrica de estoque)" color={C.teal} compTitle="Matrículas ZAO"/>;
       case 'digital':     return<PageDigital/>;
       case 'geracionais': return<PageGeracionais/>;
-      case 'dsm':         return<PageDSM/>;
+      case 'dsm':         return campusFilter?<SemAcesso/>:<PageDSM/>;
       case 'predios':     return<PagePredios/>;
       case 'dados':       return<PageDataControl/>;
-      case 'censo':       return<PageCenso/>;
+      case 'censo':       return campusFilter?<SemAcesso/>:<PageCenso/>;
       case 'pul':         return<PagePUL/>;
       case 'report':      return<PageReport/>;
       default:            return<PageGlobal/>;
