@@ -2935,7 +2935,12 @@ function PeriodSelector({value,onChange}){
     padding:'4px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,
     background:active?C.teal:'rgba(7,135,128,0.15)',color:active?C.cream:C.teal,
   });
-  const hasQ2 = year!=='2026';
+  /* Era `year!=='2026'`: escondia H2, Q3 e Q4 de 2026 mesmo depois do ano
+     passar de junho. Agora o botao aparece se o periodo existir. */
+  const temPer=k=>!!PERIODS[k];
+  const hasS2 = temPer(year+'-S2');
+  const hasQ3 = temPer(year+'-Q3');
+  const hasQ4 = temPer(year+'-Q4');
   return(
     <div style={{display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end'}}>
       <div style={{display:'flex',gap:4}}>
@@ -2946,12 +2951,12 @@ function PeriodSelector({value,onChange}){
       <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
         <button onClick={()=>onChange(year)} style={btnStyle(isYear)}>Ano</button>
         <button onClick={()=>onChange(year+'-S1')} style={btnStyle(sem==='1')}>H1</button>
-        {hasQ2&&<button onClick={()=>onChange(year+'-S2')} style={btnStyle(sem==='2')}>H2</button>}
+        {hasS2&&<button onClick={()=>onChange(year+'-S2')} style={btnStyle(sem==='2')}>H2</button>}
         <span style={{borderLeft:'1px solid rgba(7,135,128,0.3)',margin:'0 2px'}}/>
         <button onClick={()=>onChange(year+'-Q1')} style={btnStyle(q==='1')}>Q1</button>
         <button onClick={()=>onChange(year+'-Q2')} style={btnStyle(q==='2')}>Q2</button>
-        {hasQ2&&<button onClick={()=>onChange(year+'-Q3')} style={btnStyle(q==='3')}>Q3</button>}
-        {hasQ2&&<button onClick={()=>onChange(year+'-Q4')} style={btnStyle(q==='4')}>Q4</button>}
+        {hasQ3&&<button onClick={()=>onChange(year+'-Q3')} style={btnStyle(q==='3')}>Q3</button>}
+        {hasQ4&&<button onClick={()=>onChange(year+'-Q4')} style={btnStyle(q==='4')}>Q4</button>}
       </div>
     </div>
   );
@@ -3003,6 +3008,31 @@ function HeatmapTable({locRows,months,getMonthVal,getSemVal}){
 }
 
 /* ═══ CAMPUS PASSWORDS */
+/* ═══ PERIODOS DE 2026 SAO RECALCULADOS A PARTIR DO DADO
+   As listas de meses de 2026 em PERIODS eram fixas e foram escritas quando o
+   ano ia ate' julho/agosto. Resultado: setembro entrava no DATA e sumia de
+   toda pagina que usa o periodo padrao, porque o periodo nao o continha.
+   Agora o fim do ano corrente sai do proprio dado — nunca mais precisa
+   lembrar de editar isto a cada virada de mes. */
+(function(){
+  let ult=1;
+  LOCS.forEach(function(l){
+    Object.keys(DATA[l.id]||{}).forEach(function(m){
+      if(m.slice(0,4)==='2026') ult=Math.max(ult,parseInt(m.slice(5)));});
+    (RAW_CULTOS[l.id]||[]).forEach(function(r){
+      if(r.d.slice(0,4)==='2026') ult=Math.max(ult,parseInt(r.d.slice(5,7)));});
+  });
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const faixa=(de,ate)=>{const o=[];for(let m=de;m<=Math.min(ate,ult);m++)o.push('2026-'+String(m).padStart(2,'0'));return o;};
+  const ano=faixa(1,12);
+  PERIODS['2026']    ={label:`2026 (Jan–${MN[ult-1]})`,months:ano};
+  PERIODS['2026-YTD']={label:`2026 (Jan–${MN[ult-1]})`,months:ano};
+  const add=(k,label,de,ate)=>{const m=faixa(de,ate); if(m.length) PERIODS[k]={label:label,months:m}; else delete PERIODS[k];};
+  add('2026-S2','H2 2026',7,12);
+  add('2026-Q3','Q3 2026',7,9);
+  add('2026-Q4','Q4 2026',10,12);
+})();
+
 const CAMPUS_PASSWORDS={
   'ZionSP26':'São Paulo','ZionCPS26':'Campinas','ZionRBP26':'Ribeirão Preto',
   'ZionREC26':'Recife','ZionMCZ26':'Maceió','ZionCGR26':'Campo Grande',
