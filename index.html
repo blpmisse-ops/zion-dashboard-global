@@ -308,10 +308,10 @@ const DATA = {
     "2025-11":{sunS:685,sunN:4,bap:0,raiz:21,vol:42,links:10,ig:4403},
     "2025-12":{sunS:484,sunN:3,bap:6,raiz:0,vol:86,links:10,ig:4503},
     "2026-01":{sunS:586,sunN:3,bap:0,raiz:0,vol:86,ig:4826,yt:0},
-    "2026-02":{sunS:794,sunN:4,bap:0,raiz:0,vol:90,links:11,plinks:85,ig:5369,yt:0},
-    "2026-03":{sunS:1498,sunN:5,bap:0},
-    "2026-04":{sunS:900,sunN:3},
-    "2026-05":{bap:0,raiz:0},
+    "2026-02":{sunS:794,sunN:4,bap:0,raiz:0,vol:90,links:11,plinks:85,ig:5369,yt:0,zao:11},
+    "2026-03":{sunS:1498,sunN:5,bap:0,zao:11},
+    "2026-04":{sunS:900,sunN:3,zao:11},
+    "2026-05":{bap:8,raiz:9},
     "2026-07":{sunS:1063,sunN:4,bap:0,raiz:0,vol:70,zao:29},
     "2026-08":{sunS:1247,sunN:4,bap:0,raiz:5,vol:70,zao:7},
     "2026-09":{sunS:1223,sunN:4,bap:0,raiz:8,vol:70,zao:7,ig:6986,yt:0},
@@ -470,11 +470,11 @@ const DATA = {
   "Portim\u00e3o": {
     "2026-03":{sunS:67,sunN:2,vol:4,raiz:0,bap:0},
     "2026-04":{sunS:169,sunN:4,vol:10,raiz:0,bap:0},
-    "2026-05":{sunS:127,sunN:3,vol:14,ig:3523,yt:0,raiz:0,bap:0},
+    "2026-05":{sunS:151,sunN:4,vol:14,ig:3523,yt:0,raiz:0,bap:0},
     "2026-06":{sunS:126,sunN:4,vol:15,ig:3568,yt:0,raiz:0,bap:0},
     "2026-07":{sunS:168,sunN:4,vol:15,ig:3997,yt:0,raiz:0,bap:0},
     "2026-08":{sunS:262,sunN:5,ig:4212,yt:0,vol:16,raiz:0,bap:0},
-    "2026-09":{sunS:202,sunN:3,vol:24,ig:4324,yt:0,raiz:0},
+    "2026-09":{sunS:202,sunN:3,vol:24,ig:4324,yt:0,raiz:0,bap:0},
   },
   "Porto": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0,links:1},
@@ -553,8 +553,8 @@ const DATA = {
     "2026-02":{sunS:3723,sunN:4,bap:0,raiz:0,vol:264,zao:138,links:40,plinks:200,ig:13500,yt:6610},
     "2026-03":{sunS:5480,sunN:5,bap:47,raiz:0,vol:264,zao:138,links:18,plinks:194,ig:13700,yt:6670},
     "2026-04":{sunS:4316,sunN:4,bap:0,raiz:0,vol:138,zao:143,links:18,plinks:187,ig:13869,yt:0},
-    "2026-05":{sunS:3863,sunN:4,bap:42,vol:264,zao:143,links:18,plinks:173,ig:14129,yt:6767},
-    "2026-06":{sunS:3479,sunN:4,raiz:107,vol:264,zao:143,links:18,plinks:219},
+    "2026-05":{sunS:3863,sunN:4,bap:42,vol:264,zao:143,links:18,plinks:173,ig:14129,yt:6767,raiz:0},
+    "2026-06":{sunS:3479,sunN:4,raiz:107,vol:264,zao:143,links:18,plinks:219,bap:0,ig:13580},
     "2026-07":{sunS:3358,sunN:4,raiz:106,links:18,plinks:186,ig:13914,yt:6844,bap:0,vol:227,zao:0},
     "2026-08":{sunS:4717,sunN:5,ig:14400,yt:6960,bap:27,raiz:0,vol:307,zao:170},
     "2026-09":{sunS:4023,sunN:4,bap:0,raiz:0,vol:307,zao:170,ig:14400,yt:6980},
@@ -1684,6 +1684,7 @@ const RAW_CULTOS = {
     {d:"2026-05-03",v:41},
     {d:"2026-05-17",v:50},
     {d:"2026-05-24",v:36},
+    {d:"2026-05-31",v:24},
     {d:"2026-06-07",v:35},
     {d:"2026-06-14",v:33},
     {d:"2026-06-21",v:28},
@@ -4267,9 +4268,16 @@ function expectedSundays(ym){
 /* Exceções confirmadas pelo responsável da localidade: nº real de cultos no mês.
    Cuenca 2026-01: Pr Aldo confirmou por e-mail (13/08/2026) que o primeiro
    culto do ano foi em 18/01, então janeiro teve apenas 2 cultos. */
+/* VDS Lisboa de 10/05/2026 nao teve culto de domingo em Lisboa, Porto,
+   Portimao nem Cascais — as quatro participam da mesma VDS (Nathalia,
+   26/09/2026). Quito teve VDS propria em 31/05 (Pr Rene, 30/09/2026). */
 const CULTO_EXCECOES={
+  'Lisboa':{'2026-05':4},
+  'Porto':{'2026-05':4},
+  'Cascais':{'2026-05':4},
   /* Cuenca: 1o culto do ano em 18/01 (Pr Aldo, 13/08); 31/05 foi VDS (Jaziel, 09/09). */
   'Cuenca':{'2026-01':2,'2026-05':4},
+  'Quito':{'2026-05':4},
   /* Gabriel Marques confirmou por e-mail (27/08/2026) que 21/06 foi VDS, sem
      culto — junho teve 3 domingos, nao 4. */
   'Santos':{'2026-06':3},
@@ -4283,7 +4291,7 @@ const CULTO_EXCECOES={
   /* Vale do Ribeira: junho VDS; janeiro dispensado pelo usuario (dado antigo demais). */
   'Vale do Ribeira':{'2026-06':3,'2026-01':2},
   /* Portimao: 1o culto oficial em 22/03 (Nathalia, 17/09) — marco tem 2. */
-  'Portim\u00e3o':{'2026-03':2,'2026-05':3},
+  'Portim\u00e3o':{'2026-03':2,'2026-05':4},
   /* Campinas: 21/06 foi a conferencia Voz de Siao (Daniel, 17/09). */
   'Campinas':{'2026-06':3},
 };
@@ -4884,6 +4892,7 @@ const RAW_HORA={
     "2026-05-03":{"10:00":41},
     "2026-05-17":{"10:00":50},
     "2026-05-24":{"10:00":36},
+    "2026-05-31":{"10:00":24},
     "2026-06-07":{"10:00":35},
     "2026-06-14":{"10:00":33},
     "2026-06-21":{"10:00":28},
@@ -5510,6 +5519,7 @@ const RAW_GER={
     "2026-05-03":{"g52":4},
     "2026-05-17":{"g52":9},
     "2026-05-24":{"g52":5},
+    "2026-05-31":{"g52":4},
     "2026-06-07":{"g52":5},
     "2026-06-14":{"g52":4},
     "2026-06-21":{"g52":8},
@@ -6331,7 +6341,7 @@ const GER_DATA={
   "Portim\u00e3o":{
     "2026-03":{lumenS:9,lumenN:1},
     "2026-04":{lumenS:31,lumenN:4},
-    "2026-05":{lumenS:18,lumenN:3},
+    "2026-05":{lumenS:22,lumenN:4},
     "2026-06":{lumenS:25,lumenN:4},
     "2026-07":{lumenS:21,lumenN:4},
     "2026-08":{lumenS:32,lumenN:5,voxS:50,voxN:1},
