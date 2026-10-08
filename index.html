@@ -811,7 +811,7 @@ const DATA = {
     "2026-01":{links:6,sunS:324,sunN:2,bap:0,raiz:0,vol:65,zao:0},
     "2026-02":{sunS:336,sunN:3,bap:0,raiz:0,vol:65,zao:123,links:41,plinks:55,ig:0,yt:0},
     "2026-03":{sunS:1358,sunN:5,bap:9,raiz:9,vol:62,zao:141,links:6,plinks:76,ig:0,yt:0},
-    "2026-04":{sunS:1040,sunN:4,bap:3,raiz:5,zao:59,links:6,plinks:81,ig:0,yt:0},
+    "2026-04":{sunS:1040,sunN:4,bap:3,raiz:5,zao:59,vol:65,links:6,plinks:81,ig:0,yt:0},
     "2026-05":{sunS:653,sunN:5,bap:0,raiz:0,vol:65,zao:57,links:6,plinks:73,ig:0,yt:0},
     "2026-06":{sunS:481,sunN:3,raiz:0,vol:65,zao:59,links:6,plinks:73},
     "2026-07":{bap:0,raiz:0,vol:65,zao:59,links:6,ig:0,yt:0},
@@ -4274,7 +4274,7 @@ function expectedSundays(ym){
 const CULTO_EXCECOES={
   'Lisboa':{'2026-05':4},
   'Porto':{'2026-05':4},
-  'Cascais':{'2026-05':4},
+  'Cascais':{'2026-01':0,'2026-02':0,'2026-03':3,'2026-05':3},
   /* Cuenca: 1o culto do ano em 18/01 (Pr Aldo, 13/08); 31/05 foi VDS (Jaziel, 09/09). */
   'Cuenca':{'2026-01':2,'2026-05':4},
   'Quito':{'2026-05':4},
@@ -4289,7 +4289,7 @@ const CULTO_EXCECOES={
   /* Ribeirao e Vale do Ribeira: o domingo que falta em junho foi VDS (conferencia). */
   'Ribeir\u00e3o Preto':{'2026-06':3},
   /* Vale do Ribeira: junho VDS; janeiro dispensado pelo usuario (dado antigo demais). */
-  'Vale do Ribeira':{'2026-06':3,'2026-01':2},
+  'Vale do Ribeira':{'2026-06':3,'2026-01':2,'2026-02':3,'2026-07':0},
   /* Portimao: 1o culto oficial em 22/03 (Nathalia, 17/09) — marco tem 2. */
   'Portim\u00e3o':{'2026-03':2,'2026-05':4},
   /* Campinas: 21/06 foi a conferencia Voz de Siao (Daniel, 17/09). */
