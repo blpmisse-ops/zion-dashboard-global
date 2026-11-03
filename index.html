@@ -856,17 +856,24 @@ const DATA = {
     "2026-10":{sunS:70,sunN:1},
   },
   "Zion Online": {
-    /* DEVICES conectados, nao pessoas. Um culto por mes. O zao repete o numero
-       do ciclo em cada mes, como nas outras localidades: ciclo 2/2026 = 71
-       (abr-jul), ciclo 3/2026 = 63 (ago-set). Ciclo 1/2026 nunca foi enviado
-       pela Zao e o ciclo 4/2026 ainda nao foi pedido. */
-    "2026-04":{sunS:172,sunN:1,zao:71},
-    "2026-05":{zao:71},
-    "2026-06":{sunS:173,sunN:1,zao:71},
-    "2026-07":{sunS:136,sunN:1,zao:71},
-    "2026-08":{sunS:217,sunN:1,zao:63},
-    "2026-09":{sunS:191,sunN:1,zao:63},
+    /* DEVICES conectados, nao pessoas. Um culto por mes, a partir de abril.
+       links: 15 em todos os meses de 2026 (Breno, 03/11/2026). O export do
+       MAC10 traz os links da Online sempre como 0 e nao serve de fonte; o
+       numero vem do proprio Breno, e e' constante no ano.
+       zao repete o numero do ciclo em cada mes, como nas outras localidades:
+       ciclo 2/2026 = 71 (abr-jul), ciclo 3/2026 = 63 (ago-set). Ciclo 1/2026
+       nunca foi enviado pela Zao e o ciclo 4/2026 ainda nao foi pedido. */
+    "2026-01":{links:15},
+    "2026-02":{links:15},
+    "2026-03":{links:15},
+    "2026-04":{sunS:172,sunN:1,zao:71,links:15},
+    "2026-05":{zao:71,links:15},
+    "2026-06":{sunS:173,sunN:1,zao:71,links:15},
+    "2026-07":{sunS:136,sunN:1,zao:71,links:15},
+    "2026-08":{sunS:217,sunN:1,zao:63,links:15},
+    "2026-09":{sunS:191,sunN:1,zao:63,links:15},
     "2026-10":{sunS:189,sunN:1,links:15},
+    "2026-11":{links:15},
   },
 };
 const RAW_CULTOS = {
@@ -3808,7 +3815,9 @@ function PageCultos(){
       {/* Weekly Sunday attendance global */}
       {(()=>{
         const wkMap={};
-        filtLocs.forEach(loc=>{
+        /* aggLocs, nao filtLocs: a Zion Online celebra na quinta e a soma
+           aqui e' por data de domingo. */
+        aggLocs.forEach(loc=>{
           (RAW_CULTOS[loc.id]||[]).filter(e=>months.includes(e.d.slice(0,7))).forEach(e=>{
             wkMap[e.d]=(wkMap[e.d]||0)+e.v;
           });
@@ -4342,7 +4351,7 @@ const CAMPUS_CONFIG={
      nao em pessoas — por isso ela fica fora do consolidado global. Nao tem
      batismo, raizes, voluntarios nem redes proprias. Serie confirmada pelo
      Breno em 03/11/2026; marco/2026 ficou fora por decisao dele. */
-  'Zion Online':     {sem:['bap','raiz','vol','ig','yt','links','plinks'], monthlyCulto:true,
+  'Zion Online':     {sem:['bap','raiz','vol','ig','yt','plinks'], monthlyCulto:true,
                       cobraMesFechado:true, desde:'2026-04'},
 };
 /* Quem tem 'yt' em sem[] nao possui canal no YouTube — o dado nao existe e nao
@@ -8844,7 +8853,7 @@ function PageReport(){
   const campusLock=React.useContext(CampusCtx);
   const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:['São Paulo']);
   const [selMonth,setSelMonth]=useState('all');
-  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsGlobal().filter(l=>selLocs.includes(l.id));
   const MNAMES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   /* Os meses saem dos proprios dados e nao de PERIODS['2026-YTD'], que e'
      compartilhado com o resto do dashboard e termina em agosto. Com ele,
@@ -8863,7 +8872,7 @@ function PageReport(){
   const POR_FILEIRA=16;
 
   const escopo=filtLocs.length===1?filtLocs[0].name
-              :filtLocs.length===locsVis().length?'Todas as Localidades'
+              :filtLocs.length===locsGlobal().length?'Todas as Localidades'
               :filtLocs.length+' Localidades Filtradas';
   const soSP=filtLocs.length===1&&filtLocs[0].id==='São Paulo';
   const noMes=function(iso){return selMonth==='all'||iso.slice(0,7)===selMonth;};
@@ -9042,7 +9051,7 @@ function PageReport(){
           );})}
           {Object.keys(parciais).length>0&&<span style={{fontSize:10,color:C.sand}}>* mês incompleto</span>}
         </div>
-        <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+        <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
       </div>
       {faltaUltimo&&<div className="sem-print" style={{background:'rgba(240,138,138,0.12)',border:'1px solid rgba(240,138,138,0.55)',
             borderRadius:10,padding:'10px 16px',color:'#f5b5b5',fontSize:13,fontWeight:600}}>
