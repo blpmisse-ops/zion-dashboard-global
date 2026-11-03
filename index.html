@@ -124,6 +124,7 @@ const LOCS=[
   {id:'Santiago',        name:'Santiago',         flag:'🇨🇱'},
   {id:'Miami',           name:'Miami',            flag:'🇺🇸'},
   {id:'Orlando',         name:'Orlando',          flag:'🇺🇸'},
+  {id:'Zion Online',     name:'Zion Online',      flag:'🌐'},
 ];
 /* ═══ ESCOPO DE VISIBILIDADE
    Quem entra com a senha de uma localidade nao pode ver dados das outras —
@@ -135,6 +136,14 @@ const LOCS=[
    verdade exige servir os dados por localidade, fora do arquivo. */
 let LOC_LOCK=null;
 function locsVis(){ return LOC_LOCK?LOCS.filter(l=>l.id===LOC_LOCK):LOCS; }
+/* ═══ FORA DO CONSOLIDADO GLOBAL
+   A Zion Online mede presenca em DEVICES conectados, nao em pessoas. Somar
+   device com pessoa no numero de rede daria um total falso, entao ela fica
+   fora do Ranking e da Visao Global. Continua inteira na pagina dela, em
+   Cultos, na ZAO e no Controle de Dados. Quem entra com a senha da propria
+   localidade continua vendo tudo — ali nao ha' consolidado a sujar. */
+const FORA_DO_GLOBAL=new Set(['Zion Online']);
+function locsGlobal(){ return LOC_LOCK?locsVis():LOCS.filter(l=>!FORA_DO_GLOBAL.has(l.id)); }
 
 /* ═══ PERIODS */
 const PERIODS={
@@ -169,7 +178,11 @@ function prevPeriod(p){
     '2024-S1':'2023-S1','2024-S2':'2023-S2',
     '2025-Q1':'2024-Q1','2025-Q2':'2024-Q2','2025-Q3':'2024-Q3','2025-Q4':'2024-Q4',
     '2025-S1':'2024-S1','2025-S2':'2024-S2',
-    '2026-Q1':'2025-Q1','2026-Q2':'2025-Q2','2026-Q3':'2025-Q3','2026-S1':'2025-S1',
+    /* Q4 e H2 de 2026 passam a existir pelo recalculo logo abaixo de
+       CAMPUS_PASSWORDS; sem o par aqui as duas visoes abriam sem
+       comparativo com o ano anterior. */
+    '2026-Q1':'2025-Q1','2026-Q2':'2025-Q2','2026-Q3':'2025-Q3','2026-Q4':'2025-Q4',
+    '2026-S1':'2025-S1','2026-S2':'2025-S2',
     '2024':null,'2025':'2024','2026':'2025-S1',
   };
   return map[p]||null;
@@ -841,6 +854,19 @@ const DATA = {
     "2026-08":{sunS:221,sunN:2},
     "2026-09":{sunS:204,sunN:2},
     "2026-10":{sunS:70,sunN:1},
+  },
+  "Zion Online": {
+    /* DEVICES conectados, nao pessoas. Um culto por mes. O zao repete o numero
+       do ciclo em cada mes, como nas outras localidades: ciclo 2/2026 = 71
+       (abr-jul), ciclo 3/2026 = 63 (ago-set). Ciclo 1/2026 nunca foi enviado
+       pela Zao e o ciclo 4/2026 ainda nao foi pedido. */
+    "2026-04":{sunS:172,sunN:1,zao:71},
+    "2026-05":{zao:71},
+    "2026-06":{sunS:173,sunN:1,zao:71},
+    "2026-07":{sunS:136,sunN:1,zao:71},
+    "2026-08":{sunS:217,sunN:1,zao:63},
+    "2026-09":{sunS:191,sunN:1,zao:63},
+    "2026-10":{sunS:189,sunN:1,links:15},
   },
 };
 const RAW_CULTOS = {
@@ -2855,6 +2881,14 @@ const RAW_CULTOS = {
     {d:"2026-09-20",v:102},
     {d:"2026-10-04",v:70},
   ],
+  "Zion Online": [
+    {d:"2026-04-30",v:172},
+    {d:"2026-06-02",v:173},
+    {d:"2026-07-02",v:136},
+    {d:"2026-08-06",v:217},
+    {d:"2026-09-03",v:191},
+    {d:"2026-10-15",v:189},
+  ],
 };
 const PUL_DATA = [{"campus": "São Paulo", "proj": 679937, "mensal": 56661, "compromissos": 2544, "ticket": 22.27, "dizimistas": 2291, "eng": 1.11}, {"campus": "Lisboa", "proj": 115330, "mensal": 9611, "compromissos": 309, "ticket": 31.1, "dizimistas": 142, "eng": 2.18}, {"campus": "Campinas", "proj": 90055, "mensal": 7505, "compromissos": 458, "ticket": 16.39, "dizimistas": 137, "eng": 3.34}, {"campus": "Recife", "proj": 62781, "mensal": 5232, "compromissos": 436, "ticket": 12.0, "dizimistas": 275, "eng": 1.59}, {"campus": "Quito", "proj": 51379, "mensal": 4282, "compromissos": 201, "ticket": 21.3, "dizimistas": 167, "eng": 1.2}, {"campus": "Ribeirão Preto", "proj": 39206, "mensal": 3267, "compromissos": 235, "ticket": 13.9, "dizimistas": 21, "eng": 11.19}, {"campus": "Santos", "proj": 30109, "mensal": 2509, "compromissos": 150, "ticket": 16.73, "dizimistas": 38, "eng": 3.95}, {"campus": "Vale do Ribeira", "proj": 17496, "mensal": 1458, "compromissos": 130, "ticket": 11.22, "dizimistas": 24, "eng": 5.42}, {"campus": "Maceió", "proj": 15240, "mensal": 1270, "compromissos": 97, "ticket": 13.09, "dizimistas": 120, "eng": 0.81}, {"campus": "Porto", "proj": 12065, "mensal": 1005, "compromissos": 38, "ticket": 26.46, "dizimistas": 39, "eng": 0.97}, {"campus": "Santiago", "proj": 6308, "mensal": 526, "compromissos": 32, "ticket": 16.43, "dizimistas": 31, "eng": 1.03}];
 
@@ -3134,7 +3168,7 @@ const CAMPUS_PASSWORDS={
   'ZionLIS26':'Lisboa','ZionCCS26':'Cascais','ZionPTO26':'Porto',
   'ZionPTM26':'Portimão','ZionMIA26':'Miami','ZionORL26':'Orlando',
   'ZionSTS26':'Santos','ZionJDI26':'Jundiaí','ZionCUE26':'Cuenca',
-  'ZionVIT26':'Vitória','ZionSJC26':'SJCampos',
+  'ZionVIT26':'Vitória','ZionSJC26':'SJCampos','ZionONL26':'Zion Online',
 };
 
 /* ═══ LOGIN */
@@ -3166,9 +3200,11 @@ function Login({onLogin}){
 
 /* ═══ PAGE: RANKING DE LOCALIDADES */
 /* ═══ MULTI-LOCATION FILTER DROPDOWN */
-function LocMultiFilter({selected,onChange}){
+function LocMultiFilter({selected,onChange,locs}){
   const [open,setOpen]=useState(false);
-  const VIS=locsVis();
+  /* locs: lista alternativa, usada pela Visao Global para nao oferecer uma
+     localidade que o consolidado nao soma (caixinha morta confunde). */
+  const VIS=locs||locsVis();
   const allSel=selected.length===VIS.length;
   function toggle(id){
     if(selected.includes(id)){
@@ -3223,7 +3259,7 @@ function PageRanking(){
   const prev=prevPeriod(period);
   const prevMonths=prev?pMonths(prev):[];
 
-  const rows=locsVis().map(loc=>{
+  const rows=locsGlobal().map(loc=>{
     const avg=avgSunday(loc.id,months);
     const prv=prev?avgSunday(loc.id,prevMonths):null;
     return{loc,avg,tier:getTier(avg),d:prv!==null?delta(avg,prv):null,prv};
@@ -3296,11 +3332,11 @@ function PageRanking(){
 /* ═══ PAGE: VISÃO GLOBAL */
 function PageGlobal(){
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(locsVis().map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(locsGlobal().map(l=>l.id));
   const [cmpA,setCmpA]=useState('2025-S1');
   const [cmpB,setCmpB]=useState('2026-YTD');
   const [selMonth,setSelMonth]=useState('all');
-  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsGlobal().filter(l=>selLocs.includes(l.id));
   const allMonths=pMonths(period);
   const months=selMonth==='all'?allMonths:allMonths.filter(m=>m===selMonth);
   const prev=prevPeriod(period);
@@ -3350,7 +3386,7 @@ function PageGlobal(){
   function AllLocBar({data,dataKey,label,color}){
     return(
       <Card>
-        <ChartTitle>{label} — {selLocs.length===locsVis().length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
+        <ChartTitle>{label} — {selLocs.length===locsGlobal().length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={data} margin={{top:22,right:8,bottom:50,left:55}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
@@ -3375,7 +3411,7 @@ function PageGlobal(){
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
         <h2 className="serif" style={{fontSize:22,color:C.cream}}>Visão Global — {PERIODS[period]?.label}</h2>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
           <PeriodSelector value={period} onChange={e=>{setPeriod(e);setSelMonth('all');}}/>
         </div>
       </div>
@@ -3706,10 +3742,15 @@ function PageCultos(){
     return{loc,cur,prv,d:prv!==null?delta(cur,prv):null};
   }).sort((a,b)=>b.cur-a.cur);
 
-  let gSum=0; filtLocs.forEach(l=>{gSum+=avgSunday(l.id,months);});
-  const gAvg=filtLocs.length>0?Math.round(gSum/filtLocs.length):0;
-  let gPSum=0; if(prev)filtLocs.forEach(l=>{gPSum+=avgSunday(l.id,prevM);});
-  const gPAvg=(prev&&filtLocs.length>0)?Math.round(gPSum/filtLocs.length):null;
+  /* A Zion Online aparece na tabela e nos graficos desta pagina, mas nao
+     entra na media da rede nem na tendencia: a presenca dela e' device
+     conectado, e misturar com pessoa derrubava a media global de 532 para
+     515 so' por ela existir. */
+  const aggLocs=filtLocs.filter(l=>!FORA_DO_GLOBAL.has(l.id));
+  let gSum=0; aggLocs.forEach(l=>{gSum+=avgSunday(l.id,months);});
+  const gAvg=aggLocs.length>0?Math.round(gSum/aggLocs.length):0;
+  let gPSum=0; if(prev)aggLocs.forEach(l=>{gPSum+=avgSunday(l.id,prevM);});
+  const gPAvg=(prev&&aggLocs.length>0)?Math.round(gPSum/aggLocs.length):null;
 
   // All periods trend
   const allPeriods=['2024-S1','2024-S2','2025-S1','2025-S2','2026-S1','2026-YTD'];
@@ -3719,7 +3760,7 @@ function PageCultos(){
      período — o que dava um número menor e divergente do outro gráfico. */
   const trendData=allPeriods.filter(p=>PERIODS[p]).map(p=>{
     const ms=pMonths(p); let s=0,n=0;
-    filtLocs.forEach(l=>{ms.forEach(m=>{const d=DATA[l.id]?.[m];if(d?.sunS&&d?.sunN){s+=d.sunS;n+=d.sunN;}});});
+    aggLocs.forEach(l=>{ms.forEach(m=>{const d=DATA[l.id]?.[m];if(d?.sunS&&d?.sunN){s+=d.sunS;n+=d.sunN;}});});
     return{name:PERIODS[p].label,val:n>0?Math.round(s/n):0};
   });
 
@@ -4136,11 +4177,11 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 /* ═══ PAGE: TAXAS */
 function PageTaxas(){
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(locsVis().map(l=>l.id));
+  const [selLocs,setSelLocs]=useState(locsGlobal().map(l=>l.id));
   const months=pMonths(period);
   const prev=prevPeriod(period);
   const prevM=prev?pMonths(prev):[];
-  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
+  const filtLocs=locsGlobal().filter(l=>selLocs.includes(l.id));
 
   function rates(locId,ms){
     const sun=avgSunday(locId,ms);
@@ -4211,7 +4252,7 @@ function PageTaxas(){
           <p style={{fontSize:12,color:C.teal,marginTop:2}}>Indicadores de eficiência ministerial — relação entre as métricas de cada localidade</p>
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
           <PeriodSelector value={period} onChange={setPeriod}/>
         </div>
       </div>
@@ -4296,6 +4337,13 @@ const CAMPUS_CONFIG={
   'Campo Grande':    {sem:['yt']},
   'Cuenca':          {sem:['yt']},
   'Vale do Ribeira': {sem:['ig','yt']},
+  /* Zion Online: igreja sem endereco. Um culto por mes, quinta 20h (o de maio
+     virou terca 02/06), e a presenca e' medida em DEVICES conectados no Zoom,
+     nao em pessoas — por isso ela fica fora do consolidado global. Nao tem
+     batismo, raizes, voluntarios nem redes proprias. Serie confirmada pelo
+     Breno em 03/11/2026; marco/2026 ficou fora por decisao dele. */
+  'Zion Online':     {sem:['bap','raiz','vol','ig','yt','links','plinks'], monthlyCulto:true,
+                      cobraMesFechado:true, desde:'2026-04'},
 };
 /* Quem tem 'yt' em sem[] nao possui canal no YouTube — o dado nao existe e nao
    deve ser cobrado. Confirmado pelo usuario em 09/09/2026.
@@ -4355,11 +4403,28 @@ const CULTO_EXCECOES={
   'Campinas':{'2026-06':3},
   /* Maceio: 03/05 foi VDS Nordeste, sem culto (Sofia, 09/10/2026). */
   'Macei\u00f3':{'2026-05':4},
+  /* Zion Online: o culto de maio foi deslocado para terca 02/06 por falta de
+     local, entao maio nao tem culto proprio. */
+  'Zion Online':{'2026-05':0},
 };
+function mesCorrente(){
+  const h=new Date();
+  return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');
+}
 function expectedSundaysForLoc(locId,ym){
   const exc=CULTO_EXCECOES[locId]?.[ym];
   if(exc!==undefined) return exc;
-  if(CAMPUS_CONFIG[locId]?.monthlyCulto) return 1;
+  const cfg=CAMPUS_CONFIG[locId];
+  if(cfg?.monthlyCulto){
+    /* A data do culto da Zion Online muda de mes para mes: quinta em abril,
+       terca em junho, terceira quinta em outubro. Nao da' para prever se o
+       do mes em curso ja' aconteceu, e cobrar no dia 3 um culto marcado
+       para o dia 5 e' pendencia falsa. Com cobraMesFechado a cobranca so'
+       comeca depois do mes virar — que e' tambem a regra do usuario:
+       cobrar o mes anterior a partir do dia 5, nunca o mes em curso. */
+    if(cfg.cobraMesFechado && ym>=mesCorrente()) return 0;
+    return 1;
+  }
   return expectedSundays(ym);
 }
 function PageDataControl(){
@@ -4408,6 +4473,16 @@ function PageDataControl(){
         });
         const totalFilled=monthDetails.reduce((s,r)=>s+r.filled,0);
         const totalExpected=monthDetails.reduce((s,r)=>s+r.expected,0);
+        /* Nada esperado no periodo nao e' pendencia. A condicao
+           totalExpected>0 jogava para 'Pendente' todo mes sem culto
+           previsto — Cascais em janeiro, Vale do Ribeira em julho, a Zion
+           Online no mes em curso — com a propria dica dizendo 'Sem cultos
+           esperados neste periodo'. Agora isso e' N/A. */
+        if(totalExpected===0&&totalFilled===0){
+          return{...m,monthDetails,totalFilled,totalExpected,ok:false,partial:false,
+            allVacation:true,status:'na',label2:null,
+            tooltip:'Sem cultos esperados neste período',};
+        }
         const ok=totalFilled>=totalExpected&&totalExpected>0;
         const partial=totalFilled>0&&!ok;
         const missingList=monthDetails.filter(r=>r.missing>0);
@@ -4624,7 +4699,8 @@ function PageDataControl(){
    para 371 e o max ressuscitava o 392).
 
    Conferido: as 492 somas por campus/data batem com o total de 'Geral domingo'.
-   Online ficou de fora — nao e' campus do dashboard. */
+   A Zion Online entrou como campus em 03/11/2026 e tem serie propria, em
+   devices; ela nao vem do export do MAC10, que nao exporta culto online. */
 const RAW_HORA={
   "Campinas":{
     "2026-01-11":{"08:00":337,"11:00":412,"18:00":454},
@@ -5321,6 +5397,14 @@ const RAW_HORA={
     "2026-09-06":{"10:00":102},
     "2026-09-20":{"10:00":102},
     "2026-10-04":{"10:00":70},
+  },
+  "Zion Online":{
+    "2026-04-30":{"20:00":172},
+    "2026-06-02":{"20:00":173},
+    "2026-07-02":{"20:00":136},
+    "2026-08-06":{"20:00":217},
+    "2026-09-03":{"20:00":191},
+    "2026-10-15":{"20:00":189},
   },
 };
 /* Geracionais por data. A chave g52 e' o nome antigo; o geracional se chama
@@ -6526,14 +6610,14 @@ function gerAvg(locId,months,cat){
 function PageGeracionais(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
-  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsGlobal().map(l=>l.id));
+  const filtLocs=locsGlobal().filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
   /* Toda a página passou a seguir o filtro de localidades do topo.
      Antes havia um segundo seletor só para esta página, então o bloco de
      baixo continuava mostrando São Paulo mesmo com outra igreja filtrada. */
   const escopo=filtLocs.length===1?filtLocs[0].name
-              :filtLocs.length===locsVis().length?'Todas as Localidades'
+              :filtLocs.length===locsGlobal().length?'Todas as Localidades'
               :`${filtLocs.length} Localidades Filtradas`;
   const hasData=filtLocs.some(l=>GER_DATA[l.id]&&months.some(m=>GER_DATA[l.id][m]));
 
@@ -6599,7 +6683,7 @@ function PageGeracionais(){
           <p style={{fontSize:12,color:C.teal,marginTop:2}}>Média de presença por semana em cada geracional — cultos de sexta/sábado</p>
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
           <PeriodSelector value={period} onChange={setPeriod}/>
         </div>
       </div>
@@ -6759,8 +6843,8 @@ Object.values(PRED_DATA).forEach(d=>{d.seats=TIER_SEATS[d.tier]||0;d.cap=d.seats
 function PagePredios(){
   const campusLock=React.useContext(CampusCtx);
   const [period,setPeriod]=useState('2026-YTD');
-  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsVis().map(l=>l.id));
-  const filtLocs=locsVis().filter(l=>selLocs.includes(l.id));
+  const [selLocs,setSelLocs]=useState(campusLock?[campusLock]:locsGlobal().map(l=>l.id));
+  const filtLocs=locsGlobal().filter(l=>selLocs.includes(l.id));
   const months=pMonths(period);
 
   const rows=filtLocs.map(loc=>{
@@ -6783,7 +6867,7 @@ function PagePredios(){
           <p style={{fontSize:12,color:C.teal,marginTop:2}}>Cadeiras do templo × cultos por domingo = capacidade total (Gold) | Presença de pessoas (Silver) — taxa de ocupação por campus</p>
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-          <LocMultiFilter selected={selLocs} onChange={setSelLocs}/>
+          <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
           <PeriodSelector value={period} onChange={setPeriod}/>
         </div>
       </div>
@@ -7925,7 +8009,10 @@ function rxIndices(locId){
 }
 /* Mediana entre as localidades que tem o indice — a media seria puxada por SP. */
 function rxMediana(campo,filtro){
-  const v=LOCS.filter(l=>!filtro||filtro(l.id)).map(l=>rxIndices(l.id)[campo])
+  /* LOCS cru incluiria a Zion Online, cujas razoes tem device no denominador:
+     em 03/11/2026 ela sozinha empurrou a mediana de IBZAO de 19.2% para
+     20.7% e mudou o texto comparativo de todas as outras localidades. */
+  const v=LOCS.filter(l=>!FORA_DO_GLOBAL.has(l.id)).filter(l=>!filtro||filtro(l.id)).map(l=>rxIndices(l.id)[campo])
     .filter(x=>x&&!x.na&&isFinite(x.pct)).map(x=>x.pct).sort((a,b)=>a-b);
   if(!v.length) return null;
   const i=Math.floor(v.length/2);
@@ -8054,7 +8141,7 @@ function RxEvolucao({campo,rotulo,locId}){
     ? [...Object.keys(RX_CAMPOS).map(k=>({k,nome:RX_CAMPOS[k].rotulo})),
        ...RX_GER.map(g=>({k:g.pref,nome:g.label}))]
        .map(r=>({nome:r.nome,vals:per.map(p=>rxIndicePeriodo(locId,r.k,p.meses))}))
-    : locsVis().map(l=>({nome:l.flag+' '+l.name,
+    : locsGlobal().map(l=>({nome:l.flag+' '+l.name,
         vals:per.map(p=>rxIndicePeriodo(l.id,campo,p.meses))}))
         .filter(r=>r.vals.some(v=>v!=null))
         .sort((a,b)=>(b.vals[b.vals.length-1]??-1)-(a.vals[a.vals.length-1]??-1));
@@ -8100,7 +8187,7 @@ function RxEvolucao({campo,rotulo,locId}){
 function RxMetrica({campo,rotulo,unidade,nota,destaque}){
   const [escopo,setEscopo]=useState('global');
   const filtro=rxFiltro(escopo);
-  const linhas=locsVis().filter(l=>!filtro||filtro(l.id)).map(l=>{
+  const linhas=locsGlobal().filter(l=>!filtro||filtro(l.id)).map(l=>{
     const base=rxMediaCulto(l.id,3);
     return{loc:l,x:rxIndices(l.id)[campo],base,porte:rxPorte(base||0)};
   });
@@ -8178,7 +8265,7 @@ const RX_CAMPOS={
 function RxGeracionais(){
   const [escopo,setEscopo]=useState('global');
   const filtro=rxFiltro(escopo);
-  const locs=locsVis().filter(l=>!filtro||filtro(l.id));
+  const locs=locsGlobal().filter(l=>!filtro||filtro(l.id));
   const meds={}; RX_GER.forEach(g=>{meds[g.pref]=rxMediana(g.pref,filtro);});
   const linhas=locs.map(l=>({loc:l,ind:rxIndices(l.id),base:rxMediaCulto(l.id,3)}))
     .sort((a,b)=>(b.base||0)-(a.base||0));
