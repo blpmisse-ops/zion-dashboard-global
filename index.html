@@ -3093,7 +3093,7 @@ const RAW_CULTOS = {
     {d:"2026-08-06",v:217},
     {d:"2026-09-03",v:191},
     {d:"2026-10-15",v:189},
-    {d:"2026-11-01",v:174},
+    {d:"2026-11-05",v:174},
   ],
 };
 const PUL_DATA = [{"campus": "São Paulo", "proj": 679937, "mensal": 56661, "compromissos": 2544, "ticket": 22.27, "dizimistas": 2291, "eng": 1.11}, {"campus": "Lisboa", "proj": 115330, "mensal": 9611, "compromissos": 309, "ticket": 31.1, "dizimistas": 142, "eng": 2.18}, {"campus": "Campinas", "proj": 90055, "mensal": 7505, "compromissos": 458, "ticket": 16.39, "dizimistas": 137, "eng": 3.34}, {"campus": "Recife", "proj": 62781, "mensal": 5232, "compromissos": 436, "ticket": 12.0, "dizimistas": 275, "eng": 1.59}, {"campus": "Quito", "proj": 51379, "mensal": 4282, "compromissos": 201, "ticket": 21.3, "dizimistas": 167, "eng": 1.2}, {"campus": "Ribeirão Preto", "proj": 39206, "mensal": 3267, "compromissos": 235, "ticket": 13.9, "dizimistas": 21, "eng": 11.19}, {"campus": "Santos", "proj": 30109, "mensal": 2509, "compromissos": 150, "ticket": 16.73, "dizimistas": 38, "eng": 3.95}, {"campus": "Vale do Ribeira", "proj": 17496, "mensal": 1458, "compromissos": 130, "ticket": 11.22, "dizimistas": 24, "eng": 5.42}, {"campus": "Maceió", "proj": 15240, "mensal": 1270, "compromissos": 97, "ticket": 13.09, "dizimistas": 120, "eng": 0.81}, {"campus": "Porto", "proj": 12065, "mensal": 1005, "compromissos": 38, "ticket": 26.46, "dizimistas": 39, "eng": 0.97}, {"campus": "Santiago", "proj": 6308, "mensal": 526, "compromissos": 32, "ticket": 16.43, "dizimistas": 31, "eng": 1.03}];
@@ -4626,7 +4626,12 @@ const METRICA_OK={ 'Portimão':{ ig:['2026-03','2026-04'],
   /* Nathalia Lima (Portimao) por e-mail em 15/10/2026: 'no primeiro semestre
      houveram links, mas nao foi contabilizado... podemos tomar como referencia
      somente a partir de setembro'. Nao e' zero — o dado nao existe. */
-  links:['2026-03','2026-04','2026-05','2026-06','2026-08'] } };
+  links:['2026-03','2026-04','2026-05','2026-06','2026-08'] },
+  /* Milão: a serie da Andrea começa em 13/09/2026. Raízes, batismo,
+     Instagram e links ela so' passou a lançar em outubro — cobrar setembro
+     seria cobrar mês anterior ao que ela entregou (decisão do Breno em
+     06/11/2026). Outubro em diante e' cobrança normal. */
+  'Milão':{ raiz:['2026-09'], bap:['2026-09'], ig:['2026-09'], links:['2026-09'] } };
 // Métricas globais que ficam OK sem dado em meses específicos
 const GLOBAL_OK={
   links:  [1,7],  // Janeiro e Julho = férias de Links
@@ -4653,6 +4658,9 @@ function expectedSundays(ym){
    Portimao nem Cascais — as quatro participam da mesma VDS (Nathalia,
    26/09/2026). Quito teve VDS propria em 31/05 (Pr Rene, 30/09/2026). */
 const CULTO_EXCECOES={
+  /* Milão entrou com 13/09 como primeiro domingo exportado; 06/09 e' anterior
+     a' serie e nao se cobra. A data do primeiro culto segue a confirmar. */
+  'Milão':{'2026-09':3},
   'Lisboa':{'2026-05':4},
   'Porto':{'2026-05':4},
   'Cascais':{'2026-01':0,'2026-02':0,'2026-03':3,'2026-05':3},
@@ -5702,7 +5710,7 @@ const RAW_HORA={
     "2026-08-06":{"20:00":217},
     "2026-09-03":{"20:00":191},
     "2026-10-15":{"20:00":189},
-    "2026-11-01":{"20:00":174},
+    "2026-11-05":{"20:00":174},
   },
 };
 /* Geracionais por data. A chave g52 e' o nome antigo; o geracional se chama
