@@ -119,6 +119,7 @@ const LOCS=[
   {id:'Porto',           name:'Porto',            flag:'🇵🇹'},
   {id:'Portimão',        name:'Portimão',         flag:'🇵🇹'},
   {id:'Cascais',         name:'Cascais',          flag:'🇵🇹'},
+  {id:'Milão',          name:'Milão',           flag:'🇮🇹'},
   {id:'Quito',           name:'Quito',            flag:'🇪🇨'},
   {id:'Cuenca',          name:'Cuenca',           flag:'🇪🇨'},
   {id:'Santiago',        name:'Santiago',         flag:'🇨🇱'},
@@ -355,6 +356,11 @@ function pMonths(p){return PERIODS[p]?.months||[];}
 
 /* ═══ REAL DATA — extracted from Data Base - Dashboard Global (19).xlsx + user corrections */
 const DATA = {
+  "Mil\u00e3o": {
+    "2026-09":{sunS:116,sunN:3,vol:26},
+    "2026-10":{sunS:111,sunN:3,raiz:14,vol:28,ig:3004,yt:0},
+    "2026-11":{sunS:44,sunN:1,vol:28},
+  },
   "Campinas": {
     "2023-01":{bap:0,raiz:17,vol:10,zao:0,ig:1800},
     "2023-02":{bap:0,raiz:0,vol:10,zao:0,ig:2466},
@@ -438,6 +444,7 @@ const DATA = {
     "2026-08":{sunS:1299,sunN:5,bap:6,raiz:50,zao:31,vol:44,ig:5299,yt:0},
     "2026-09":{sunS:899,sunN:4,bap:0,raiz:0,vol:45,zao:31,ig:5500,yt:0},
     "2026-10":{sunS:1110,sunN:4,bap:0,raiz:0,vol:45,zao:0,ig:5839,yt:0},
+    "2026-11":{sunS:303,sunN:1},
   },
   "Cascais": {
     "2026-03":{sunS:513,sunN:3},
@@ -459,6 +466,7 @@ const DATA = {
     "2026-08":{sunS:493,sunN:5,bap:0,raiz:0,vol:58,zao:0,plinks:0,ig:2369,yt:0,links:0},
     "2026-09":{sunS:460,sunN:4,vol:58,zao:48,ig:2432,yt:0,bap:0,raiz:0,links:8},
     "2026-10":{sunS:508,sunN:4,vol:58,bap:11,raiz:0,zao:48,ig:2487,yt:0},
+    "2026-11":{sunS:116,sunN:1},
   },
   "Jundia\u00ed": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0},
@@ -790,7 +798,8 @@ const DATA = {
     "2026-07":{sunS:5272,sunN:4,bap:0,vol:392,zao:182,ig:56050,yt:0,raiz:0},
     "2026-08":{sunS:7349,sunN:5,bap:0,raiz:78,vol:392,ig:56600,yt:12720,zao:186},
     "2026-09":{sunS:5337,sunN:4,bap:0,zao:185,vol:392,ig:56911,yt:12847,raiz:0},
-    "2026-10":{sunS:4360,sunN:4},
+    "2026-10":{sunS:4360,sunN:4,bap:0,raiz:0,vol:392,zao:206,ig:57200,yt:13100},
+    "2026-11":{raiz:0},
   },
   "Ribeir\u00e3o Preto": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0},
@@ -827,6 +836,7 @@ const DATA = {
     "2026-08":{sunS:1828,sunN:5,vol:100,plinks:195,ig:10700,yt:1090,raiz:0,bap:0,zao:0},
     "2026-09":{sunS:1268,sunN:4,vol:100,yt:1162},
     "2026-10":{sunS:1178,sunN:4,vol:100,yt:1180},
+    "2026-11":{sunS:330,sunN:1},
   },
   "SJCampos": {
     "2026-01":{links:5,ig:1494,yt:0},
@@ -969,7 +979,7 @@ const DATA = {
     "2026-07":{sunS:13456,sunN:4,bap:48,raiz:0,vol:892,zao:452,links:190,ig:350005,yt:444034},
     "2026-08":{sunS:18459,sunN:5,zao:350,bap:0,raiz:117,vol:892,ig:351597,yt:445063},
     "2026-09":{sunS:15479,sunN:4,bap:66,raiz:118,vol:892,ig:353801,yt:446741},
-    "2026-10":{sunS:12291,sunN:4,bap:0,vol:892,ig:354074,yt:447497},
+    "2026-10":{sunS:12291,sunN:4,bap:0,vol:892,ig:354074,yt:447497,raiz:111},
     "2026-11":{sunS:3932,sunN:1},
   },
   "Vale do Ribeira": {
@@ -1038,10 +1048,19 @@ const DATA = {
     "2026-08":{sunS:217,sunN:1,zao:63,links:15},
     "2026-09":{sunS:191,sunN:1,zao:63,links:15},
     "2026-10":{sunS:189,sunN:1,links:15},
-    "2026-11":{links:15},
+    "2026-11":{sunS:174,sunN:1,links:15},
   },
 };
 const RAW_CULTOS = {
+  "Mil\u00e3o": [
+    {d:"2026-09-13",v:29},
+    {d:"2026-09-20",v:40},
+    {d:"2026-09-27",v:47},
+    {d:"2026-10-04",v:39},
+    {d:"2026-10-11",v:36},
+    {d:"2026-10-25",v:36},
+    {d:"2026-11-01",v:44},
+  ],
   "Campinas": [
     {d:"2023-09-03",v:403},
     {d:"2023-09-17",v:278},
@@ -1323,6 +1342,7 @@ const RAW_CULTOS = {
     {d:"2026-10-11",v:195},
     {d:"2026-10-18",v:578},
     {d:"2026-10-25",v:172},
+    {d:"2026-11-01",v:303},
   ],
   "Cascais": [
     {d:"2026-03-15",v:243},
@@ -1394,6 +1414,7 @@ const RAW_CULTOS = {
     {d:"2026-10-11",v:136},
     {d:"2026-10-18",v:136},
     {d:"2026-10-25",v:126},
+    {d:"2026-11-01",v:116},
   ],
   "Jundia\u00ed": [
     {d:"2025-01-19",v:475},
@@ -2519,6 +2540,7 @@ const RAW_CULTOS = {
     {d:"2026-10-11",v:315},
     {d:"2026-10-18",v:336},
     {d:"2026-10-25",v:180},
+    {d:"2026-11-01",v:330},
   ],
   "SJCampos": [
     
@@ -3071,6 +3093,7 @@ const RAW_CULTOS = {
     {d:"2026-08-06",v:217},
     {d:"2026-09-03",v:191},
     {d:"2026-10-15",v:189},
+    {d:"2026-11-01",v:174},
   ],
 };
 const PUL_DATA = [{"campus": "São Paulo", "proj": 679937, "mensal": 56661, "compromissos": 2544, "ticket": 22.27, "dizimistas": 2291, "eng": 1.11}, {"campus": "Lisboa", "proj": 115330, "mensal": 9611, "compromissos": 309, "ticket": 31.1, "dizimistas": 142, "eng": 2.18}, {"campus": "Campinas", "proj": 90055, "mensal": 7505, "compromissos": 458, "ticket": 16.39, "dizimistas": 137, "eng": 3.34}, {"campus": "Recife", "proj": 62781, "mensal": 5232, "compromissos": 436, "ticket": 12.0, "dizimistas": 275, "eng": 1.59}, {"campus": "Quito", "proj": 51379, "mensal": 4282, "compromissos": 201, "ticket": 21.3, "dizimistas": 167, "eng": 1.2}, {"campus": "Ribeirão Preto", "proj": 39206, "mensal": 3267, "compromissos": 235, "ticket": 13.9, "dizimistas": 21, "eng": 11.19}, {"campus": "Santos", "proj": 30109, "mensal": 2509, "compromissos": 150, "ticket": 16.73, "dizimistas": 38, "eng": 3.95}, {"campus": "Vale do Ribeira", "proj": 17496, "mensal": 1458, "compromissos": 130, "ticket": 11.22, "dizimistas": 24, "eng": 5.42}, {"campus": "Maceió", "proj": 15240, "mensal": 1270, "compromissos": 97, "ticket": 13.09, "dizimistas": 120, "eng": 0.81}, {"campus": "Porto", "proj": 12065, "mensal": 1005, "compromissos": 38, "ticket": 26.46, "dizimistas": 39, "eng": 0.97}, {"campus": "Santiago", "proj": 6308, "mensal": 526, "compromissos": 32, "ticket": 16.43, "dizimistas": 31, "eng": 1.03}];
@@ -3352,6 +3375,7 @@ const CAMPUS_PASSWORDS={
   'ZionPTM26':'Portimão','ZionMIA26':'Miami','ZionORL26':'Orlando',
   'ZionSTS26':'Santos','ZionJDI26':'Jundiaí','ZionCUE26':'Cuenca',
   'ZionVIT26':'Vitória','ZionSJC26':'SJCampos','ZionONL26':'Zion Online',
+  'ZionMIL26':'Milão',
 };
 
 /* ═══ LOGIN */
@@ -4572,6 +4596,13 @@ const CAMPUS_CONFIG={
      IBZAO ainda nao implantado na localidade. */
   'Portimão':        {sem:['zao'], desde:'2026-03'},
   'Cascais':         {sem:['bap','raiz','zao','vol','links','plinks','ig','yt']},
+  /* Milão entrou no dash em 06/11/2026. Responsavel: Andrea Sakaguti Caetano.
+     Serie começa em 13/09/2026, o primeiro domingo que o MAC10 exporta — a data
+     do primeiro culto ainda nao foi confirmada por ela. Um culto por domingo,
+     10h. Lança Lumen, raizes, voluntarios e Instagram; IBZAO nao implantado e
+     nao ha' canal no YouTube. Batismo e links ficam em aberto ate' ela responder
+     — nao isentar o que nao foi confirmado. */
+  'Milão':           {sem:['zao','yt'], desde:'2026-09'},
   'Orlando':         {sem:['bap','yt']},
   'Campo Grande':    {sem:['yt']},
   'Cuenca':          {sem:['yt']},
@@ -4945,6 +4976,15 @@ function PageDataControl(){
    A Zion Online entrou como campus em 03/11/2026 e tem serie propria, em
    devices; ela nao vem do export do MAC10, que nao exporta culto online. */
 const RAW_HORA={
+  "Mil\u00e3o":{
+    "2026-09-13":{"10:00":29},
+    "2026-09-20":{"10:00":40},
+    "2026-09-27":{"10:00":47},
+    "2026-10-04":{"10:00":39},
+    "2026-10-11":{"10:00":36},
+    "2026-10-25":{"10:00":36},
+    "2026-11-01":{"10:00":44},
+  },
   "Campinas":{
     "2026-01-11":{"08:00":337,"11:00":412,"18:00":454},
     "2026-01-18":{"08:00":406,"11:00":482,"18:00":453},
@@ -5031,6 +5071,7 @@ const RAW_HORA={
     "2026-10-11":{"18:00":195},
     "2026-10-18":{"18:00":578},
     "2026-10-25":{"18:00":172},
+    "2026-11-01":{"18:00":303},
   },
   "Cascais":{
     "2026-03-15":{"10:00":243},
@@ -5102,6 +5143,7 @@ const RAW_HORA={
     "2026-10-11":{"10:00":136},
     "2026-10-18":{"10:00":136},
     "2026-10-25":{"10:00":126},
+    "2026-11-01":{"10:00":116},
   },
   "Jundia\u00ed":{
     "2026-01-11":{"17:00":237},
@@ -5487,6 +5529,7 @@ const RAW_HORA={
     "2026-10-11":{"10:00":315},
     "2026-10-18":{"10:00":336},
     "2026-10-25":{"10:00":180},
+    "2026-11-01":{"10:00":330},
   },
   "SJCampos":{
     
@@ -5659,11 +5702,21 @@ const RAW_HORA={
     "2026-08-06":{"20:00":217},
     "2026-09-03":{"20:00":191},
     "2026-10-15":{"20:00":189},
+    "2026-11-01":{"20:00":174},
   },
 };
 /* Geracionais por data. A chave g52 e' o nome antigo; o geracional se chama
    Lumen e e' assim que aparece em tela. Conferido contra GER_DATA. */
 const RAW_GER={
+  "Mil\u00e3o":{
+    "2026-09-13":{"g52":4},
+    "2026-09-20":{"g52":2},
+    "2026-09-27":{"g52":6},
+    "2026-10-04":{"g52":3},
+    "2026-10-11":{"g52":2},
+    "2026-10-25":{"g52":5},
+    "2026-11-01":{"g52":5},
+  },
   "Cascais":{
     "2026-08-23":{"g52":18},
     "2026-09-06":{"g52":17},
@@ -5757,6 +5810,7 @@ const RAW_GER={
     "2026-10-11":{"g52":27,"vox":82,"rise":22},
     "2026-10-18":{"g52":59,"vox":91,"rise":18},
     "2026-10-25":{"g52":21,"vox":94,"rise":94},
+    "2026-11-01":{"g52":38,"vox":65,"rise":16},
   },
   "Cuenca":{
     "2026-01-18":{"g52":19},
@@ -5799,6 +5853,7 @@ const RAW_GER={
     "2026-10-11":{"g52":18},
     "2026-10-18":{"vox":26,"g52":22},
     "2026-10-25":{"g52":21},
+    "2026-11-01":{"g52":15},
   },
   "Jundia\u00ed":{
     "2026-01-11":{"g52":47},
@@ -6134,6 +6189,7 @@ const RAW_GER={
     "2026-10-11":{"rise":31,"flow":31,"vox":187,"ekl":88,"g52":111},
     "2026-10-18":{"ekl":87,"vox":191,"flow":35,"rise":35,"g52":137},
     "2026-10-25":{"g52":96,"rise":44,"flow":37,"vox":222,"ekl":73},
+    "2026-11-01":{"vox":215,"rise":44,"flow":44,"ekl":125},
   },
   "Ribeir\u00e3o Preto":{
     "2026-01-11":{"g52":66},
@@ -6177,6 +6233,7 @@ const RAW_GER={
     "2026-10-11":{"g52":44,"vox":55,"rise":19},
     "2026-10-18":{"g52":31,"vox":54,"rise":15},
     "2026-10-25":{"g52":26,"vox":81,"rise":12},
+    "2026-11-01":{"g52":48,"vox":63},
   },
   "SJCampos":{
     "2026-04-05":{"g52":42},
@@ -6349,6 +6406,11 @@ const RAW_GER={
 };
 
 const GER_DATA={
+  "Mil\u00e3o":{
+    "2026-09":{lumenS:12,lumenN:3},
+    "2026-10":{lumenS:10,lumenN:3},
+    "2026-11":{lumenS:5,lumenN:1},
+  },
   "Cascais":{
     "2026-08":{lumenS:18,lumenN:1},
     "2026-09":{lumenS:62,lumenN:4},
@@ -6433,6 +6495,7 @@ const GER_DATA={
     "2026-08":{lumenS:720,lumenN:5,riseS:224,riseN:5,flowS:212,flowN:5,voxS:1064,voxN:5,eklS:589,eklN:5},
     "2026-09":{lumenS:522,lumenN:4,riseS:125,riseN:3,flowS:142,flowN:3,voxS:594,voxN:3,eklS:370,eklN:4},
     "2026-10":{lumenS:441,lumenN:4,riseS:145,riseN:4,flowS:138,flowN:4,voxS:771,voxN:4,eklS:349,eklN:4},
+    "2026-11":{riseS:44,riseN:1,flowS:44,flowN:1,voxS:215,voxN:1,eklS:125,eklN:1},
   },
   "Campinas":{
     "2023-09":{lumenS:117,lumenN:4,voxS:629,voxN:4},
@@ -6516,6 +6579,7 @@ const GER_DATA={
     "2026-08":{lumenS:261,lumenN:5,riseS:74,riseN:4,voxS:276,voxN:4,diamS:25,diamN:1},
     "2026-09":{lumenS:219,lumenN:4,riseS:25,riseN:2,voxS:302,voxN:4},
     "2026-10":{lumenS:153,lumenN:4,riseS:59,riseN:4,voxS:300,voxN:4},
+    "2026-11":{lumenS:48,lumenN:1,voxS:63,voxN:1},
   },
   "Macei\u00f3":{
     "2026-01":{lumenS:54,lumenN:3,riseS:83,riseN:2,voxS:110,voxN:2},
@@ -6583,6 +6647,7 @@ const GER_DATA={
     "2026-08":{lumenS:157,lumenN:5,riseS:119,riseN:5,voxS:337,voxN:5,diamS:8,diamN:1},
     "2026-09":{lumenS:124,lumenN:4,riseS:51,riseN:3,voxS:316,voxN:4},
     "2026-10":{lumenS:128,lumenN:4,riseS:148,riseN:4,voxS:349,voxN:4},
+    "2026-11":{lumenS:38,lumenN:1,riseS:16,riseN:1,voxS:65,voxN:1},
   },
   "Vale do Ribeira":{
     "2024-02":{lumenS:32,lumenN:4},
@@ -6753,6 +6818,7 @@ const GER_DATA={
     "2026-08":{lumenS:68,lumenN:5,voxS:20,voxN:1},
     "2026-09":{lumenS:81,lumenN:4,voxS:40,voxN:2},
     "2026-10":{lumenS:76,lumenN:4,riseS:1,riseN:1,voxS:27,voxN:2},
+    "2026-11":{lumenS:15,lumenN:1},
   },
   "Santiago":{
     "2024-01":{lumenS:24,lumenN:2},
