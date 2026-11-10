@@ -8799,6 +8799,7 @@ const PAGES=[
   {id:'dsm',        label:'Envio DSM',               icon:'✈️'},
   {id:'pul',         label:'PUL Global',              icon:'💰'},
   {id:'report',     label:'Report Executivo',        icon:'📊'},
+  {id:'rede',       label:'Relatório da Rede',       icon:'🗺️'},
 ];
 
 
@@ -9671,6 +9672,506 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
 }
 
 /* ═══ APP */
+
+/* ═══ PAGE: RELATORIO MENSAL DA REDE ════════════════════════════════════════
+   Pedido do Breno em 09/11/2026: um relatorio mensal da rede para o Global e
+   para o bispo Teofilo, com a linguagem visual da Visao Global, respondendo
+   quem cresceu, quem caiu de um mes para o outro e quem esta' acima ou abaixo
+   da propria media do semestre. So' domingo e geracionais — batismo e raizes
+   tem buraco em metade da rede e arrastariam o relatorio para o mesmo problema.
+
+   A REGRA DURA DESTA PAGINA: localidade sem o mes completo nunca aparece com
+   numero nem com percentual. Vai para o quadro "Em falta", com o nome e ha'
+   quantos dias parou de lancar. Um -100% falso na mesa do bispo mata a
+   credibilidade do relatorio inteiro na primeira edicao — e seis localidades
+   estavam exatamente nesse estado quando a pagina foi escrita (outubro/2026).
+
+   A media da rede e' calculada sobre a BASE COMPARAVEL: so' as localidades
+   completas nos DOIS meses comparados. Somar quem reportou varia com a
+   cobertura, nao com a realidade: em outubro a rede "cairia" 25% so' porque
+   seis igrejas nao lancaram.
+
+   Fecha no dia 15, com o mes anterior (decisao do Breno, 09/11/2026). */
+
+const RM_MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+             'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const RM_DIA_FECHAMENTO=15;
+
+function rmShift(ym,k){
+  const p=ym.split('-').map(Number);
+  const d=new Date(p[0],p[1]-1+k,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function rmNome(ym){const p=ym.split('-');return RM_MN[parseInt(p[1])-1]+'/'+p[0];}
+function rmCurto(ym){const p=ym.split('-');return RM_MN[parseInt(p[1])-1].slice(0,3)+'/'+p[0].slice(2);}
+function rmMesReferencia(){return rmShift(mesCorrente(),-1);}
+
+function rmUltimoDomingo(locId){
+  const rs=RAW_CULTOS[locId]||[];
+  if(!rs.length)return null;
+  return rs.map(function(r){return r.d;}).sort().pop();
+}
+function rmDiasParado(locId){
+  const u=rmUltimoDomingo(locId); if(!u)return null;
+  const h=new Date(); h.setHours(0,0,0,0);
+  return Math.round((h-new Date(u+'T00:00:00'))/86400000);
+}
+/* 'fora'   = a localidade nao existia no mes (desde) ou nao se espera culto
+   'zero'   = nenhum domingo lancado
+   'parcial'= lancou menos domingos do que o mes teve
+   'ok'     = mes fechado                                                   */
+function rmStatus(locId,ym){
+  const cfg=CAMPUS_CONFIG[locId]||{};
+  if(cfg.desde&&ym<cfg.desde)return'fora';
+  const esp=expectedSundaysForLoc(locId,ym);
+  if(esp<=0)return'fora';
+  const n=(DATA[locId]&&DATA[locId][ym]&&DATA[locId][ym].sunN)||0;
+  if(n===0)return'zero';
+  return n<esp?'parcial':'ok';
+}
+function rmEsperado(locId,ym){return expectedSundaysForLoc(locId,ym);}
+function rmLancados(locId,ym){return (DATA[locId]&&DATA[locId][ym]&&DATA[locId][ym].sunN)||0;}
+
+/* Media do semestre anterior ao mes: 6 meses, exigindo pelo menos 4 fechados.
+   Com menos que isso a "media" vira ruido e nao se mostra numero nenhum. */
+function rmMediaSemestre(locId,ym){
+  const vals=[];
+  for(let k=6;k>=1;k--){
+    const m=rmShift(ym,-k);
+    if(rmStatus(locId,m)==='ok')vals.push(monthAvgSun(locId,m));
+  }
+  if(vals.length<4)return null;
+  return{media:Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length),n:vals.length};
+}
+/* Localidades de 1 culto por mes (SJCampos, Vitoria): mes contra mes e' um
+   domingo contra um domingo. E' ruido, nao tendencia — ficam em faixa propria
+   e so' entram na comparacao semestral. */
+function rmMensal(locId){return !!(CAMPUS_CONFIG[locId]&&CAMPUS_CONFIG[locId].monthlyCulto);}
+
+function rmLinhas(ym){
+  const prev=rmShift(ym,-1);
+  return locsGlobal().map(function(loc){
+    const st=rmStatus(loc.id,ym), stPrev=rmStatus(loc.id,prev);
+    const media=st==='ok'?monthAvgSun(loc.id,ym):null;
+    const mediaPrev=stPrev==='ok'?monthAvgSun(loc.id,prev):null;
+    const mom=(media!==null&&mediaPrev)?delta(media,mediaPrev):null;
+    const sem=st==='ok'?rmMediaSemestre(loc.id,ym):null;
+    const vsSem=(media!==null&&sem)?delta(media,sem.media):null;
+    return{id:loc.id,name:loc.name,flag:loc.flag,st:st,stPrev:stPrev,media:media,
+           mediaPrev:mediaPrev,mom:mom,sem:sem,vsSem:vsSem,mensal:rmMensal(loc.id),
+           esp:rmEsperado(loc.id,ym),lanc:rmLancados(loc.id,ym),
+           dias:rmDiasParado(loc.id),ultimo:rmUltimoDomingo(loc.id)};
+  }).filter(function(r){return r.st!=='fora';});
+}
+
+/* Barra divergente: o zero fica no meio e a barra cresce para o lado do sinal.
+   Verde e vermelho nunca informam sozinhos — o numero esta' sempre ao lado,
+   e a direcao da barra e' um segundo canal alem da cor. */
+function RmBarra({v,max,alt=14}){
+  if(v==null)return<div style={{height:alt}}/>;
+  const p=Math.min(Math.abs(v)/max,1)*50;
+  const pos=v>=0;
+  return(
+    <div style={{position:'relative',height:alt,background:'rgba(7,135,128,0.10)',borderRadius:3}}>
+      <div style={{position:'absolute',top:0,bottom:0,left:'50%',width:1,background:'rgba(252,252,235,0.28)'}}/>
+      <div style={{position:'absolute',top:2,bottom:2,borderRadius:2,
+           background:pos?C.sage:'#e05c5c',
+           left:pos?'50%':(50-p)+'%',width:p+'%'}}/>
+    </div>
+  );
+}
+function RmPct({v}){
+  if(v==null)return<span style={{color:'rgba(252,252,235,0.35)'}}>—</span>;
+  return<span style={{color:v>=0?C.sage:'#e05c5c',fontWeight:700}}>{fmtPct(v)}</span>;
+}
+
+/* Tabela de movimento. `campo` e' 'mom' ou 'vsSem'. */
+function RmTabela({linhas,campo,fonte,altura=690}){
+  const com=linhas.filter(function(r){return r[campo]!=null;})
+                  .sort(function(a,b){return b[campo]-a[campo];});
+  const max=Math.max(10,...com.map(function(r){return Math.abs(r[campo]);}));
+  /* O slide tem altura fixa (1600x900 no papel) e a quantidade de linhas muda
+     todo mes — em outubro/2026 so' 10 localidades tinham os dois meses
+     fechados, em setembro 16. Duas colunas com 5 linhas cada deixavam meia
+     pagina em branco. Ate' 11 linhas o quadro usa UMA coluna, com a barra
+     larga; acima disso quebra em duas. A altura da linha sai da divisao do
+     espaco util, entao o quadro preenche a pagina em qualquer mes. */
+  /* Ate' 14 linhas cabe em uma coluna com a barra larga, que le' melhor e
+     preenche a pagina. Setembro/2026 tem 12 e em duas colunas sobrava
+     metade do quadro em branco. */
+  const umaCol=com.length<=14;
+  const porCol=umaCol?com.length:Math.ceil(com.length/2);
+  const cols=umaCol?[com]:[com.slice(0,porCol),com.slice(porCol)];
+  /* `altura` e' o espaco util do quadro. O slide semestral tem a faixa das
+     localidades de 1 culto/mes embaixo, entao sobra menos — sem isso a
+     faixa escrevia por cima da ultima linha da tabela. */
+  const linhaH=Math.max(30,Math.min(78,Math.floor(altura/Math.max(porCol,1))));
+  const fonte1=linhaH>=52?23:linhaH>=42?21:linhaH>=34?19:17;
+  const grid=umaCol?'26px 1fr 104px 1fr 104px':'18px 1fr 62px 96px 70px';
+  function Linha({r}){
+    return(
+      <div style={{display:'grid',gridTemplateColumns:grid,alignItems:'center',gap:14,
+                   height:linhaH,borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+        <span style={{fontSize:umaCol?20:15}}>{r.flag}</span>
+        <span style={{fontSize:fonte1,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
+                      textOverflow:'ellipsis'}}>{r.name}</span>
+        <span style={{fontSize:fonte1,color:C.teal,textAlign:'right',fontWeight:600}}>{fmt(r.media)}</span>
+        <RmBarra v={r[campo]} max={max} alt={umaCol?18:14}/>
+        <span style={{fontSize:fonte1,textAlign:'right'}}><RmPct v={r[campo]}/></span>
+      </div>
+    );
+  }
+  return(
+    <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+      <div style={{display:'grid',gridTemplateColumns:umaCol?'1fr':'1fr 1fr',gap:44,
+                   flex:1,alignContent:'start'}}>
+        {cols.map(function(c,ci){return(
+          <div key={ci}>
+            <div style={{display:'grid',gridTemplateColumns:grid,gap:14,
+                         fontSize:13,color:'rgba(7,135,128,0.85)',textTransform:'uppercase',
+                         letterSpacing:1,paddingBottom:6,
+                         borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+              <span/><span>Localidade</span>
+              <span style={{textAlign:'right'}}>Méd. domingo</span>
+              <span style={{textAlign:'center'}}>Variação</span>
+              <span style={{textAlign:'right'}}>%</span>
+            </div>
+            {c.map(function(r){return<Linha key={r.id} r={r}/>;})}
+          </div>
+        );})}
+      </div>
+      {fonte&&<div style={{fontSize:14,color:'rgba(7,135,128,0.75)',marginTop:'auto',
+                            paddingTop:14,flexShrink:0,lineHeight:1.5}}>{fonte}</div>}
+    </div>
+  );
+}
+
+function PageRede(){
+  const [ym,setYm]=useState(rmMesReferencia());
+  const prev=rmShift(ym,-1);
+  const linhas=rmLinhas(ym);
+
+  const ok=linhas.filter(function(r){return r.st==='ok';});
+  const faltando=linhas.filter(function(r){return r.st!=='ok';})
+                       .sort(function(a,b){return (b.dias||0)-(a.dias||0);});
+  const parou=faltando.filter(function(r){return r.lanc===0;});
+  const buraco=faltando.filter(function(r){return r.lanc>0;});
+  const semanal=ok.filter(function(r){return !r.mensal;});
+  const mensal=ok.filter(function(r){return r.mensal;});
+
+  /* Base comparavel: completas nos dois meses. A media da rede so' vale sobre
+     o mesmo conjunto de igrejas nos dois lados — senao a variacao mede
+     cobertura, nao crescimento. */
+  const base=linhas.filter(function(r){return r.st==='ok'&&r.stPrev==='ok';});
+  function mediaDe(rs,qual){
+    let s=0,n=0;
+    rs.forEach(function(r){
+      const m=qual==='ym'?ym:prev;
+      const d=DATA[r.id]&&DATA[r.id][m];
+      if(d&&d.sunN){s+=d.sunS;n+=d.sunN;}
+    });
+    return n?Math.round(s/n):0;
+  }
+  const redeAtual=mediaDe(base,'ym'), redeAnt=mediaDe(base,'prev');
+  const redeDelta=redeAnt?delta(redeAtual,redeAnt):null;
+  const publico=ok.reduce(function(a,r){
+    const d=DATA[r.id]&&DATA[r.id][ym];return a+((d&&d.sunS)||0);},0);
+  /* A media da rede e' puxada por Sao Paulo, que sozinha pesa mais que metade
+     do publico. A contagem de quem subiu e quem desceu diz o que aconteceu com
+     as IGREJAS, que e' a pergunta do relatorio. */
+  const subiram=semanal.filter(function(r){return r.mom!=null&&r.mom>0;});
+  const desceram=semanal.filter(function(r){return r.mom!=null&&r.mom<0;});
+
+  /* Geracionais da rede: media por encontro, somando encontros de todas as
+     localidades completas. Usa as mesmas GEN_CATS do resto do dashboard. */
+  function gerRede(m,cat,rs){
+    let s=0,n=0;
+    rs.forEach(function(r){
+      const d=GER_DATA[r.id]&&GER_DATA[r.id][m];
+      if(d){s+=d[cat+'S']||0;n+=d[cat+'N']||0;}
+    });
+    return{media:n?Math.round(s/n):0,enc:n};
+  }
+  const gers=GEN_CATS.map(function(g){
+    const a=gerRede(ym,g.key,ok), b=gerRede(prev,g.key,base);
+    const aB=gerRede(ym,g.key,base);
+    return{...g,media:a.media,enc:a.enc,
+           d:(b.enc&&aB.enc)?delta(aB.media,b.media):null};
+  }).filter(function(g){return g.enc>0;});
+
+  /* Movimentos geracionais por localidade: so' onde os dois meses tem encontro
+     lancado, para nao chamar de queda o que foi mes sem registro. */
+  const movGer=[];
+  base.forEach(function(r){
+    GEN_CATS.forEach(function(g){
+      const a=GER_DATA[r.id]&&GER_DATA[r.id][ym], b=GER_DATA[r.id]&&GER_DATA[r.id][prev];
+      if(!a||!b)return;
+      if(!a[g.key+'N']||!b[g.key+'N'])return;
+      const ma=Math.round(a[g.key+'S']/a[g.key+'N']), mb=Math.round(b[g.key+'S']/b[g.key+'N']);
+      const dd=delta(ma,mb);
+      if(dd!=null)movGer.push({loc:r.name,flag:r.flag,cat:g.label,cor:g.color,de:mb,para:ma,d:dd});
+    });
+  });
+  movGer.sort(function(a,b){return b.d-a.d;});
+  const sobe=movGer.slice(0,6), cai=movGer.slice(-6).reverse();
+
+  const meses=[];
+  for(let k=0;k<12;k++){const m=rmShift(rmMesReferencia(),-k);if(m>='2026-01')meses.push(m);}
+
+  const rank=semanal.slice().sort(function(a,b){return b.media-a.media;})
+             .map(function(r){return{name:r.name,val:r.media};});
+
+  const hoje=new Date();
+  const dataGer=String(hoje.getDate()).padStart(2,'0')+'/'+
+                String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const cobertura=ok.length+' de '+linhas.length;
+
+  return(
+    <div className="pilha-slides" style={{display:'flex',flexDirection:'column',gap:20}}>
+
+      <div className="sem-print" style={{display:'flex',justifyContent:'space-between',
+           alignItems:'center',flexWrap:'wrap',gap:10}}>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês de referência:</span>
+          {meses.map(function(m){return(
+            <button key={m} onClick={function(){setYm(m);}}
+              style={{padding:'3px 11px',borderRadius:20,border:'none',cursor:'pointer',
+                      fontSize:11,fontWeight:600,
+                      background:m===ym?C.sage:'rgba(7,135,128,0.13)',
+                      color:m===ym?'#021a1a':C.teal}}>{rmCurto(m)}</button>
+          );})}
+        </div>
+        <span style={{fontSize:11,color:'rgba(7,135,128,0.8)'}}>
+          Ctrl/Cmd + P salva em PDF — um quadro por página
+        </span>
+      </div>
+
+      <div className="sem-print" style={{background:'rgba(7,135,128,0.08)',
+           border:'1px solid rgba(7,135,128,0.25)',borderRadius:10,padding:'10px 14px',
+           fontSize:12,color:C.teal,lineHeight:1.6}}>
+        <strong style={{color:C.cream}}>Fecha no dia {RM_DIA_FECHAMENTO}</strong>, com o mês
+        anterior. Cobertura de {rmNome(ym)}: <strong style={{color:C.cream}}>{cobertura}</strong> localidades
+        com o mês completo.
+        {faltando.length>0&&<span> {faltando.length} em falta — aparecem nomeadas no
+        último quadro, nunca como queda.</span>}
+      </div>
+
+      <CapaSlide titulo="Relatório Mensal da Rede"
+                 subtitulo={'Cultos de domingo e geracionais · '+rmNome(ym)}
+                 data={'Zion Church Global · gerado em '+dataGer}/>
+
+      {/* ── 1. A rede no mês ─────────────────────────────────────────── */}
+      <Slide>
+        <TituloSlide nota={rmNome(ym)}>A rede no mês</TituloSlide>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:18,flexShrink:0}}>
+          {[
+            {l:'Média por domingo',v:fmt(redeAtual),
+             s:redeDelta!=null?fmtPct(redeDelta)+' vs '+rmCurto(prev):'sem base comparável',
+             cor:redeDelta==null?C.teal:(redeDelta>=0?C.sage:'#e05c5c')},
+            {l:'Cresceram · caíram',v:subiram.length+' · '+desceram.length,
+             s:fmt(publico)+' pessoas somadas nos domingos',
+             cor:subiram.length>=desceram.length?C.sage:'#e05c5c'},
+            {l:'Localidades com o mês completo',v:ok.length+'/'+linhas.length,
+             s:faltando.length?faltando.length+' em falta':'rede inteira',
+             cor:faltando.length?'#c8a020':C.sage},
+            {l:'Encontros geracionais',v:fmt(gers.reduce(function(a,g){return a+g.enc;},0)),
+             s:gers.length+' geracionais ativos',cor:C.teal}
+          ].map(function(k){return(
+            <div key={k.l} style={{background:'rgba(7,135,128,0.09)',
+                 border:'1px solid rgba(7,135,128,0.22)',borderRadius:12,padding:'20px 20px 18px'}}>
+              <div style={{fontSize:14,color:C.teal,textTransform:'uppercase',letterSpacing:1.2,
+                           minHeight:34,lineHeight:1.25}}>{k.l}</div>
+              <div className="serif" style={{fontSize:48,fontWeight:700,color:C.cream,lineHeight:1.05,
+                           marginTop:6}}>{k.v}</div>
+              <div style={{fontSize:15,color:k.cor,marginTop:6}}>{k.s}</div>
+            </div>
+          );})}
+        </div>
+        <div style={{marginTop:26,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+          <div style={{fontSize:19,color:C.cream,fontWeight:600,marginBottom:8,flexShrink:0}}>
+            Média de pessoas por domingo, por localidade
+          </div>
+          <div style={{flex:1,minHeight:0}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={rank} margin={{top:26,right:10,bottom:66,left:60}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+                <XAxis dataKey="name" tick={{fill:C.cream,fontSize:15}} angle={-38}
+                       textAnchor="end" interval={0} axisLine={false} tickLine={false} height={76}/>
+                <YAxis domain={[0,'auto']} tick={{fill:C.teal,fontSize:15}} axisLine={false}
+                       tickLine={false} tickFormatter={function(v){return v.toLocaleString('pt-BR');}} width={60}/>
+                <Bar isAnimationActive={false} dataKey="val" name="Média por domingo"
+                     fill={C.teal} radius={[3,3,0,0]}>
+                  {rank.map(function(_,i){return<Cell key={i} fill={i===0?C.sage:C.teal}
+                     opacity={Math.max(0.5,1-i*0.035)}/>;})}
+                  <LabelList dataKey="val" position="top"
+                     style={{fill:C.cream,fontSize:15}}
+                     formatter={function(v){return v.toLocaleString('pt-BR');}}/>
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6,flexShrink:0}}>
+            Só localidades com o mês completo. A média da rede usa a base comparável
+            ({base.length} localidades fechadas em {rmCurto(prev)} e {rmCurto(ym)}), para que a
+            variação meça crescimento e não quem lançou.
+          </div>
+        </div>
+      </Slide>
+
+      {/* ── 2. Mês contra mês ────────────────────────────────────────── */}
+      <Slide>
+        <TituloSlide nota={rmCurto(ym)+' vs '+rmCurto(prev)}>Quem cresceu e quem caiu no mês</TituloSlide>
+        <RmTabela linhas={semanal} campo="mom"
+          fonte={'Variação da média de pessoas por domingo. Aparece só quem fechou os dois meses — '+
+                 'quem não fechou está no quadro Em falta.'}/>
+      </Slide>
+
+      {/* ── 3. Contra a propria media do semestre ────────────────────── */}
+      <Slide>
+        <TituloSlide nota={rmCurto(rmShift(ym,-6))+' – '+rmCurto(rmShift(ym,-1))}>
+          Contra a própria média do semestre
+        </TituloSlide>
+        <RmTabela linhas={semanal} campo="vsSem" altura={mensal.length?520:690}
+          fonte={'Cada igreja comparada consigo mesma nos seis meses anteriores, com no mínimo '+
+                 'quatro meses fechados. É aqui que mês fraco se separa de tendência: cair no mês '+
+                 'e seguir na própria média é oscilação; subir no mês e seguir abaixo dela é queda longa.'}/>
+        {mensal.length>0&&
+          <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid rgba(7,135,128,0.3)',flexShrink:0}}>
+            <div style={{fontSize:16,color:C.cream,fontWeight:600,marginBottom:6}}>
+              Um culto por mês — só comparação semestral
+            </div>
+            <div style={{display:'flex',gap:34,flexWrap:'wrap'}}>
+              {mensal.map(function(r){return(
+                <div key={r.id} style={{display:'flex',alignItems:'baseline',gap:9}}>
+                  <span style={{fontSize:18,color:C.cream}}>{r.flag} {r.name}</span>
+                  <span style={{fontSize:18,color:C.teal,fontWeight:600}}>{fmt(r.media)}</span>
+                  <span style={{fontSize:17}}><RmPct v={r.vsSem}/></span>
+                </div>
+              );})}
+            </div>
+            <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6}}>
+              Mês contra mês nestas é um domingo contra um domingo — ruído, não tendência.
+              Por isso ficam fora do quadro anterior e do ranking.
+            </div>
+          </div>}
+      </Slide>
+
+      {/* ── 4. Geracionais ───────────────────────────────────────────── */}
+      <Slide>
+        <TituloSlide nota={rmNome(ym)}>Geracionais da rede</TituloSlide>
+        <div style={{display:'grid',gridTemplateColumns:'repeat('+Math.max(gers.length,1)+',1fr)',
+                     gap:16,flexShrink:0}}>
+          {gers.map(function(g){return(
+            <div key={g.key} style={{background:'rgba(7,135,128,0.09)',borderRadius:12,
+                 padding:'16px 18px',borderTop:'3px solid '+g.color,
+                 border:'1px solid rgba(7,135,128,0.22)',borderTopColor:g.color,borderTopWidth:3}}>
+              <div style={{fontSize:16,color:g.color,fontWeight:700,letterSpacing:0.5}}>{g.label}</div>
+              <div className="serif" style={{fontSize:40,fontWeight:700,color:C.cream,lineHeight:1.05,
+                           marginTop:4}}>{fmt(g.media)}</div>
+              <div style={{fontSize:13,color:C.teal,marginTop:3}}>por encontro · {g.enc} encontros</div>
+              <div style={{fontSize:15,marginTop:5}}><RmPct v={g.d}/>
+                <span style={{color:'rgba(7,135,128,0.8)',fontSize:13}}> vs {rmCurto(prev)}</span></div>
+            </div>
+          );})}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:40,marginTop:26,
+                     flex:1,minHeight:0}}>
+          {[{t:'Maiores altas',rs:sobe},{t:'Maiores quedas',rs:cai}].map(function(bloco){return(
+            <div key={bloco.t}>
+              <div style={{fontSize:18,color:C.cream,fontWeight:600,marginBottom:8}}>{bloco.t}</div>
+              {bloco.rs.map(function(m,i){return(
+                <div key={i} style={{display:'grid',gridTemplateColumns:'15px 1fr 96px 108px 68px',
+                     alignItems:'center',gap:9,padding:'6px 0',
+                     borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                  <span style={{fontSize:14}}>{m.flag}</span>
+                  <span style={{fontSize:17,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
+                                textOverflow:'ellipsis'}}>{m.loc}</span>
+                  <span style={{fontSize:15,color:m.cor,fontWeight:600}}>{m.cat}</span>
+                  <span style={{fontSize:16,color:C.teal,textAlign:'right'}}>{fmt(m.de)} → {fmt(m.para)}</span>
+                  <span style={{fontSize:16,textAlign:'right'}}><RmPct v={m.d}/></span>
+                </div>
+              );})}
+              {!bloco.rs.length&&<div style={{fontSize:15,color:'rgba(7,135,128,0.7)'}}>
+                Sem par de meses comparável.</div>}
+            </div>
+          );})}
+        </div>
+        <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:10,flexShrink:0}}>
+          Média por encontro, não soma do mês: um geracional que se reuniu duas vezes não
+          aparece maior que um que se reuniu uma. Só entram localidade e geracional com
+          encontro lançado nos dois meses.
+        </div>
+      </Slide>
+
+      {/* ── 5. Em falta ──────────────────────────────────────────────
+          Duas coisas diferentes, separadas de proposito: quem nao lancou
+          NENHUM domingo do mes (a coleta parou) e quem lancou alguns e deixou
+          buraco (esqueceu um domingo). Milao, por exemplo, tem 3 de 4 em
+          outubro e lancou ha' 2 dias — chamar isso de "parada" seria mentira,
+          e chamar as duas coisas pelo mesmo nome tira a forca do quadro. */}
+      <Slide>
+        <TituloSlide nota={faltando.length+' de '+linhas.length}>Em falta neste relatório</TituloSlide>
+        {faltando.length===0?(
+          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',
+                       fontSize:30,color:C.sage}}>
+            A rede inteira lançou {rmNome(ym)}.
+          </div>
+        ):(
+          <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+            <div style={{fontSize:19,color:'rgba(252,252,235,0.85)',marginBottom:16,flexShrink:0,
+                         lineHeight:1.45}}>
+              Estas localidades não entram em nenhum número deste relatório. A ausência é de
+              lançamento, não de culto — o que falta é o dado, e o dado não chega sozinho.
+            </div>
+            {[{t:'Parou de lançar',sub:'nenhum domingo de '+rmNome(ym),rs:parou,grave:true},
+              {t:'Mês incompleto',sub:'lançou parte dos domingos',rs:buraco,grave:false}]
+              .filter(function(b){return b.rs.length;}).map(function(b){return(
+              <div key={b.t} style={{marginBottom:18}}>
+                <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:6}}>
+                  <span style={{fontSize:20,color:b.grave?'#e05c5c':'#c8a020',fontWeight:700}}>{b.t}</span>
+                  <span style={{fontSize:16,color:'rgba(7,135,128,0.85)'}}>— {b.sub}</span>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 150px 190px 160px',gap:12,
+                             fontSize:12,color:'rgba(7,135,128,0.8)',textTransform:'uppercase',
+                             letterSpacing:1,paddingBottom:5,
+                             borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+                  <span>Localidade</span>
+                  <span style={{textAlign:'center'}}>Domingos no mês</span>
+                  <span style={{textAlign:'center'}}>Último lançamento</span>
+                  <span style={{textAlign:'center'}}>Sem lançar há</span>
+                </div>
+                {b.rs.map(function(r){
+                  const vermelho=(r.dias||0)>60;
+                  return(
+                    <div key={r.id} style={{display:'grid',gridTemplateColumns:'1fr 150px 190px 160px',
+                         gap:12,alignItems:'center',padding:'8px 0',
+                         borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                      <span style={{fontSize:21,color:C.cream}}>{r.flag} {r.name}</span>
+                      <span style={{fontSize:19,textAlign:'center',fontWeight:600,
+                           color:r.lanc===0?'#e05c5c':'#c8a020'}}>{r.lanc} de {r.esp}</span>
+                      <span style={{fontSize:18,textAlign:'center',color:C.teal}}>
+                        {r.ultimo?r.ultimo.split('-').reverse().join('/'):'nunca'}</span>
+                      <span style={{fontSize:19,textAlign:'center',fontWeight:700,
+                           color:vermelho?'#e05c5c':(r.dias>20?'#c8a020':C.teal)}}>
+                        {r.dias!=null?r.dias+' dias':'—'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );})}
+            <div style={{fontSize:14,color:'rgba(7,135,128,0.8)',marginTop:'auto',flexShrink:0,
+                         lineHeight:1.5,paddingTop:8}}>
+              Acima de 60 dias sem lançar nada, em vermelho: não é atraso de fechamento,
+              é a coleta ter parado. Essas precisam de conversa, não de cobrança.
+            </div>
+          </div>
+        )}
+      </Slide>
+
+    </div>
+  );
+}
+
 function App(){
   const [campusFilter,setCampusFilter]=useState(undefined);
   const [page,setPage]=useState('global');
@@ -9698,6 +10199,7 @@ function App(){
       case 'censo':       return campusFilter?<SemAcesso/>:<PageCenso/>;
       case 'pul':         return<PagePUL/>;
       case 'report':      return<PageReport/>;
+      case 'rede':        return campusFilter?<SemAcesso/>:<PageRede/>;
       default:            return<PageGlobal/>;
     }
   }
