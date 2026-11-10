@@ -9736,9 +9736,11 @@ function rmStatus(locId,ym){
 function rmEsperado(locId,ym){return expectedSundaysForLoc(locId,ym);}
 function rmLancados(locId,ym){return (DATA[locId]&&DATA[locId][ym]&&DATA[locId][ym].sunN)||0;}
 
-/* Media do semestre anterior ao mes: 6 meses, exigindo pelo menos 4 fechados.
-   Com menos que isso a "media" vira ruido e nao se mostra numero nenhum. */
-function rmMediaSemestre(locId,ym){
+/* Media dos ultimos 6 meses antes do mes de referencia, exigindo pelo menos 4
+   fechados. Com menos que isso a "media" vira ruido e nao se mostra numero.
+   Chamava-se "media do semestre" ate' 10/11/2026; o Breno trocou o nome porque
+   semestre sugere jan-jun / jul-dez, e isto e' janela movel de 6 meses. */
+function rmMedia6m(locId,ym){
   const vals=[];
   for(let k=6;k>=1;k--){
     const m=rmShift(ym,-k);
@@ -9759,7 +9761,7 @@ function rmLinhas(ym){
     const media=st==='ok'?monthAvgSun(loc.id,ym):null;
     const mediaPrev=stPrev==='ok'?monthAvgSun(loc.id,prev):null;
     const mom=(media!==null&&mediaPrev)?delta(media,mediaPrev):null;
-    const sem=st==='ok'?rmMediaSemestre(loc.id,ym):null;
+    const sem=st==='ok'?rmMedia6m(loc.id,ym):null;
     const vsSem=(media!==null&&sem)?delta(media,sem.media):null;
     return{id:loc.id,name:loc.name,flag:loc.flag,st:st,stPrev:stPrev,media:media,
            mediaPrev:mediaPrev,mom:mom,sem:sem,vsSem:vsSem,mensal:rmMensal(loc.id),
@@ -9886,38 +9888,64 @@ function PageRede(){
   const subiram=semanal.filter(function(r){return r.mom!=null&&r.mom>0;});
   const desceram=semanal.filter(function(r){return r.mom!=null&&r.mom<0;});
 
-  /* Geracionais da rede: media por encontro, somando encontros de todas as
-     localidades completas. Usa as mesmas GEN_CATS do resto do dashboard. */
-  function gerRede(m,cat,rs){
+  /* ── GERACIONAIS ───────────────────────────────────────────────────────
+     Geracional NAO depende do mes de culto estar fechado. A metrica e' media
+     POR ENCONTRO, que vale igual com 2 ou com 5 encontros — um domingo de
+     culto faltando nao torna o Vox daquela igreja desconhecido.
+
+     Ate' 10/11/2026 esta analise usava so' as localidades com o mes de domingo
+     completo, e deixava de fora quem tinha dado: em outubro/2026 sumiam
+     Maceio, Jundiai e Milao; em setembro, Jundiai, Porto, Milao e Orlando.
+     O Breno pediu que ninguem com dado ficasse de fora. Agora entra toda
+     localidade com encontro lancado no mes, e so' a VARIACAO exige o par de
+     meses — comparar com um mes que nao existe seria inventar. */
+  function gerDe(locId,m,cat){
+    const d=GER_DATA[locId]&&GER_DATA[locId][m];
+    if(!d||!d[cat+'N'])return null;
+    return{media:Math.round(d[cat+'S']/d[cat+'N']),enc:d[cat+'N']};
+  }
+  const locsGer=locsGlobal().filter(function(l){
+    return GEN_CATS.some(function(g){return gerDe(l.id,ym,g.key);});
+  });
+  function gerRede(m,cat,ls){
     let s=0,n=0;
-    rs.forEach(function(r){
-      const d=GER_DATA[r.id]&&GER_DATA[r.id][m];
+    ls.forEach(function(l){
+      const d=GER_DATA[l.id]&&GER_DATA[l.id][m];
       if(d){s+=d[cat+'S']||0;n+=d[cat+'N']||0;}
     });
     return{media:n?Math.round(s/n):0,enc:n};
   }
   const gers=GEN_CATS.map(function(g){
-    const a=gerRede(ym,g.key,ok), b=gerRede(prev,g.key,base);
-    const aB=gerRede(ym,g.key,base);
-    return{...g,media:a.media,enc:a.enc,
-           d:(b.enc&&aB.enc)?delta(aB.media,b.media):null};
+    const comCat=locsGer.filter(function(l){return gerDe(l.id,ym,g.key);});
+    const tot=gerRede(ym,g.key,comCat);
+    /* A variacao so' sobre quem tem a categoria nos DOIS meses: se o Flow
+       existia em 3 igrejas e passou a existir em 5, a media cairia sem que
+       nenhuma tivesse encolhido. */
+    const pares=comCat.filter(function(l){return gerDe(l.id,prev,g.key);});
+    const a=gerRede(ym,g.key,pares), b=gerRede(prev,g.key,pares);
+    const top=comCat.map(function(l){
+      const v=gerDe(l.id,ym,g.key);
+      return{id:l.id,name:l.name,flag:l.flag,media:v.media,enc:v.enc};
+    }).sort(function(x,y){return y.media-x.media;});
+    return{...g,media:tot.media,enc:tot.enc,nloc:comCat.length,
+           d:(a.enc&&b.enc)?delta(a.media,b.media):null,npar:pares.length,top:top};
   }).filter(function(g){return g.enc>0;});
 
-  /* Movimentos geracionais por localidade: so' onde os dois meses tem encontro
+  /* Movimento por localidade e geracional: so' onde os dois meses tem encontro
      lancado, para nao chamar de queda o que foi mes sem registro. */
   const movGer=[];
-  base.forEach(function(r){
+  locsGer.forEach(function(l){
     GEN_CATS.forEach(function(g){
-      const a=GER_DATA[r.id]&&GER_DATA[r.id][ym], b=GER_DATA[r.id]&&GER_DATA[r.id][prev];
+      const a=gerDe(l.id,ym,g.key), b=gerDe(l.id,prev,g.key);
       if(!a||!b)return;
-      if(!a[g.key+'N']||!b[g.key+'N'])return;
-      const ma=Math.round(a[g.key+'S']/a[g.key+'N']), mb=Math.round(b[g.key+'S']/b[g.key+'N']);
-      const dd=delta(ma,mb);
-      if(dd!=null)movGer.push({loc:r.name,flag:r.flag,cat:g.label,cor:g.color,de:mb,para:ma,d:dd});
+      const dd=delta(a.media,b.media);
+      if(dd!=null)movGer.push({loc:l.name,flag:l.flag,cat:g.label,cor:g.color,
+                               de:b.media,para:a.media,d:dd});
     });
   });
   movGer.sort(function(a,b){return b.d-a.d;});
-  const sobe=movGer.slice(0,6), cai=movGer.slice(-6).reverse();
+  const sobe=movGer.filter(function(m){return m.d>0;}).slice(0,7);
+  const cai=movGer.filter(function(m){return m.d<0;}).slice(-7).reverse();
 
   const meses=[];
   for(let k=0;k<12;k++){const m=rmShift(rmMesReferencia(),-k);if(m>='2026-01')meses.push(m);}
@@ -9973,7 +10001,7 @@ function PageRede(){
              s:redeDelta!=null?fmtPct(redeDelta)+' vs '+rmCurto(prev):'sem base comparável',
              cor:redeDelta==null?C.teal:(redeDelta>=0?C.sage:'#e05c5c')},
             {l:'Cresceram · caíram',v:subiram.length+' · '+desceram.length,
-             s:fmt(publico)+' pessoas somadas nos domingos',
+             s:rmCurto(ym)+' vs '+rmCurto(prev),
              cor:subiram.length>=desceram.length?C.sage:'#e05c5c'},
             {l:'Localidades com o mês completo',v:ok.length+'/'+linhas.length,
              s:faltando.length?faltando.length+' em falta':'rede inteira',
@@ -10015,9 +10043,10 @@ function PageRede(){
             </ResponsiveContainer>
           </div>
           <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6,flexShrink:0}}>
-            Só localidades com o mês completo. A média da rede usa a base comparável
-            ({base.length} localidades fechadas em {rmCurto(prev)} e {rmCurto(ym)}), para que a
-            variação meça crescimento e não quem lançou.
+            Público somado nos domingos de {rmNome(ym)}: {fmt(publico)} pessoas, nas {ok.length}
+            localidades com o mês completo. A média da rede e o "cresceram · caíram" usam a base
+            comparável — as {base.length} localidades fechadas em {rmCurto(prev)} e em {rmCurto(ym)} —
+            para que a variação meça crescimento e não quem lançou.
           </div>
         </div>
       </Slide>
@@ -10033,7 +10062,7 @@ function PageRede(){
       {/* ── 3. Contra a propria media do semestre ────────────────────── */}
       <Slide>
         <TituloSlide nota={rmCurto(rmShift(ym,-6))+' – '+rmCurto(rmShift(ym,-1))}>
-          Contra a própria média do semestre
+          Contra a média dos últimos 6 meses
         </TituloSlide>
         <RmTabela linhas={semanal} campo="vsSem" altura={mensal.length?520:690}
           fonte={'Cada igreja comparada consigo mesma nos seis meses anteriores, com no mínimo '+
@@ -10042,7 +10071,7 @@ function PageRede(){
         {mensal.length>0&&
           <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid rgba(7,135,128,0.3)',flexShrink:0}}>
             <div style={{fontSize:16,color:C.cream,fontWeight:600,marginBottom:6}}>
-              Um culto por mês — só comparação semestral
+              Um culto por mês — só comparação com os últimos 6 meses
             </div>
             <div style={{display:'flex',gap:34,flexWrap:'wrap'}}>
               {mensal.map(function(r){return(
@@ -10060,54 +10089,116 @@ function PageRede(){
           </div>}
       </Slide>
 
-      {/* ── 4. Geracionais ───────────────────────────────────────────── */}
+      {/* ── 4. Geracionais: a rede e os 5 maiores de cada ───────────── */}
       <Slide>
-        <TituloSlide nota={rmNome(ym)}>Geracionais da rede</TituloSlide>
+        <TituloSlide nota={rmNome(ym)+' · '+locsGer.length+' localidades com encontro lançado'}>
+          Geracionais da rede
+        </TituloSlide>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+Math.max(gers.length,1)+',1fr)',
-                     gap:16,flexShrink:0}}>
+                     gap:14,flexShrink:0}}>
           {gers.map(function(g){return(
             <div key={g.key} style={{background:'rgba(7,135,128,0.09)',borderRadius:12,
-                 padding:'16px 18px',borderTop:'3px solid '+g.color,
-                 border:'1px solid rgba(7,135,128,0.22)',borderTopColor:g.color,borderTopWidth:3}}>
-              <div style={{fontSize:16,color:g.color,fontWeight:700,letterSpacing:0.5}}>{g.label}</div>
-              <div className="serif" style={{fontSize:40,fontWeight:700,color:C.cream,lineHeight:1.05,
-                           marginTop:4}}>{fmt(g.media)}</div>
-              <div style={{fontSize:13,color:C.teal,marginTop:3}}>por encontro · {g.enc} encontros</div>
+                 padding:'14px 16px',border:'1px solid rgba(7,135,128,0.22)',
+                 borderTop:'3px solid '+g.color}}>
+              <div style={{fontSize:17,color:g.color,fontWeight:700,letterSpacing:0.5}}>{g.label}</div>
+              <div className="serif" style={{fontSize:42,fontWeight:700,color:C.cream,
+                           lineHeight:1.05,marginTop:3}}>{fmt(g.media)}</div>
+              <div style={{fontSize:13,color:C.teal,marginTop:2}}>
+                por encontro · {g.enc} encontro{g.enc===1?'':'s'}
+              </div>
+              <div style={{fontSize:13,color:'rgba(7,135,128,0.8)'}}>
+                em {g.nloc} localidade{g.nloc===1?'':'s'}
+              </div>
               <div style={{fontSize:15,marginTop:5}}><RmPct v={g.d}/>
                 <span style={{color:'rgba(7,135,128,0.8)',fontSize:13}}> vs {rmCurto(prev)}</span></div>
             </div>
           );})}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:40,marginTop:26,
-                     flex:1,minHeight:0}}>
-          {[{t:'Maiores altas',rs:sobe},{t:'Maiores quedas',rs:cai}].map(function(bloco){return(
-            <div key={bloco.t}>
-              <div style={{fontSize:18,color:C.cream,fontWeight:600,marginBottom:8}}>{bloco.t}</div>
-              {bloco.rs.map(function(m,i){return(
-                <div key={i} style={{display:'grid',gridTemplateColumns:'15px 1fr 96px 108px 68px',
-                     alignItems:'center',gap:9,padding:'6px 0',
+
+        {/* Os 5 maiores de cada geracional. Media por encontro, nao soma: uma
+            igreja que reuniu o Vox quatro vezes nao fica maior que uma que
+            reuniu uma vez com o mesmo publico. */}
+        <div style={{fontSize:20,color:C.cream,fontWeight:600,marginTop:24,marginBottom:10,
+                     flexShrink:0}}>
+          Os 5 maiores de cada geracional — média de pessoas por encontro
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat('+Math.max(gers.length,1)+',1fr)',
+                     gap:14,flex:1,minHeight:0,alignContent:'start'}}>
+          {gers.map(function(g){return(
+            <div key={g.key}>
+              <div style={{fontSize:14,color:g.color,fontWeight:700,letterSpacing:1.2,
+                           textTransform:'uppercase',paddingBottom:7,
+                           borderBottom:'2px solid '+g.color}}>{g.label}</div>
+              {g.top.slice(0,5).map(function(t,i){return(
+                <div key={t.id} style={{display:'grid',gridTemplateColumns:'22px 1fr auto',
+                     alignItems:'center',gap:8,height:66,
                      borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
-                  <span style={{fontSize:14}}>{m.flag}</span>
-                  <span style={{fontSize:17,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
-                                textOverflow:'ellipsis'}}>{m.loc}</span>
-                  <span style={{fontSize:15,color:m.cor,fontWeight:600}}>{m.cat}</span>
-                  <span style={{fontSize:16,color:C.teal,textAlign:'right'}}>{fmt(m.de)} → {fmt(m.para)}</span>
-                  <span style={{fontSize:16,textAlign:'right'}}><RmPct v={m.d}/></span>
+                  <span style={{fontSize:17,color:'rgba(7,135,128,0.7)',fontWeight:700}}>{i+1}</span>
+                  <span style={{fontSize:19,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
+                                textOverflow:'ellipsis'}}>{t.flag} {t.name}</span>
+                  <span style={{fontSize:23,color:C.teal,fontWeight:700}}>{fmt(t.media)}</span>
                 </div>
               );})}
-              {!bloco.rs.length&&<div style={{fontSize:15,color:'rgba(7,135,128,0.7)'}}>
-                Sem par de meses comparável.</div>}
+              {g.top.length<5&&
+                <div style={{fontSize:14,color:'rgba(7,135,128,0.55)',paddingTop:12,
+                             lineHeight:1.4}}>
+                  só {g.top.length} localidade{g.top.length===1?'':'s'} com {g.label} lançado
+                </div>}
             </div>
           );})}
         </div>
-        <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:10,flexShrink:0}}>
-          Média por encontro, não soma do mês: um geracional que se reuniu duas vezes não
-          aparece maior que um que se reuniu uma. Só entram localidade e geracional com
-          encontro lançado nos dois meses.
+        <div style={{fontSize:13,color:'rgba(7,135,128,0.78)',marginTop:'auto',paddingTop:12,
+                     flexShrink:0,lineHeight:1.5}}>
+          Entra toda localidade com encontro lançado no mês, mesmo que o mês de culto esteja
+          incompleto — a média por encontro não depende de quantos domingos foram lançados.
+          A variação no topo compara só quem tem o geracional nos dois meses: se o grupo passou
+          a existir em mais igrejas, a média mudaria sem ninguém ter encolhido.
         </div>
       </Slide>
 
-      {/* ── 5. Em falta ──────────────────────────────────────────────
+      {/* ── 5. Movimento dos geracionais ─────────────────────────────── */}
+      <Slide>
+        <TituloSlide nota={rmCurto(ym)+' vs '+rmCurto(prev)}>Movimento dos geracionais</TituloSlide>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:44,flex:1,minHeight:0,
+                     alignContent:'start'}}>
+          {[{t:'Maiores altas',rs:sobe,cor:C.sage},{t:'Maiores quedas',rs:cai,cor:'#e05c5c'}]
+            .map(function(bloco){return(
+            <div key={bloco.t}>
+              <div style={{fontSize:20,color:bloco.cor,fontWeight:700,marginBottom:8}}>{bloco.t}</div>
+              <div style={{display:'grid',gridTemplateColumns:'22px 1fr 100px 118px 76px',gap:10,
+                           fontSize:12,color:'rgba(7,135,128,0.8)',textTransform:'uppercase',
+                           letterSpacing:1,paddingBottom:5,
+                           borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+                <span/><span>Localidade</span><span>Geracional</span>
+                <span style={{textAlign:'right'}}>{rmCurto(prev)} → {rmCurto(ym)}</span>
+                <span style={{textAlign:'right'}}>%</span>
+              </div>
+              {bloco.rs.map(function(m,i){return(
+                <div key={i} style={{display:'grid',gridTemplateColumns:'22px 1fr 100px 118px 76px',
+                     alignItems:'center',gap:10,height:62,
+                     borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                  <span style={{fontSize:18}}>{m.flag}</span>
+                  <span style={{fontSize:20,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
+                                textOverflow:'ellipsis'}}>{m.loc}</span>
+                  <span style={{fontSize:16,color:m.cor,fontWeight:700}}>{m.cat}</span>
+                  <span style={{fontSize:19,color:C.teal,textAlign:'right'}}>
+                    {fmt(m.de)} → {fmt(m.para)}</span>
+                  <span style={{fontSize:19,textAlign:'right'}}><RmPct v={m.d}/></span>
+                </div>
+              );})}
+              {!bloco.rs.length&&<div style={{fontSize:16,color:'rgba(7,135,128,0.7)',paddingTop:10}}>
+                Nenhuma nesta direção.</div>}
+            </div>
+          );})}
+        </div>
+        <div style={{fontSize:13,color:'rgba(7,135,128,0.78)',marginTop:'auto',paddingTop:12,
+                     flexShrink:0,lineHeight:1.5}}>
+          {movGer.length} pares de localidade e geracional têm encontro lançado nos dois meses.
+          Grupo que se reuniu só em um dos meses fica de fora — não é queda, é mês sem registro.
+        </div>
+      </Slide>
+
+      {/* ── 6. Em falta ──────────────────────────────────────────────
           Duas coisas diferentes, separadas de proposito: quem nao lancou
           NENHUM domingo do mes (a coleta parou) e quem lancou alguns e deixou
           buraco (esqueceu um domingo). Milao, por exemplo, tem 3 de 4 em
