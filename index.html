@@ -9651,9 +9651,13 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
         {[
           {sep:'— VISÃO GERAL —',ids:campusLock?['local']:['ranking','global','local']},
           {sep:'— MÉTRICAS —',ids:['cultos','geracionais','batismo','links','plinks','voluntarios','raizes','zao','digital']},
-          /* censo e dsm sao relatorios de rede inteira (listam todas as
-             localidades nominalmente) — ficam fora do acesso por localidade */
-          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','predios','dados','censo','dsm','pul']},
+          /* censo, dsm e rede sao relatorios de rede inteira (listam todas as
+             localidades nominalmente) — ficam fora do acesso por localidade.
+             ATENCAO: o menu NAO lista o PAGES inteiro, filtra por estes ids.
+             Pagina registrada em PAGES e fora daqui existe, responde pela
+             rota e nao aparece para ninguem — foi o que aconteceu com a aba
+             'rede' em 10/11/2026. Ao criar pagina nova, incluir o id aqui. */
+          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','rede','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
