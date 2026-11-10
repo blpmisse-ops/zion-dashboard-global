@@ -4547,7 +4547,7 @@ function PageTaxas(){
           <Card key={r.key} style={{textAlign:'center'}}>
             <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5,whiteSpace:'pre-line',lineHeight:1.3}}>{r.label}</div>
             <div className="serif" style={{fontSize:22,fontWeight:700,color:C.cream}}>{r.fmt(globalAvg(r.key))}</div>
-            <div style={{fontSize:10,color:'#666',marginTop:2}}>média rede</div>
+            <div style={{fontSize:10,color:'#666',marginTop:2}}>média Zion Global</div>
           </Card>
         ))}
       </div>
@@ -7496,7 +7496,7 @@ function insightsCruzamento(chave,linhas,cx){
   const media=pos.length?pos.reduce((s,r)=>s+r.delta,0)/pos.length:0;
   const acao={
     member:`A membresia concentra os maiores saltos. O gargalo não é engajar quem já é membro — é converter frequentador em membro. Vale medir quanto tempo alguém frequenta antes de se tornar membro.`,
-    link:`O Link é o acelerador mais forte da rede: média de +${media.toFixed(1)}pp nos indicadores positivos. Cada pessoa colocada num Link tende a puxar dízimo, serviço e vínculo junto.`,
+    link:`O Link é o acelerador mais forte de Zion Global: média de +${media.toFixed(1)}pp nos indicadores positivos. Cada pessoa colocada num Link tende a puxar dízimo, serviço e vínculo junto.`,
     ger:`O geracional funciona como porta de entrada para o Link, não como substituto. A leitura é que ele cria vínculo primeiro, e o resto vem depois.`,
     dom02:`Quem vem 0-2 domingos está descolado de tudo. Frequência não é consequência do engajamento — é a condição dele. Recuperar consistência de presença destrava os outros indicadores.`,
   }[chave];
@@ -7845,7 +7845,7 @@ function PageCenso(){
                   return(
                     <div style={{marginTop:16}}>
                       <div style={{fontSize:11,color:C.teal,fontWeight:700,textTransform:'uppercase',letterSpacing:0.5,marginBottom:8}}>
-                        Leitura {isLocData?`— ${selLoc}`:'— rede global'}
+                        Leitura {isLocData?`— ${selLoc}`:'— Zion Global'}
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:10}}>
                         {ins.map((x,i)=>{
@@ -7927,8 +7927,8 @@ function PageDigital(){
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-        <KpiCard label="Instagram — Total Rede" value={igCur} d={igPrv?delta(igCur,igPrv):null}/>
-        <KpiCard label="YouTube — Total Rede" value={ytCur} d={ytPrv?delta(ytCur,ytPrv):null}/>
+        <KpiCard label="Instagram — Total Zion Global" value={igCur} d={igPrv?delta(igCur,igPrv):null}/>
+        <KpiCard label="YouTube — Total Zion Global" value={ytCur} d={ytPrv?delta(ytCur,ytPrv):null}/>
         {igRows.slice(0,2).map(r=><KpiCard key={r.name} label={r.name+' IG'} value={r.val}/>)}
       </div>
 
@@ -8412,7 +8412,7 @@ function RxBarra({pct,max,mediana}){
   return(
     <div style={{position:'relative',height:8,background:'rgba(7,135,128,0.15)',borderRadius:4,overflow:'visible'}}>
       <div style={{width:w+'%',height:'100%',background:C.teal,borderRadius:4}}/>
-      {mediana!=null&&<div title="mediana da rede" style={{position:'absolute',left:mk+'%',top:-3,width:2,height:14,background:C.sand}}/>}
+      {mediana!=null&&<div title="mediana Zion Global" style={{position:'absolute',left:mk+'%',top:-3,width:2,height:14,background:C.sand}}/>}
     </div>
   );
 }
@@ -8444,7 +8444,7 @@ function RxLinha({label,ind,mediana,unidade,nota}){
       </div>
       <RxBarra pct={ind.pct} max={maxRede} mediana={mediana}/>
       <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
-        {mediana==null?'—':<>rede {mediana.toFixed(1)}%<span style={{color:razao>=1?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{razao>=1?'+':''}{((razao-1)*100).toFixed(0)}%</span></>}
+        {mediana==null?'—':<>Zion Global {mediana.toFixed(1)}%<span style={{color:razao>=1?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{razao>=1?'+':''}{((razao-1)*100).toFixed(0)}%</span></>}
       </div>
     </div>
   );
@@ -8577,7 +8577,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
         </div>
       </div>
       <p style={{fontSize:11,color:C.teal,marginTop:-4,marginBottom:10}}>
-        {nota||'Valor dividido pela média de culto dos últimos 3 meses da própria igreja.'} A referência é a <strong>mediana</strong> da rede, não a média — com São Paulo dentro, a média da rede seria a de São Paulo.
+        {nota||'Valor dividido pela média de culto dos últimos 3 meses da própria igreja.'} A referência é a <strong>mediana</strong> Zion Global, não a média — com São Paulo dentro, a média seria a de São Paulo.
       </p>
       <div style={{display:'flex',gap:18,flexWrap:'wrap',fontSize:12,color:C.cream,marginBottom:10}}>
         <span>Mediana global <strong style={{color:C.sand}}>{num(medG)}</strong></span>
@@ -8689,8 +8689,8 @@ function RxSaude({locId}){
   Object.keys(RX_CAMPOS).forEach(k=>{
     const x=ind[k],m=rxMediana(k,null);
     if(!x||x.na||!m) return;
-    if(x.pct>=1.5*m) destaques.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, contra '+m.toFixed(1)+'% da mediana da rede.');
-    if(x.pct<=0.5*m) alertas.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, metade ou menos da mediana da rede ('+m.toFixed(1)+'%).');
+    if(x.pct>=1.5*m) destaques.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, contra '+m.toFixed(1)+'% da mediana Zion Global.');
+    if(x.pct<=0.5*m) alertas.push(RX_CAMPOS[k].rotulo+' em '+x.pct.toFixed(1)+'% da igreja, metade ou menos da mediana Zion Global ('+m.toFixed(1)+'%).');
   });
   if(ind.raiz&&!ind.raiz.na&&ind.bap&&!ind.bap.na&&ind.raiz.pct>=10&&ind.bap.pct<=2)
     alertas.push('Gargalo entre formação e batismo: '+ind.raiz.pct.toFixed(1)+'% da igreja passou por Raízes e só '+ind.bap.pct.toFixed(1)+'% foi batizado no ano.');
@@ -8699,7 +8699,7 @@ function RxSaude({locId}){
   if(cons&&cons.cv>25) alertas.push('Oscilação alta entre domingos ('+cons.cv.toFixed(0)+'% de variação) — constância antes de crescimento.');
   if(cons&&cons.cv<12) destaques.push('Frequência muito estável entre os domingos ('+cons.cv.toFixed(0)+'% de variação).');
   const lum=ind.lumen,medLum=rxMediana('lumen',null);
-  if(lum&&medLum&&lum.pct>=1.4*medLum) destaques.push('Perfil de família jovem: Lumen representa '+lum.pct.toFixed(1)+'% do culto, bem acima da rede ('+medLum.toFixed(1)+'%).');
+  if(lum&&medLum&&lum.pct>=1.4*medLum) destaques.push('Perfil de família jovem: Lumen representa '+lum.pct.toFixed(1)+'% do culto, bem acima de Zion Global ('+medLum.toFixed(1)+'%).');
 
   /* Ordem do funil definida pelo escritorio. As etapas nao sao subconjuntos
      umas das outras, entao cada uma se le como % do culto — razao entre etapas
@@ -8717,7 +8717,7 @@ function RxSaude({locId}){
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
           <div>
             <ChartTitle>Funil de discipulado</ChartTitle>
-            <div style={{fontSize:11,color:C.teal,marginTop:-6,marginBottom:10}}>Porte {porte.label} · cada etapa como percentual da média de culto dos últimos 3 meses, ao lado da mediana da rede.</div>
+            <div style={{fontSize:11,color:C.teal,marginTop:-6,marginBottom:10}}>Porte {porte.label} · cada etapa como percentual da média de culto dos últimos 3 meses, ao lado da mediana Zion Global.</div>
           </div>
           <div style={{display:'flex',gap:26,flexWrap:'wrap'}}>
             <div style={{textAlign:'right'}}>
@@ -8749,7 +8749,7 @@ function RxSaude({locId}){
                 </div>
                 <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
                   {f.obs?f.obs:(m==null||na||sem)?'—':
-                    <>rede {m.toFixed(1)}{f.porCem?' por 100':'%'}<span style={{color:pct>=m?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{pct>=m?'+':''}{(100*(pct/m-1)).toFixed(0)}%</span></>}
+                    <>Zion Global {m.toFixed(1)}{f.porCem?' por 100':'%'}<span style={{color:pct>=m?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{pct>=m?'+':''}{(100*(pct/m-1)).toFixed(0)}%</span></>}
                 </div>
               </div>
             );
@@ -8762,7 +8762,7 @@ function RxSaude({locId}){
           <ChartTitle>Destaques</ChartTitle>
           {destaques.length?destaques.map((t,i)=>(
             <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_TOP,marginRight:8}}>▲</span>{t}</div>
-          )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana da rede.</div>}
+          )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana Zion Global.</div>}
         </Card>
         <Card>
           <ChartTitle>Alertas</ChartTitle>
@@ -8799,7 +8799,7 @@ const PAGES=[
   {id:'dsm',        label:'Envio DSM',               icon:'✈️'},
   {id:'pul',         label:'PUL Global',              icon:'💰'},
   {id:'report',     label:'Report Executivo',        icon:'📊'},
-  {id:'rede',       label:'Relatório da Rede',       icon:'🗺️'},
+  {id:'zionglobal', label:'Relatório Zion Global',   icon:'🗺️'},
 ];
 
 
@@ -9633,7 +9633,7 @@ function SemAcesso(){
   return(
     <Card style={{textAlign:'center',padding:'48px 24px'}}>
       <div style={{fontSize:32,marginBottom:12}}>🔒</div>
-      <div className="serif" style={{fontSize:18,color:C.cream,marginBottom:6}}>Página da rede global</div>
+      <div className="serif" style={{fontSize:18,color:C.cream,marginBottom:6}}>Página Zion Global</div>
       <div style={{fontSize:12,color:C.teal}}>Seu acesso é da localidade. Esta página mostra todas as igrejas e não está disponível.</div>
     </Card>
   );
@@ -9656,8 +9656,8 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
              ATENCAO: o menu NAO lista o PAGES inteiro, filtra por estes ids.
              Pagina registrada em PAGES e fora daqui existe, responde pela
              rota e nao aparece para ninguem — foi o que aconteceu com a aba
-             'rede' em 10/11/2026. Ao criar pagina nova, incluir o id aqui. */
-          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','rede','predios','dados','censo','dsm','pul']},
+             'zionglobal' em 10/11/2026. Ao criar pagina nova, incluir o id aqui. */
+          {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','zionglobal','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
             {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
@@ -9677,12 +9677,13 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
 
 /* ═══ APP */
 
-/* ═══ PAGE: RELATORIO MENSAL DA REDE ════════════════════════════════════════
-   Pedido do Breno em 09/11/2026: um relatorio mensal da rede para o Global e
-   para o bispo Teofilo, com a linguagem visual da Visao Global, respondendo
+/* ═══ PAGE: RELATORIO MENSAL ZION GLOBAL ═══════════════════════════════════
+   Pedido do Breno em 09/11/2026: um relatorio mensal para o Global e para o
+   bispo Teofilo, com a linguagem visual da Visao Global, respondendo
    quem cresceu, quem caiu de um mes para o outro e quem esta' acima ou abaixo
    da propria media do semestre. So' domingo e geracionais — batismo e raizes
-   tem buraco em metade da rede e arrastariam o relatorio para o mesmo problema.
+   tem buraco em metade das localidades e arrastariam o relatorio para o mesmo
+   problema.
 
    A REGRA DURA DESTA PAGINA: localidade sem o mes completo nunca aparece com
    numero nem com percentual. Vai para o quadro "Em falta", com o nome e ha'
@@ -9690,9 +9691,12 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
    credibilidade do relatorio inteiro na primeira edicao — e seis localidades
    estavam exatamente nesse estado quando a pagina foi escrita (outubro/2026).
 
-   A media da rede e' calculada sobre a BASE COMPARAVEL: so' as localidades
+   VOCABULARIO: nunca escrever "a Rede". O Breno avisou em 10/11/2026 que essa
+   palavra nao existe no vocabulario deles — e' Zion Global, ou "as localidades".
+
+   A media Zion Global e' calculada sobre a BASE COMPARAVEL: so' as localidades
    completas nos DOIS meses comparados. Somar quem reportou varia com a
-   cobertura, nao com a realidade: em outubro a rede "cairia" 25% so' porque
+   cobertura, nao com a realidade: em outubro Zion Global "cairia" 25% so' porque
    seis igrejas nao lancaram.
 
    Fecha no dia 15, com o mes anterior (decisao do Breno, 09/11/2026). */
@@ -9852,7 +9856,7 @@ function RmTabela({linhas,campo,fonte,altura=690}){
   );
 }
 
-function PageRede(){
+function PageZionGlobal(){
   const [ym,setYm]=useState(rmMesReferencia());
   const prev=rmShift(ym,-1);
   const linhas=rmLinhas(ym);
@@ -9865,7 +9869,7 @@ function PageRede(){
   const semanal=ok.filter(function(r){return !r.mensal;});
   const mensal=ok.filter(function(r){return r.mensal;});
 
-  /* Base comparavel: completas nos dois meses. A media da rede so' vale sobre
+  /* Base comparavel: completas nos dois meses. A media so' vale sobre
      o mesmo conjunto de igrejas nos dois lados — senao a variacao mede
      cobertura, nao crescimento. */
   const base=linhas.filter(function(r){return r.st==='ok'&&r.stPrev==='ok';});
@@ -9878,11 +9882,11 @@ function PageRede(){
     });
     return n?Math.round(s/n):0;
   }
-  const redeAtual=mediaDe(base,'ym'), redeAnt=mediaDe(base,'prev');
-  const redeDelta=redeAnt?delta(redeAtual,redeAnt):null;
+  const zgAtual=mediaDe(base,'ym'), zgAnt=mediaDe(base,'prev');
+  const zgDelta=zgAnt?delta(zgAtual,zgAnt):null;
   const publico=ok.reduce(function(a,r){
     const d=DATA[r.id]&&DATA[r.id][ym];return a+((d&&d.sunS)||0);},0);
-  /* A media da rede e' puxada por Sao Paulo, que sozinha pesa mais que metade
+  /* A media e' puxada por Sao Paulo, que sozinha pesa mais que metade
      do publico. A contagem de quem subiu e quem desceu diz o que aconteceu com
      as IGREJAS, que e' a pergunta do relatorio. */
   const subiram=semanal.filter(function(r){return r.mom!=null&&r.mom>0;});
@@ -9907,7 +9911,7 @@ function PageRede(){
   const locsGer=locsGlobal().filter(function(l){
     return GEN_CATS.some(function(g){return gerDe(l.id,ym,g.key);});
   });
-  function gerRede(m,cat,ls){
+  function gerTotal(m,cat,ls){
     let s=0,n=0;
     ls.forEach(function(l){
       const d=GER_DATA[l.id]&&GER_DATA[l.id][m];
@@ -9917,12 +9921,12 @@ function PageRede(){
   }
   const gers=GEN_CATS.map(function(g){
     const comCat=locsGer.filter(function(l){return gerDe(l.id,ym,g.key);});
-    const tot=gerRede(ym,g.key,comCat);
+    const tot=gerTotal(ym,g.key,comCat);
     /* A variacao so' sobre quem tem a categoria nos DOIS meses: se o Flow
        existia em 3 igrejas e passou a existir em 5, a media cairia sem que
        nenhuma tivesse encolhido. */
     const pares=comCat.filter(function(l){return gerDe(l.id,prev,g.key);});
-    const a=gerRede(ym,g.key,pares), b=gerRede(prev,g.key,pares);
+    const a=gerTotal(ym,g.key,pares), b=gerTotal(prev,g.key,pares);
     const top=comCat.map(function(l){
       const v=gerDe(l.id,ym,g.key);
       return{id:l.id,name:l.name,flag:l.flag,media:v.media,enc:v.enc};
@@ -9988,23 +9992,23 @@ function PageRede(){
         último quadro, nunca como queda.</span>}
       </div>
 
-      <CapaSlide titulo="Relatório Mensal da Rede"
+      <CapaSlide titulo="Relatório Mensal Zion Global"
                  subtitulo={'Cultos de domingo e geracionais · '+rmNome(ym)}
                  data={'Zion Church Global · gerado em '+dataGer}/>
 
-      {/* ── 1. A rede no mês ─────────────────────────────────────────── */}
+      {/* ── 1. Zion Global no mês ────────────────────────────────────── */}
       <Slide>
-        <TituloSlide nota={rmNome(ym)}>A rede no mês</TituloSlide>
+        <TituloSlide nota={rmNome(ym)}>Zion Global no mês</TituloSlide>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:18,flexShrink:0}}>
           {[
-            {l:'Média por domingo',v:fmt(redeAtual),
-             s:redeDelta!=null?fmtPct(redeDelta)+' vs '+rmCurto(prev):'sem base comparável',
-             cor:redeDelta==null?C.teal:(redeDelta>=0?C.sage:'#e05c5c')},
+            {l:'Média por domingo',v:fmt(zgAtual),
+             s:zgDelta!=null?fmtPct(zgDelta)+' vs '+rmCurto(prev):'sem base comparável',
+             cor:zgDelta==null?C.teal:(zgDelta>=0?C.sage:'#e05c5c')},
             {l:'Cresceram · caíram',v:subiram.length+' · '+desceram.length,
              s:rmCurto(ym)+' vs '+rmCurto(prev),
              cor:subiram.length>=desceram.length?C.sage:'#e05c5c'},
             {l:'Localidades com o mês completo',v:ok.length+'/'+linhas.length,
-             s:faltando.length?faltando.length+' em falta':'rede inteira',
+             s:faltando.length?faltando.length+' em falta':'todas lançaram',
              cor:faltando.length?'#c8a020':C.sage},
             {l:'Encontros geracionais',v:fmt(gers.reduce(function(a,g){return a+g.enc;},0)),
              s:gers.length+' geracionais ativos',cor:C.teal}
@@ -10044,7 +10048,7 @@ function PageRede(){
           </div>
           <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6,flexShrink:0}}>
             Público somado nos domingos de {rmNome(ym)}: {fmt(publico)} pessoas, nas {ok.length}
-            localidades com o mês completo. A média da rede e o "cresceram · caíram" usam a base
+            localidades com o mês completo. A média Zion Global e o "cresceram · caíram" usam a base
             comparável — as {base.length} localidades fechadas em {rmCurto(prev)} e em {rmCurto(ym)} —
             para que a variação meça crescimento e não quem lançou.
           </div>
@@ -10089,10 +10093,10 @@ function PageRede(){
           </div>}
       </Slide>
 
-      {/* ── 4. Geracionais: a rede e os 5 maiores de cada ───────────── */}
+      {/* ── 4. Geracionais: o total e os 5 maiores de cada ──────────── */}
       <Slide>
         <TituloSlide nota={rmNome(ym)+' · '+locsGer.length+' localidades com encontro lançado'}>
-          Geracionais da rede
+          Geracionais Zion Global
         </TituloSlide>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+Math.max(gers.length,1)+',1fr)',
                      gap:14,flexShrink:0}}>
@@ -10209,7 +10213,7 @@ function PageRede(){
         {faltando.length===0?(
           <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',
                        fontSize:30,color:C.sage}}>
-            A rede inteira lançou {rmNome(ym)}.
+            Todas as localidades lançaram {rmNome(ym)}.
           </div>
         ):(
           <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
@@ -10294,7 +10298,7 @@ function App(){
       case 'censo':       return campusFilter?<SemAcesso/>:<PageCenso/>;
       case 'pul':         return<PagePUL/>;
       case 'report':      return<PageReport/>;
-      case 'rede':        return campusFilter?<SemAcesso/>:<PageRede/>;
+      case 'zionglobal':  return campusFilter?<SemAcesso/>:<PageZionGlobal/>;
       default:            return<PageGlobal/>;
     }
   }
