@@ -16,10 +16,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;
   -webkit-print-color-adjust:exact;print-color-adjust:exact}
-html,body,#root{height:100%;background:#043030;font-family:'Montserrat',sans-serif;color:#FCFCEB}
+:root{--zbg:#043030;--zfg:#FCFCEB;--zbg-alt:#021a1a;--zslide:#062a2a;--zteal:#078780}
+html,body,#root{height:100%;background:var(--zbg);font-family:'Montserrat',sans-serif;color:var(--zfg)}
 ::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:#021a1a}
-::-webkit-scrollbar-thumb{background:#078780;border-radius:3px}
+::-webkit-scrollbar-track{background:var(--zbg-alt)}
+::-webkit-scrollbar-thumb{background:var(--zteal);border-radius:3px}
 .serif{font-family:'Brygada 1918',serif}
 /* O Report Executivo e' capturado com FireShot e exportado em PDF. Sem isto a
    quebra de pagina cai no meio dos graficos. */
@@ -31,9 +32,9 @@ html,body,#root{height:100%;background:#043030;font-family:'Montserrat',sans-ser
   /* O App envolve tudo num div com height:100vh e overflow:hidden. Sem soltar
      esses dois, a impressao para na primeira tela e sai 1 pagina so'. */
   html,body,#root,#root>div{height:auto!important;overflow:visible!important;
-       display:block!important;background:#062a2a!important}
+       display:block!important;background:var(--zslide)!important}
   main{overflow:visible!important;height:auto!important;padding:0!important;
-       background:#062a2a!important}
+       background:var(--zslide)!important}
   .slide{break-after:page;page-break-after:always;border-radius:0!important;
          border:none!important;width:1600px!important;height:900px!important;
          aspect-ratio:auto!important;overflow:visible!important}
@@ -58,8 +59,62 @@ const {
   PolarAngleAxis,PolarRadiusAxis,Cell,ComposedChart,LabelList,ReferenceLine
 }=Recharts;
 
-/* ═══ BRAND */
-const C={deepGreen:'#043030',teal:'#078780',mid:'#0C5149',sage:'#439B6A',cream:'#FCFCEB',sand:'#E5E4C1',aqua:'#9EDEDC',graphite:'#202020'};
+/* ═══ BRAND / TEMA ══════════════════════════════════════════════════════════
+   A Luciana achou o dashboard escuro demais (Breno, 11/11/2026), entao ele
+   passou a ter dois temas. Nenhuma pagina sabe disso: todas continuam lendo
+   `C.cream` para texto e `C.teal` para acento — o que muda e' o VALOR.
+
+   Por isso os nomes seguem os da marca mesmo quando o valor inverte:
+   no tema claro `C.cream` e' verde escuro (o texto) e `C.bg` e' o creme (o
+   fundo). Renomear tudo para `fg`/`bg` daria um diff de mil linhas sem ganho.
+
+   `C.deepGreen` NAO inverte: e' "texto escuro sobre acento claro" (pilula de
+   teal, selo de fase, chip de tier) e precisa ficar escuro nos dois temas.
+
+   As superficies e bordas sao teal com alpha, via `tealA(a)`. O truque e' que
+   o RGB do teal muda com o tema: no claro ele escurece, entao alpha baixo
+   continua dando uma superficie palida e alpha alto continua dando um texto
+   legivel. Sem isso, texto em `rgba(7,135,128,0.7)` sumiria no fundo creme. */
+const TEMAS={
+  escuro:{
+    bg:'#043030', bgTop:'#032525', bgAlt:'#021a1a', bgSlide:'#062a2a',
+    outline:'#021a1a', cream:'#FCFCEB', teal:'#078780', tealRGB:'7,135,128',
+    sage:'#439B6A', sand:'#E5E4C1', aqua:'#9EDEDC', mid:'#0C5149',
+    neg:'#e05c5c', warn:'#c8a020', pos:'#5dd68c', ouro:'#D4AF37',
+    deepGreen:'#043030', graphite:'#202020', creamRGB:'252,252,235',
+    onTeal:'#FCFCEB', gradLogin:'linear-gradient(135deg,#043030 0%,#021a1a 60%,#0C5149 100%)',
+    rTinta:'#FCFCEB', rEixo:'rgba(252,252,235,0.55)', rGrid:'rgba(157,222,220,0.10)',
+  },
+  claro:{
+    bg:'#FCFCEB', bgTop:'#FFFFFF', bgAlt:'#F2F3E4', bgSlide:'#FBFBEF',
+    outline:'#FCFCEB', cream:'#07302E', teal:'#066B66', tealRGB:'5,78,74',
+    sage:'#2F7D4D', sand:'#7A6B2A', aqua:'#15716E', mid:'#0C5149',
+    neg:'#C23B3B', warn:'#8B6914', pos:'#2F7D4D', ouro:'#8B6914',
+    deepGreen:'#043030', graphite:'#202020', creamRGB:'7,48,46',
+    onTeal:'#FCFCEB', gradLogin:'linear-gradient(135deg,#FFFFFF 0%,#F2F3E4 55%,#DCE8E4 100%)',
+    rTinta:'#07302E', rEixo:'rgba(7,48,46,0.62)',    rGrid:'rgba(5,78,74,0.16)',
+  },
+};
+const C={};
+/* Teal com alpha. Serve para superficie (0.06-0.15), borda (0.2-0.4) e
+   texto secundario (0.5-0.85) — nos dois temas, porque o RGB acompanha. */
+function tealA(a){ return 'rgba('+C.tealRGB+','+a+')'; }
+/* Texto principal com alpha (rotulo apagado, nota de rodape). */
+function creamA(a){ return 'rgba('+C.creamRGB+','+a+')'; }
+function aplicarTema(nome){
+  Object.assign(C, TEMAS[nome]||TEMAS.escuro);
+  C.nome = TEMAS[nome] ? nome : 'escuro';
+  try{
+    const r=document.documentElement.style;
+    r.setProperty('--zbg',C.bg);       r.setProperty('--zfg',C.cream);
+    r.setProperty('--zbg-alt',C.bgAlt);r.setProperty('--zslide',C.bgSlide);
+    r.setProperty('--zteal',C.teal);
+  }catch(e){ /* montagem headless nao tem documentElement */ }
+  try{ localStorage.setItem('zion-tema',C.nome); }catch(e){}
+}
+aplicarTema((function(){
+  try{ return localStorage.getItem('zion-tema')||'escuro'; }catch(e){ return 'escuro'; }
+})());
 /* Isologo oficial (export/Isologo/branco.png), embutido para o arquivo seguir autossuficiente */
 const LOGO='data:image/png;base64,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';
 function Isologo({size=32,opacity=1,style={}}){
@@ -69,7 +124,7 @@ const TIER_DEF=[
   {name:'BLACK',   min:6000,color:'#1a1a1a',text:'#FCFCEB'},
   {name:'DIAMOND', min:4000,color:'#89CFF0',text:'#043030'},
   {name:'PLATINUM',min:3000,color:'#E5E4E2',text:'#043030'},
-  {name:'GOLD',    min:2000,color:'#D4AF37',text:'#043030'},
+  {name:'GOLD',    min:2000,color:C.ouro,text:'#043030'},
   {name:'SILVER',  min:1,   color:'#A8A9AD',text:'#043030'},
   {name:'—',       min:0,   color:'#2a3a3a',text:'#FCFCEB'},
 ];
@@ -87,7 +142,7 @@ const BLDG_TIER=[
   {name:'BLACK',   color:'#1a1a1a',text:'#FCFCEB'},
   {name:'DIAMOND', color:'#89CFF0',text:'#043030'},
   {name:'PLATINUM',color:'#E5E4E2',text:'#043030'},
-  {name:'GOLD',    color:'#D4AF37',text:'#043030'},
+  {name:'GOLD',    color:C.ouro,text:'#043030'},
   {name:'SILVER',  color:'#A8A9AD',text:'#043030'},
   {name:'HOTEL',   color:'#7B5C3E',text:'#FCFCEB'},
   {name:'—',       color:'#2a3a3a',text:'#FCFCEB'},
@@ -3184,7 +3239,7 @@ function fmtMonth(ym){
 
 /* ═══ PRIMITIVES */
 function Card({children,style={},className=''}){
-  return<div className={className} style={{background:'rgba(7,135,128,0.08)',border:'1px solid rgba(7,135,128,0.2)',borderRadius:12,padding:'16px 20px',...style}}>{children}</div>;
+  return<div className={className} style={{background:tealA(0.08),border:'1px solid '+tealA(0.2),borderRadius:12,padding:'16px 20px',...style}}>{children}</div>;
 }
 function KpiCard({label,value,d,unit='',period}){
   const pos=d==null?null:d>=0;
@@ -3192,8 +3247,8 @@ function KpiCard({label,value,d,unit='',period}){
     <Card style={{textAlign:'center'}}>
       <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>{label}</div>
       <div className="serif" style={{fontSize:24,fontWeight:700,color:C.cream,lineHeight:1.1}}>{fmt(value)}{unit&&<span style={{fontSize:12}}> {unit}</span>}</div>
-      {d!=null&&<div style={{fontSize:11,marginTop:3,color:pos?C.sage:'#e05c5c'}}>{fmtPct(d)} vs período ant.</div>}
-      {period?.startsWith('2026')&&<div style={{fontSize:9,color:'#c8a020',marginTop:2}}>⚠️ dados YTD — comparação parcial</div>}
+      {d!=null&&<div style={{fontSize:11,marginTop:3,color:pos?C.sage:C.neg}}>{fmtPct(d)} vs período ant.</div>}
+      {period?.startsWith('2026')&&<div style={{fontSize:9,color:C.warn,marginTop:2}}>⚠️ dados YTD — comparação parcial</div>}
     </Card>
   );
 }
@@ -3201,11 +3256,13 @@ function DeltaBadge({d}){
   if(d==null)return<span style={{color:'#555'}}>—</span>;
   return<span style={{color:d>=0?C.sage:'#e05c5c',fontSize:11,fontWeight:600}}>{fmtPct(d)}</span>;
 }
-const TTS={background:'#021a1a',border:'1px solid #078780',borderRadius:8,color:'#FCFCEB',fontSize:12,zIndex:100};
+/* Funcao, nao const: um objeto de modulo guardaria as cores do tema que
+   estava ativo no carregamento e nao mudaria mais ao trocar de tema. */
+function TTS(){return{background:C.bgAlt,border:'1px solid '+C.teal,borderRadius:8,color:C.cream,fontSize:12,zIndex:100};}
 function TT({active,payload,label}){
   if(!active||!payload?.length)return null;
   return(
-    <div style={TTS}>
+    <div style={TTS()}>
       <div style={{padding:'5px 10px',borderBottom:'1px solid #078780',color:C.teal,fontWeight:600}}>{label}</div>
       {payload.map((p,i)=>(
         <div key={i} style={{padding:'3px 10px'}}>
@@ -3271,7 +3328,7 @@ function serieLabel(cor,acima){
     return(
       <text x={x} y={y+(acima?-9:16)} fill={cor} textAnchor="middle"
             fontSize={10} fontWeight={700}
-            stroke="#021a1a" strokeWidth={3} paintOrder="stroke">
+            stroke={C.outline} strokeWidth={3} paintOrder="stroke">
         {Number(value).toLocaleString('pt-BR')}
       </text>
     );
@@ -3288,7 +3345,7 @@ function PeriodSelector({value,onChange}){
   const sem   = isS?value.split('-S')[1]:null;
   const btnStyle=(active)=>({
     padding:'4px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,
-    background:active?C.teal:'rgba(7,135,128,0.15)',color:active?C.cream:C.teal,
+    background:active?C.teal:tealA(0.15),color:active?C.cream:C.teal,
   });
   /* Era `year!=='2026'`: escondia H2, Q3 e Q4 de 2026 mesmo depois do ano
      passar de junho. Agora o botao aparece se o periodo existir. */
@@ -3300,14 +3357,14 @@ function PeriodSelector({value,onChange}){
     <div style={{display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end'}}>
       <div style={{display:'flex',gap:4}}>
         {YEARS.map(y=>(
-          <button key={y} onClick={()=>onChange(y)} style={btnStyle(year===y)}>{y}{year===y&&y==='2026'&&<span style={{fontSize:9,color:'#c8a020',marginLeft:3}}>YTD</span>}</button>
+          <button key={y} onClick={()=>onChange(y)} style={btnStyle(year===y)}>{y}{year===y&&y==='2026'&&<span style={{fontSize:9,color:C.warn,marginLeft:3}}>YTD</span>}</button>
         ))}
       </div>
       <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
         <button onClick={()=>onChange(year)} style={btnStyle(isYear)}>Ano</button>
         <button onClick={()=>onChange(year+'-S1')} style={btnStyle(sem==='1')}>H1</button>
         {hasS2&&<button onClick={()=>onChange(year+'-S2')} style={btnStyle(sem==='2')}>H2</button>}
-        <span style={{borderLeft:'1px solid rgba(7,135,128,0.3)',margin:'0 2px'}}/>
+        <span style={{borderLeft:'1px solid '+tealA(0.3),margin:'0 2px'}}/>
         <button onClick={()=>onChange(year+'-Q1')} style={btnStyle(q==='1')}>Q1</button>
         <button onClick={()=>onChange(year+'-Q2')} style={btnStyle(q==='2')}>Q2</button>
         {hasQ3&&<button onClick={()=>onChange(year+'-Q3')} style={btnStyle(q==='3')}>Q3</button>}
@@ -3339,7 +3396,7 @@ function HeatmapTable({locRows,months,getMonthVal,getSemVal}){
             const rMax=Math.max(...rowVals,rMin+1);
             return(
               <tr key={loc.id}>
-                <td style={{padding:'5px 8px',color:C.cream,fontWeight:500,borderBottom:'1px solid rgba(7,135,128,0.08)',whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
+                <td style={{padding:'5px 8px',color:C.cream,fontWeight:500,borderBottom:'1px solid '+tealA(0.08),whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
                 {rowVals.map((v,mi)=>{
                   const t=rMax>rMin?(v-rMin)/(rMax-rMin):0.5;
                   // white (worst) → rich green (best)
@@ -3352,7 +3409,7 @@ function HeatmapTable({locRows,months,getMonthVal,getSemVal}){
                     </td>
                   );
                 })}
-                <td style={{textAlign:'center',padding:'5px 8px',fontWeight:700,color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.08)'}}>{fmt(getSemVal(loc.id))}</td>
+                <td style={{textAlign:'center',padding:'5px 8px',fontWeight:700,color:C.teal,borderBottom:'1px solid '+tealA(0.08)}}>{fmt(getSemVal(loc.id))}</td>
               </tr>
             );
           })}
@@ -3410,18 +3467,18 @@ function Login({onLogin}){
     else{setErr(true);setTimeout(()=>setErr(false),1500);}
   };
   return(
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:32,background:`linear-gradient(135deg,${C.deepGreen} 0%,#021a1a 60%,${C.mid} 100%)`}}>
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:32,background:C.gradLogin}}>
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
         <Isologo size={104} style={{marginBottom:22}}/>
         <div style={{fontSize:13,color:C.teal,letterSpacing:7,textTransform:'uppercase'}}>Dashboard Global</div>
       </div>
       <form onSubmit={handle} style={{display:'flex',flexDirection:'column',gap:12,width:280}}>
         <input type="password" placeholder="Senha de acesso" value={pw} onChange={e=>setPw(e.target.value)}
-          style={{padding:'12px 16px',borderRadius:8,border:`1px solid ${err?'#e05c5c':C.teal}`,background:'rgba(7,135,128,0.1)',color:C.cream,fontSize:14,outline:'none'}}/>
-        <button type="submit" style={{padding:'12px',borderRadius:8,border:'none',cursor:'pointer',background:C.teal,color:C.cream,fontSize:14,fontWeight:600,letterSpacing:1}}>ENTRAR</button>
-        {err&&<div style={{color:'#e05c5c',textAlign:'center',fontSize:12}}>Senha incorreta</div>}
+          style={{padding:'12px 16px',borderRadius:8,border:`1px solid ${err?C.neg:C.teal}`,background:tealA(0.1),color:C.cream,fontSize:14,outline:'none'}}/>
+        <button type="submit" style={{padding:'12px',borderRadius:8,border:'none',cursor:'pointer',background:C.teal,color:C.onTeal,fontSize:14,fontWeight:600,letterSpacing:1}}>ENTRAR</button>
+        {err&&<div style={{color:C.neg,textAlign:'center',fontSize:12}}>Senha incorreta</div>}
       </form>
-      <div style={{fontSize:11,color:'rgba(252,252,235,0.3)'}}>© 2026 Zion Church</div>
+      <div style={{fontSize:11,color:creamA(0.3)}}>© 2026 Zion Church</div>
     </div>
   );
 }
@@ -3444,28 +3501,28 @@ function LocMultiFilter({selected,onChange,locs}){
   const labelText=allSel?`Todas as igrejas (${VIS.length})`:nSel===0?'Nenhuma':
     nSel<=3?VIS.filter(l=>selected.includes(l.id)).map(l=>l.name).join(', '):
     nSel+' igrejas selecionadas';
-  const btnBorder=open?'1px solid '+C.teal:'1px solid rgba(7,135,128,0.3)';
+  const btnBorder=open?'1px solid '+C.teal:'1px solid '+tealA(0.3);
   return(
     <div style={{position:'relative',display:'inline-block'}}>
-      <button onClick={()=>setOpen(function(o){return !o;})} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',borderRadius:8,border:btnBorder,background:'rgba(7,135,128,0.08)',color:C.cream,cursor:'pointer',fontSize:12,fontWeight:600,minWidth:220,justifyContent:'space-between'}}>
+      <button onClick={()=>setOpen(function(o){return !o;})} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',borderRadius:8,border:btnBorder,background:tealA(0.08),color:C.cream,cursor:'pointer',fontSize:12,fontWeight:600,minWidth:220,justifyContent:'space-between'}}>
         <span style={{color:allSel?C.teal:C.cream}}>⛪ {labelText}</span>
         <span style={{color:C.teal,fontSize:10}}>{open?'▲':'▼'}</span>
       </button>
       {open&&(
-        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:999,background:'#062828',border:'1px solid rgba(7,135,128,0.4)',borderRadius:10,padding:'8px 0',minWidth:240,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
-          <div style={{display:'flex',gap:6,padding:'6px 12px 8px',borderBottom:'1px solid rgba(7,135,128,0.15)'}}>
-            <button onClick={()=>allSel?onChange([VIS[0].id]):onChange(VIS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:'rgba(7,135,128,0.2)',color:allSel?C.cream:C.teal}}>Todas</button>
-            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇧🇷</button>
-            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🇵🇹</button>
-            <button onClick={()=>onChange(VIS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>🌎</button>
-            <button onClick={()=>onChange(VIS.filter(l=>l.id!=='São Paulo').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:'rgba(7,135,128,0.15)',color:C.teal}}>Sem SP</button>
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:999,background:'#062828',border:'1px solid '+tealA(0.4),borderRadius:10,padding:'8px 0',minWidth:240,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+          <div style={{display:'flex',gap:6,padding:'6px 12px 8px',borderBottom:'1px solid '+tealA(0.15)}}>
+            <button onClick={()=>allSel?onChange([VIS[0].id]):onChange(VIS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:tealA(0.2),color:allSel?C.cream:C.teal}}>Todas</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🇧🇷</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🇵🇹</button>
+            <button onClick={()=>onChange(VIS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🌎</button>
+            <button onClick={()=>onChange(VIS.filter(l=>l.id!=='São Paulo').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>Sem SP</button>
           </div>
           <div style={{maxHeight:320,overflowY:'auto',padding:'4px 0'}}>
             {VIS.map(l=>{
               const ck=selected.includes(l.id);
               const ckBg=ck?C.teal:'transparent';
-              const ckBorder=ck?'2px solid '+C.teal:'2px solid rgba(7,135,128,0.4)';
-              const ckRowBg=ck?'rgba(7,135,128,0.12)':'transparent';
+              const ckBorder=ck?'2px solid '+C.teal:'2px solid '+tealA(0.4);
+              const ckRowBg=ck?tealA(0.12):'transparent';
               return(
                 <div key={l.id} onClick={()=>toggle(l.id)} onDoubleClick={()=>onChange([l.id])} title="Duplo clique: só esta localidade" style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',cursor:'pointer',background:ckRowBg,userSelect:'none'}}>
                   <span style={{width:16,height:16,borderRadius:4,border:ckBorder,background:ckBg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,color:C.cream,lineHeight:1}}>{ck?'✓':''}</span>
@@ -3474,7 +3531,7 @@ function LocMultiFilter({selected,onChange,locs}){
               );
             })}
           </div>
-          <div style={{padding:'8px 12px 4px',borderTop:'1px solid rgba(7,135,128,0.15)',fontSize:10,color:'#666',textAlign:'right'}}>{nSel}/{VIS.length} selecionadas · duplo clique isola uma</div>
+          <div style={{padding:'8px 12px 4px',borderTop:'1px solid '+tealA(0.15),fontSize:10,color:'#666',textAlign:'right'}}>{nSel}/{VIS.length} selecionadas · duplo clique isola uma</div>
         </div>
       )}
     </div>
@@ -3519,7 +3576,7 @@ function PageRanking(){
           <ChartTitle>Média de Pessoas por Domingo — {PERIODS[period]?.label}</ChartTitle>
           <div style={{display:'flex',flexDirection:'column',gap:5}}>
             {rows.map((r,i)=>(
-              <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:i===0?'rgba(7,135,128,0.18)':'rgba(7,135,128,0.05)'}}>
+              <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:i===0?tealA(0.18):tealA(0.05)}}>
                 <span style={{color:C.teal,fontWeight:700,width:22,textAlign:'center',fontSize:12}}>{i+1}</span>
                 <span style={{flex:1,fontSize:12}}>{r.loc.flag} {r.loc.name}</span>
                 <div style={{background:r.tier.color,color:r.tier.text,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.tier.name}</div>
@@ -3540,7 +3597,7 @@ function PageRanking(){
               </div>
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                 {tierGroups[t.name].map(r=>(
-                  <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:4,background:'rgba(7,135,128,0.08)',borderRadius:6,padding:'3px 9px'}}>
+                  <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:4,background:tealA(0.08),borderRadius:6,padding:'3px 9px'}}>
                     <span>{r.loc.flag}</span>
                     <span style={{fontSize:11,color:C.cream}}>{r.loc.name}</span>
                     <span style={{fontSize:11,color:C.teal,marginLeft:4}}>{fmt(r.avg)}</span>
@@ -3574,18 +3631,18 @@ function PageRanking(){
           }).map(l=>{
             const iso=PRIMEIRO_CULTO[l.id];
             return(
-              <div key={l.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:8,background:iso?'rgba(7,135,128,0.08)':'rgba(7,135,128,0.02)'}}>
+              <div key={l.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:8,background:iso?tealA(0.08):tealA(0.02)}}>
                 <span style={{flex:1,fontSize:12,color:C.cream}}>{l.flag} {l.name}</span>
                 <SeloFase locId={l.id} size="small"/>
                 {iso
                   ? <span style={{fontSize:12,color:C.aqua,fontWeight:600,minWidth:88,textAlign:'right'}}>{ddmmaaaa(iso)}</span>
-                  : <span style={{fontSize:11,color:'rgba(252,252,235,0.35)',minWidth:88,textAlign:'right'}}>a confirmar</span>}
+                  : <span style={{fontSize:11,color:creamA(0.35),minWidth:88,textAlign:'right'}}>a confirmar</span>}
                 <span style={{fontSize:11,color:C.teal,minWidth:112,textAlign:'right'}}>{iso?tempoDeHistoria(iso):''}</span>
               </div>
             );
           })}
         </div>
-        <div style={{fontSize:10,color:'rgba(252,252,235,0.4)',marginTop:10,lineHeight:1.5}}>
+        <div style={{fontSize:10,color:creamA(0.4),marginTop:10,lineHeight:1.5}}>
           A data do primeiro culto só entra aqui quando confirmada. Ela não pode ser
           lida do banco: a coleta começou em setembro de 2023, então as unidades
           anteriores a essa data aparecem no banco com o dia em que o registro
@@ -3660,7 +3717,7 @@ function PageGlobal(){
         <ChartTitle>{label} — {selLocs.length===locsGlobal().length?'Todas as Localidades':`${selLocs.length} Localidades Selecionadas`}</ChartTitle>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={data} margin={{top:22,right:8,bottom:50,left:55}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
             <YAxis domain={[0,'auto']} tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={55}/>
             <Tooltip content={<TT/>}/>
@@ -3690,9 +3747,9 @@ function PageGlobal(){
       {/* Month filter row */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:'rgba(7,135,128,0.15)',color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
         {allMonths.map(m=>{const [,mo]=m.split('-');return(
-          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:'rgba(7,135,128,0.12)',color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
+          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
         );})}
       </div>
 
@@ -3715,7 +3772,7 @@ function PageGlobal(){
         <ResponsiveContainer width="100%" height={320}>
           <AreaChart data={trendData} margin={{top:20,right:10,bottom:0,left:0}}>
             <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.35}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
             <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
@@ -3742,7 +3799,7 @@ function PageGlobal(){
           const color=value>0?'#5dd68c':value<0?'#f07070':'#888';
           const text=value>0?'+'+value.toLocaleString('pt-BR'):value.toLocaleString('pt-BR');
           /* y já é o topo da barra vB; sobe 14px para não tocar no valor de dentro */
-          return<text x={x+width/2} y={y-6} fill={color} textAnchor="middle" fontSize={10} fontWeight="bold" stroke="#021a1a" strokeWidth={3} paintOrder="stroke">{text}</text>;
+          return<text x={x+width/2} y={y-6} fill={color} textAnchor="middle" fontSize={10} fontWeight="bold" stroke={C.outline} strokeWidth={3} paintOrder="stroke">{text}</text>;
         }
         return(
           <Card>
@@ -3756,7 +3813,7 @@ function PageGlobal(){
             </div>
             <ResponsiveContainer width="100%" height={460}>
               <BarChart data={cmpData} margin={{top:30,right:12,bottom:60,left:10}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
                 <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-38} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={70}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={function(v){return v.toLocaleString('pt-BR');}} width={50}/>
                 <Tooltip content={<TT/>}/>
@@ -3826,7 +3883,7 @@ function PageLocal({lockedLocId=null}){
 
       {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {locsVis().map(l=>(
-          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:'rgba(7,135,128,0.12)',color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
+          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:tealA(0.12),color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>}
 
@@ -3843,7 +3900,7 @@ function PageLocal({lockedLocId=null}){
             {PRIMEIRO_CULTO[locId]
               ? <span>Primeiro culto em <strong style={{color:C.aqua}}>{ddmmaaaa(PRIMEIRO_CULTO[locId])}</strong>
                   {tempoDeHistoria(PRIMEIRO_CULTO[locId])?' \u00b7 '+tempoDeHistoria(PRIMEIRO_CULTO[locId])+' de hist\u00f3ria':''}</span>
-              : <span style={{color:'rgba(252,252,235,0.4)'}}>Data do primeiro culto a confirmar</span>}
+              : <span style={{color:creamA(0.4)}}>Data do primeiro culto a confirmar</span>}
           </div>
         </div>
         <div style={{marginLeft:'auto',textAlign:'right'}}>
@@ -3874,7 +3931,7 @@ function PageLocal({lockedLocId=null}){
           <LegendaExtremos/>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={weeklyRaw} margin={{top:22,right:8,bottom:30,left:40}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={45}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={45}/>
               <Tooltip content={<TT/>}/>
@@ -3902,7 +3959,7 @@ function PageLocal({lockedLocId=null}){
             <ChartTitle>Média de Presença por Domingo — 2025 vs 2026 (Mês a Mês)</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={sunComp} margin={{top:24,right:20,bottom:0,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
                 <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={function(v){return v.toLocaleString('pt-BR');}}/>
                 <Tooltip content={<TT/>}/>
@@ -3923,7 +3980,7 @@ function PageLocal({lockedLocId=null}){
         <ChartTitle>Links Ativos e Pessoas em Links — Mês a Mês</ChartTitle>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={stockData} margin={{top:32,right:32,bottom:0,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
             <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
             <YAxis yAxisId="l" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
             <YAxis yAxisId="r" orientation="right" tick={{fill:C.sage,fontSize:11}} axisLine={false} tickLine={false}/>
@@ -3943,7 +4000,7 @@ function PageLocal({lockedLocId=null}){
           <ChartTitle>Batismos — por Mês</ChartTitle>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={flowData} margin={{top:20,right:8,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -3957,7 +4014,7 @@ function PageLocal({lockedLocId=null}){
           <ChartTitle>Raízes Finalizados — por Mês</ChartTitle>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={flowData} margin={{top:20,right:8,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -3972,7 +4029,7 @@ function PageLocal({lockedLocId=null}){
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={stockData} margin={{top:20,right:8,bottom:0,left:0}}>
               <defs><linearGradient id="glvol" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.4}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -3987,7 +4044,7 @@ function PageLocal({lockedLocId=null}){
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={stockData} margin={{top:20,right:8,bottom:0,left:0}}>
               <defs><linearGradient id="glzao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.sage} stopOpacity={0.4}/><stop offset="95%" stopColor={C.sage} stopOpacity={0}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -4076,9 +4133,9 @@ function PageCultos(){
       {/* Month filter */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:'rgba(7,135,128,0.15)',color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
         {allMonths.map(m=>{const [,mo]=m.split('-');return(
-          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:'rgba(7,135,128,0.12)',color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
+          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
         );})}
       </div>
 
@@ -4106,7 +4163,7 @@ function PageCultos(){
             <LegendaExtremos/>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={wkData} margin={{top:22,right:8,bottom:35,left:50}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
                 <XAxis dataKey="name" tick={{fill:C.teal,fontSize:10}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={50}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={55}/>
                 <Tooltip content={<TT/>}/>
@@ -4126,7 +4183,7 @@ function PageCultos(){
         <ResponsiveContainer width="100%" height={320}>
           <AreaChart data={trendData} margin={{top:20,right:8,bottom:0,left:0}}>
             <defs><linearGradient id="gcu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.35}/><stop offset="95%" stopColor={C.teal} stopOpacity={0}/></linearGradient></defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
             <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
@@ -4159,7 +4216,7 @@ function PageCultos(){
             <p style={{fontSize:10,color:'#666',marginTop:-8,marginBottom:8}}>Média ponderada das igrejas filtradas</p>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={gComp} margin={{top:24,right:20,bottom:0,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
                 <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={function(v){return v.toLocaleString('pt-BR');}}/>
                 <Tooltip content={<TT/>}/>
@@ -4180,7 +4237,7 @@ function PageCultos(){
         <ChartTitle>Ranking de Localidades por Domingo — {PERIODS[period]?.label}</ChartTitle>
         <ResponsiveContainer width="100%" height={440}>
           <BarChart data={locRows.map(r=>({name:r.loc.name,val:r.cur}))} layout="vertical" margin={{top:5,right:70,bottom:5,left:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.1)}/>
             <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
             <Tooltip content={<TT/>}/>
@@ -4197,15 +4254,15 @@ function PageCultos(){
         <div style={{overflowY:'auto',maxHeight:300}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
-              <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Local</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Média Dom. — {PERIODS[period]?.label}</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Média Dom. — {PERIODS[prev]?.label||'—'}</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Variação</th>
-              <th style={{textAlign:'center',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo</th>
+              <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Local</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Média Dom. — {PERIODS[period]?.label}</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Média Dom. — {PERIODS[prev]?.label||'—'}</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Variação</th>
+              <th style={{textAlign:'center',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Selo</th>
             </tr></thead>
             <tbody>
               {locRows.map(r=>{const t=getTier(r.cur);return(
-                <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
@@ -4230,7 +4287,7 @@ function PageCultos(){
         </div>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
@@ -4328,9 +4385,9 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
       {/* Drill-down filter: Global or single location */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-        <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:'rgba(7,135,128,0.12)',color:isGlobal?C.cream:C.teal}}>🌍 Global</button>
+        <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:tealA(0.12),color:isGlobal?C.cream:C.teal}}>🌍 Global</button>
         {locsVis().map(l=>(
-          <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+          <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>
 
@@ -4350,7 +4407,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
           <ResponsiveContainer width="100%" height={320}>
             <AreaChart data={trendData} margin={{top:22,right:8,bottom:0,left:0}}>
               <defs><linearGradient id={`gf${field}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={color} stopOpacity={0.35}/><stop offset="95%" stopColor={color} stopOpacity={0}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
               <Tooltip content={<TT/>}/>
@@ -4365,7 +4422,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
           <ChartTitle>{compTitle||title} — {PERIODS[period]?.label} por Mês</ChartTitle>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={monthlyData} margin={{top:22,right:8,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
               <Tooltip content={<TT/>}/>
@@ -4382,7 +4439,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
         <ChartTitle>Ranking de Localidades — {PERIODS[period]?.label}</ChartTitle>
         <ResponsiveContainer width="100%" height={440}>
           <BarChart data={locRows.map(r=>({name:r.loc.name,val:r.cur}))} layout="vertical" margin={{top:5,right:70,bottom:5,left:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.1)}/>
             <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
             <Tooltip content={<TT/>}/>
@@ -4399,14 +4456,14 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
         <div style={{overflowY:'auto',maxHeight:300}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
-              <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Localidade</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Atual — {PERIODS[period]?.label}</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Anterior — {PERIODS[prev]?.label||'—'}</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Variação</th>
+              <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Localidade</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Atual — {PERIODS[period]?.label}</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Anterior — {PERIODS[prev]?.label||'—'}</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Variação</th>
             </tr></thead>
             <tbody>
               {locRows.map(r=>(
-                <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
@@ -4430,7 +4487,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
         </div>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={annualComp} margin={{top:22,right:8,bottom:45,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="name" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
@@ -4514,7 +4571,7 @@ function PageTaxas(){
         <ChartTitle>{label}</ChartTitle>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} margin={{top:20,right:8,bottom:45,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={55}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
             <Tooltip content={<TT/>}/>
@@ -4553,7 +4610,7 @@ function PageTaxas(){
       </div>
 
       {/* Definitions */}
-      <div style={{background:'rgba(7,135,128,0.06)',border:'1px solid rgba(7,135,128,0.2)',borderRadius:10,padding:'12px 16px',fontSize:11,color:'#aaa',lineHeight:1.7}}>
+      <div style={{background:tealA(0.06),border:'1px solid '+tealA(0.2),borderRadius:10,padding:'12px 16px',fontSize:11,color:'#aaa',lineHeight:1.7}}>
         <span style={{color:C.teal,fontWeight:700}}>Guia de leitura: </span>
         <b style={{color:C.cream}}>Conexão</b> = Pessoas em Links ÷ Presença/Dom (%) &nbsp;|&nbsp;
         <b style={{color:C.cream}}>Serviço</b> = Voluntários ÷ Presença/Dom (%) &nbsp;|&nbsp;
@@ -4578,13 +4635,13 @@ function PageTaxas(){
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
-              <th style={{textAlign:'left',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>Localidade</th>
-              <th style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Dom/Sem</th>
-              {RATE_COLS.map(r=><th key={r.key} style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'pre-line',fontSize:10}}>{r.label}</th>)}
+              <th style={{textAlign:'left',color:C.teal,padding:'6px 8px',borderBottom:'1px solid '+tealA(0.3),whiteSpace:'nowrap'}}>Localidade</th>
+              <th style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid '+tealA(0.3)}}>Dom/Sem</th>
+              {RATE_COLS.map(r=><th key={r.key} style={{textAlign:'right',color:C.teal,padding:'6px 8px',borderBottom:'1px solid '+tealA(0.3),whiteSpace:'pre-line',fontSize:10}}>{r.label}</th>)}
             </tr></thead>
             <tbody>
               {locData.sort((a,b)=>b.cur.engajamento-a.cur.engajamento).map(({loc,cur,prv})=>(
-                <tr key={loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                <tr key={loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
                   <td style={{padding:'5px 8px',textAlign:'right',color:'#aaa'}}>{fmt(cur.sun)}</td>
                   {RATE_COLS.map(r=>{
@@ -4847,9 +4904,9 @@ function PageDataControl(){
       ok:     isZero
               ? {bg:'rgba(30,110,70,0.45)', color:'#3dc87a',border:'rgba(30,110,70,0.7)', text:'Confirmado 0'}
               : {bg:'rgba(67,155,106,0.2)', color:'#439B6A',border:'rgba(67,155,106,0.4)',text:'Preenchido'},
-      partial: {bg:'rgba(212,175,55,0.15)', color:'#D4AF37',border:'rgba(212,175,55,0.35)',text:'Parcial'},
-      pending: {bg:'rgba(224,92,92,0.15)',  color:'#e05c5c',border:'rgba(224,92,92,0.3)', text:'Pendente'},
-      vacation:{bg:'rgba(7,135,128,0.1)',   color:'#078780',border:'rgba(7,135,128,0.3)', text:'Férias'},
+      partial: {bg:'rgba(212,175,55,0.15)', color:C.ouro,border:'rgba(212,175,55,0.35)',text:'Parcial'},
+      pending: {bg:'rgba(224,92,92,0.15)',  color:C.neg,border:'rgba(224,92,92,0.3)', text:'Pendente'},
+      vacation:{bg:tealA(0.1),   color:'#078780',border:tealA(0.3), text:'Férias'},
       na:      {bg:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.2)',border:'rgba(255,255,255,0.08)',text:'N/A'},
     }[status]||{bg:'#222',color:'#555',border:'#333',text:'—'};
     return(
@@ -4878,13 +4935,13 @@ function PageDataControl(){
           <div style={{fontSize:11,color:'#777',marginTop:4}}>campus 100% preenchidos</div>
         </Card>
         <Card style={{textAlign:'center'}}>
-          <div style={{fontSize:10,color:'#D4AF37',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Parciais</div>
-          <div className="serif" style={{fontSize:36,color:'#D4AF37',fontWeight:700,lineHeight:1}}>{totalPartial}</div>
+          <div style={{fontSize:10,color:C.ouro,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Parciais</div>
+          <div className="serif" style={{fontSize:36,color:C.ouro,fontWeight:700,lineHeight:1}}>{totalPartial}</div>
           <div style={{fontSize:11,color:'#777',marginTop:4}}>com dados incompletos</div>
         </Card>
         <Card style={{textAlign:'center'}}>
-          <div style={{fontSize:10,color:'#e05c5c',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Pendentes</div>
-          <div className="serif" style={{fontSize:36,color:'#e05c5c',fontWeight:700,lineHeight:1}}>{totalNone}</div>
+          <div style={{fontSize:10,color:C.neg,textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Pendentes</div>
+          <div className="serif" style={{fontSize:36,color:C.neg,fontWeight:700,lineHeight:1}}>{totalNone}</div>
           <div style={{fontSize:11,color:'#777',marginTop:4}}>sem nenhum dado</div>
         </Card>
       </div>
@@ -4893,9 +4950,9 @@ function PageDataControl(){
       <div>
         <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Campus</div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:'rgba(7,135,128,0.12)',color:locFilter==='all'?C.cream:C.teal}}>Todos</button>
+          <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:tealA(0.12),color:locFilter==='all'?C.cream:C.teal}}>Todos</button>
           {locsVis().map(l=>(
-            <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:'rgba(7,135,128,0.12)',color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+            <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
           ))}
         </div>
       </div>
@@ -4905,9 +4962,9 @@ function PageDataControl(){
         <div>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Mês</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-            <button onClick={()=>setMonthFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:monthFilter==='all'?C.teal:'rgba(7,135,128,0.12)',color:monthFilter==='all'?C.cream:C.teal}}>Todos os meses</button>
+            <button onClick={()=>setMonthFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:monthFilter==='all'?C.teal:tealA(0.12),color:monthFilter==='all'?C.cream:C.teal}}>Todos os meses</button>
             {allMonths.map(mo=>(
-              <button key={mo} onClick={()=>setMonthFilter(mo)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:monthFilter===mo?C.teal:'rgba(7,135,128,0.12)',color:monthFilter===mo?C.cream:C.teal}}>{mn(mo)}/{mo.split('-')[0].slice(2)}</button>
+              <button key={mo} onClick={()=>setMonthFilter(mo)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:monthFilter===mo?C.teal:tealA(0.12),color:monthFilter===mo?C.cream:C.teal}}>{mn(mo)}/{mo.split('-')[0].slice(2)}</button>
             ))}
           </div>
         </div>
@@ -4915,14 +4972,14 @@ function PageDataControl(){
 
       {/* Cards por campus */}
       {filtered.map(({loc,metRows,okCount,partialCount,total})=>(
-        <div key={loc.id} style={{background:'rgba(7,135,128,0.06)',border:'1px solid rgba(7,135,128,0.18)',borderRadius:12,overflow:'hidden'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid rgba(7,135,128,0.15)',background:'rgba(7,135,128,0.08)'}}>
+        <div key={loc.id} style={{background:tealA(0.06),border:'1px solid '+tealA(0.18),borderRadius:12,overflow:'hidden'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid '+tealA(0.15),background:tealA(0.08)}}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontSize:20}}>{loc.flag}</span>
               <span className="serif" style={{fontSize:17,fontWeight:700,color:C.cream}}>{loc.name}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <div style={{width:120,height:6,background:'rgba(7,135,128,0.2)',borderRadius:3,overflow:'hidden'}}>
+              <div style={{width:120,height:6,background:tealA(0.2),borderRadius:3,overflow:'hidden'}}>
                 <div style={{width:`${Math.round(okCount/total*100)}%`,height:'100%',background:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',borderRadius:3}}/>
               </div>
               <span style={{fontSize:12,fontWeight:700,color:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',whiteSpace:'nowrap'}}>{okCount}/{total} preenchidos</span>
@@ -4930,7 +4987,7 @@ function PageDataControl(){
           </div>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
             <thead>
-              <tr style={{borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+              <tr style={{borderBottom:'1px solid '+tealA(0.12)}}>
                 <th style={{textAlign:'left',padding:'8px 20px',color:C.teal,fontWeight:600,fontSize:11,width:'30%'}}>Tipo de Registro</th>
                 <th style={{textAlign:'left',padding:'8px 12px',color:C.teal,fontWeight:600,fontSize:11,width:'28%'}}>Status</th>
                 <th style={{textAlign:'right',padding:'8px 20px',color:C.teal,fontWeight:600,fontSize:11}}>Detalhes</th>
@@ -4938,7 +4995,7 @@ function PageDataControl(){
             </thead>
             <tbody>
               {metRows.map((m,i)=>(
-                <tr key={m.key} style={{borderBottom:i<metRows.length-1?'1px solid rgba(7,135,128,0.08)':'none',background:i%2===0?'transparent':'rgba(7,135,128,0.03)'}}>
+                <tr key={m.key} style={{borderBottom:i<metRows.length-1?'1px solid '+tealA(0.08):'none',background:i%2===0?'transparent':tealA(0.03)}}>
                   <td style={{padding:'10px 20px',color:C.cream,fontWeight:500}}>{m.label}</td>
                   <td style={{padding:'10px 12px'}}><Badge status={m.status} label2={m.isSun?m.label2:m.label2} tooltip={m.tooltip}/></td>
                   <td style={{padding:'10px 20px',textAlign:'right'}}>
@@ -4966,7 +5023,7 @@ function PageDataControl(){
                         {m.monthDetails.map(({mo,val,filled:mf,isVacation})=>{
                           if(isVacation)return(
                             <span key={mo} title={`${mn(mo)}: férias dos Links`} style={{fontSize:10,padding:'2px 9px',borderRadius:10,fontWeight:600,cursor:'help',
-                              background:'rgba(7,135,128,0.1)',color:'#078780',border:'1px solid rgba(7,135,128,0.3)'}}>
+                              background:tealA(0.1),color:'#078780',border:'1px solid '+tealA(0.3)}}>
                               {mn(mo)}: férias
                             </span>
                           );
@@ -6966,7 +7023,7 @@ const GER_DATA={
 const GEN_CATS=[
   {key:'lumen',label:'Lumen',      color:'#5BC4BF'},
   {key:'rise', label:'Rise',       color:'#78C47A'},
-  {key:'flow', label:'Flow',       color:'#D4AF37'},
+  {key:'flow', label:'Flow',       color:C.ouro},
   {key:'vox',  label:'Vox',        color:'#078780'},
   {key:'ekl',  label:'Eklektos',   color:'#A8A9AD'},
   {key:'diam', label:'Diamantes',  color:'#89CFF0'},
@@ -7077,7 +7134,7 @@ function PageGeracionais(){
                 {(!has25&&!has26)?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados</div>:(
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={tdata} margin={{top:18,right:12,bottom:0,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+                    <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
                     <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
                     <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={function(v){return v.toLocaleString('pt-BR');}} width={32}/>
                     <Tooltip content={<TT/>} formatter={function(v,name){return[v.toLocaleString('pt-BR'),'méd/sem'];}}/>
@@ -7115,7 +7172,7 @@ function PageGeracionais(){
             {!hasData?<div style={{color:'#555',fontSize:12,padding:20,textAlign:'center'}}>Sem dados para as localidades filtradas no período selecionado</div>:(
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData} margin={{top:20,right:8,bottom:0,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
                 <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
                 <Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:11,color:C.cream}}/>
@@ -7133,7 +7190,7 @@ function PageGeracionais(){
             <ChartTitle>Méd/Semana por Geracional — Igrejas Filtradas ({PERIODS[period]&&PERIODS[period].label})</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={globalByGen} margin={{top:20,right:8,bottom:40,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
                 <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-30} textAnchor="end" height={55} axisLine={false} tickLine={false}/>
                 <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
                 <Tooltip content={<TT/>}/>
@@ -7154,13 +7211,13 @@ function PageGeracionais(){
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
-              <th style={{textAlign:'left',padding:'6px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Mês</th>
-              {GEN_CATS.map(c=><th key={c.key} style={{textAlign:'right',padding:'6px 8px',color:c.color,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{c.label}</th>)}
-              <th style={{textAlign:'right',padding:'6px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Total</th>
+              <th style={{textAlign:'left',padding:'6px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3)}}>Mês</th>
+              {GEN_CATS.map(c=><th key={c.key} style={{textAlign:'right',padding:'6px 8px',color:c.color,borderBottom:'1px solid '+tealA(0.3)}}>{c.label}</th>)}
+              <th style={{textAlign:'right',padding:'6px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3)}}>Total</th>
             </tr></thead>
             <tbody>
               {monthlyData.filter(r=>r.total>0).map(r=>(
-                <tr key={r.name} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                <tr key={r.name} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'5px 8px',color:C.cream,fontWeight:600}}>{r.name}</td>
                   {GEN_CATS.map(c=>(
                     <td key={c.key} style={{padding:'5px 8px',textAlign:'right',color:r[c.key]>0?C.cream:'#444'}}>
@@ -7246,12 +7303,12 @@ function PagePredios(){
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
         <Card style={{textAlign:'center'}}>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cadeiras (Templo)</div>
-          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#D4AF37'}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+(r.pred.seats||0),0).toLocaleString('pt-BR')}</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:C.ouro}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+(r.pred.seats||0),0).toLocaleString('pt-BR')}</div>
           <div style={{fontSize:10,color:'#777',marginTop:2}}>{rows.filter(r=>!r.isHotel).length} sedes próprias</div>
         </Card>
         <Card style={{textAlign:'center'}}>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cap. Total (×Cultos)</div>
-          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#c8a020'}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+r.pred.cap,0).toLocaleString('pt-BR')}</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:C.warn}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+r.pred.cap,0).toLocaleString('pt-BR')}</div>
           <div style={{fontSize:10,color:'#777',marginTop:2}}>assentos × cultos/dom</div>
         </Card>
         <Card style={{textAlign:'center'}}>
@@ -7271,7 +7328,7 @@ function PagePredios(){
         <ChartTitle>Cadeiras / Cap.Total (×Cultos) / Presença — {PERIODS[period]?.label}</ChartTitle>
         <ResponsiveContainer width="100%" height={380}>
           <BarChart data={chartData} margin={{top:22,right:8,bottom:55,left:0}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="name" tick={{fill:C.cream,fontSize:10}} angle={-40} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
             <Tooltip content={<TT/>}/>
@@ -7291,24 +7348,24 @@ function PagePredios(){
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
             <thead><tr>
-              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>Campus</th>
-              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Prédio</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#8B6914',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cadeiras</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cultos/Dom</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Cap. Total</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#D4AF37',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo Prédio</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Pessoas/Dom</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Selo Pessoas</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Ocupação</th>
+              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3),whiteSpace:'nowrap'}}>Campus</th>
+              <th style={{textAlign:'left',padding:'7px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3)}}>Prédio</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#8B6914',borderBottom:'1px solid '+tealA(0.3)}}>Cadeiras</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Cultos/Dom</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Cap. Total</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Selo Prédio</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid '+tealA(0.3)}}>Pessoas/Dom</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid '+tealA(0.3)}}>Selo Pessoas</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3)}}>Ocupação</th>
             </tr></thead>
             <tbody>
               {rows.map(r=>(
-                <tr key={r.loc.id} style={{borderBottom:'1px solid rgba(7,135,128,0.08)'}}>
+                <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'5px 8px',color:'#aaa',fontSize:10}}>{r.pred.name}</td>
                   <td style={{padding:'5px 8px',textAlign:'center',color:'#8B6914',fontWeight:600}}>{(r.pred.seats||0).toLocaleString('pt-BR')}</td>
-                  <td style={{padding:'5px 8px',textAlign:'center',color:'#D4AF37',fontWeight:700}}>{r.pred.cultos||1}×</td>
-                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:'#D4AF37'}}>{r.pred.cap.toLocaleString('pt-BR')}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',color:C.ouro,fontWeight:700}}>{r.pred.cultos||1}×</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:C.ouro}}>{r.pred.cap.toLocaleString('pt-BR')}</td>
                   <td style={{padding:'5px 8px',textAlign:'center'}}>
                     <span style={{background:r.buildTier.color,color:r.buildTier.text,padding:'1px 7px',borderRadius:8,fontSize:9,fontWeight:700}}>{r.buildTier.name}</span>
                   </td>
@@ -7371,9 +7428,9 @@ function censMatScore(d){
 }
 function censMatColor(s){
   if(s>=70)return{bg:'rgba(67,155,106,0.2)',color:'#439B6A',border:'rgba(67,155,106,0.4)',label:'Alta Maturidade'};
-  if(s>=63)return{bg:'rgba(7,135,128,0.15)',color:'#078780',border:'rgba(7,135,128,0.35)',label:'Sólida'};
-  if(s>=57)return{bg:'rgba(212,175,55,0.15)',color:'#D4AF37',border:'rgba(212,175,55,0.35)',label:'Em Crescimento'};
-  return{bg:'rgba(224,92,92,0.15)',color:'#e05c5c',border:'rgba(224,92,92,0.3)',label:'Emergente'};
+  if(s>=63)return{bg:tealA(0.15),color:'#078780',border:tealA(0.35),label:'Sólida'};
+  if(s>=57)return{bg:'rgba(212,175,55,0.15)',color:C.ouro,border:'rgba(212,175,55,0.35)',label:'Em Crescimento'};
+  return{bg:'rgba(224,92,92,0.15)',color:C.neg,border:'rgba(224,92,92,0.3)',label:'Emergente'};
 }
 const CENSO_METRICS=[
   {key:'member', label:'% Membros Formalizados'},
@@ -7540,7 +7597,7 @@ function PageCenso(){
           <span style={{color:'#aaa'}}>{label}</span>
           <span style={{fontWeight:700,color:color||C.teal}}>{pct}%</span>
         </div>
-        <div style={{background:bg||'rgba(7,135,128,0.08)',borderRadius:3,height:6}}>
+        <div style={{background:bg||tealA(0.08),borderRadius:3,height:6}}>
           <div style={{width:Math.min(pct,100)+'%',background:color||C.teal,height:'100%',borderRadius:3,opacity:0.8}}/>
         </div>
       </div>
@@ -7568,7 +7625,7 @@ function PageCenso(){
           </p>
         </div>
         <select value={selLoc} onChange={e=>setSelLoc(e.target.value)}
-          style={{background:'#0C5149',color:C.cream,border:'1px solid rgba(7,135,128,0.4)',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>
+          style={{background:'#0C5149',color:C.cream,border:'1px solid '+tealA(0.4),borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>
           <option value="todas">🌍 Todas as Localidades</option>
           {censoLocs.map(l=><option key={l} value={l}>{l} (n={CENSO_DATA[l].n})</option>)}
         </select>
@@ -7586,7 +7643,7 @@ function PageCenso(){
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
               <ChartTitle>Comparativo por Indicador</ChartTitle>
               <select value={selMetric} onChange={e=>setSelMetric(e.target.value)}
-                style={{background:'#0C5149',color:C.cream,border:'1px solid rgba(7,135,128,0.4)',borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer'}}>
+                style={{background:'#0C5149',color:C.cream,border:'1px solid '+tealA(0.4),borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer'}}>
                 {CENSO_METRICS.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}
               </select>
             </div>
@@ -7594,7 +7651,7 @@ function PageCenso(){
               <BarChart data={metricData} layout="vertical" margin={{top:0,right:52,bottom:0,left:108}} barSize={13}>
                 <XAxis type="number" domain={[0,100]} tick={{fill:'#555',fontSize:9}} tickFormatter={v=>v+'%'}/>
                 <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:10}} width={106}/>
-                <Tooltip formatter={v=>[v+'%',selMetricDef.label]} contentStyle={{background:'#021a1a',border:'1px solid rgba(7,135,128,0.3)',borderRadius:8,fontSize:12}}/>
+                <Tooltip formatter={v=>[v+'%',selMetricDef.label]} contentStyle={{background:C.bgAlt,border:'1px solid '+tealA(0.3),borderRadius:8,fontSize:12}}/>
                 <Bar dataKey="val" radius={[0,4,4,0]} isAnimationActive={false}>
                   <LabelList dataKey="val" position="right" style={{fill:C.cream,fontSize:10,fontWeight:600}} formatter={v=>v+'%'}/>
                   {metricData.map((e,i)=><Cell key={i} fill={C.teal} opacity={0.7}/>)}
@@ -7617,7 +7674,7 @@ function PageCenso(){
                 ].sort((a,b)=>a.v-b.v);
                 const weak=all.slice(0,3); const strong=all.slice(-3).reverse();
                 return(
-                  <div key={r.loc} style={{background:'rgba(7,135,128,0.05)',borderRadius:8,padding:'11px 13px',border:'1px solid rgba(7,135,128,0.13)',cursor:'pointer'}} onClick={()=>setSelLoc(r.loc)}>
+                  <div key={r.loc} style={{background:tealA(0.05),borderRadius:8,padding:'11px 13px',border:'1px solid '+tealA(0.13),cursor:'pointer'}} onClick={()=>setSelLoc(r.loc)}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
                       <div style={{fontSize:12,fontWeight:700,color:C.cream}}>{r.loc}</div>
                       <span style={{background:r.mc.bg,color:r.mc.color,border:`1px solid ${r.mc.border}`,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.score}%</span>
@@ -7631,10 +7688,10 @@ function PageCenso(){
                       ))}
                     </div>
                     <div>
-                      <div style={{fontSize:9,color:'#e05c5c',letterSpacing:1,marginBottom:3}}>OPORTUNIDADES</div>
+                      <div style={{fontSize:9,color:C.neg,letterSpacing:1,marginBottom:3}}>OPORTUNIDADES</div>
                       {weak.map(s=>(
                         <div key={s.l} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
-                          <span style={{color:'#888'}}>{s.l}</span><span style={{color:'#e05c5c',fontWeight:700}}>{s.v}%</span>
+                          <span style={{color:'#888'}}>{s.l}</span><span style={{color:C.neg,fontWeight:700}}>{s.v}%</span>
                         </div>
                       ))}
                     </div>
@@ -7656,13 +7713,13 @@ function PageCenso(){
                 const delta=Math.round(val-avg);
                 const good=val>=avg;
                 return(
-                  <div key={k.k} style={{background:'rgba(7,135,128,0.07)',borderRadius:8,padding:'10px 12px',border:'1px solid rgba(7,135,128,0.13)'}}>
+                  <div key={k.k} style={{background:tealA(0.07),borderRadius:8,padding:'10px 12px',border:'1px solid '+tealA(0.13)}}>
                     <div style={{fontSize:10,color:C.teal,marginBottom:4}}>{k.icon} {k.label}</div>
                     <div className="serif" style={{fontSize:22,fontWeight:700,color:C.cream}}>{val}%</div>
                     <div style={{fontSize:10,color:good?'#439B6A':'#e05c5c',marginTop:3,fontWeight:600}}>
                       {delta>0?'+':''}{delta}% vs média ({avg}%)
                     </div>
-                    <div style={{background:'rgba(7,135,128,0.08)',borderRadius:3,height:4,marginTop:6}}>
+                    <div style={{background:tealA(0.08),borderRadius:3,height:4,marginTop:6}}>
                       <div style={{width:Math.min(val,100)+'%',background:good?'#439B6A':'#e05c5c',height:'100%',borderRadius:3,opacity:0.8}}/>
                     </div>
                   </div>
@@ -7679,7 +7736,7 @@ function PageCenso(){
               </div>
               <ResponsiveContainer width="100%" height={240}>
                 <RadarChart data={radarData} margin={{top:10,right:24,bottom:10,left:24}}>
-                  <PolarGrid stroke="rgba(7,135,128,0.2)"/>
+                  <PolarGrid stroke={tealA(0.2)}/>
                   <PolarAngleAxis dataKey="dim" tick={{fill:C.cream,fontSize:10}}/>
                   <PolarRadiusAxis angle={90} domain={[0,100]} tick={{fill:'#555',fontSize:8}} tickCount={4}/>
                   <Radar dataKey="val" stroke={C.teal} fill={C.teal} fillOpacity={0.25} isAnimationActive={false}/>
@@ -7687,7 +7744,7 @@ function PageCenso(){
               </ResponsiveContainer>
               <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,marginTop:4}}>
                 {radarData.map(rd=>(
-                  <div key={rd.dim} style={{background:'rgba(7,135,128,0.07)',borderRadius:6,padding:'5px 7px',textAlign:'center'}}>
+                  <div key={rd.dim} style={{background:tealA(0.07),borderRadius:6,padding:'5px 7px',textAlign:'center'}}>
                     <div style={{fontSize:9,color:C.teal,marginBottom:1}}>{rd.dim}</div>
                     <div style={{fontSize:15,fontWeight:700,color:C.cream}}>{rd.val}%</div>
                   </div>
@@ -7702,7 +7759,7 @@ function PageCenso(){
                 <DistBar label="2x por mês" pct={det.dom_2||0} color="#D4AF37"/>
                 <DistBar label="1x ou menos" pct={Math.round((det.dom_1||0)+(det.dom_0||0))} color="#e05c5c"/>
               </div>
-              <div style={{borderTop:'1px solid rgba(7,135,128,0.15)',marginTop:16,paddingTop:12}}>
+              <div style={{borderTop:'1px solid '+tealA(0.15),marginTop:16,paddingTop:12}}>
                 <ChartTitle>Faixa Etária</ChartTitle>
                 <div style={{marginTop:8}}>
                   <DistBar label="12–17 anos" pct={det.age_12||0} color="#555"/>
@@ -7724,7 +7781,7 @@ function PageCenso(){
                 <DistBar label="⚠️ Dificuldade para manter rotina" pct={det.esp_dif||0} color="#D4AF37"/>
                 <DistBar label="❌ Distante e afastado de Deus" pct={det.esp_dis||0} color="#e05c5c"/>
               </div>
-              <div style={{marginTop:16,borderTop:'1px solid rgba(7,135,128,0.15)',paddingTop:12}}>
+              <div style={{marginTop:16,borderTop:'1px solid '+tealA(0.15),paddingTop:12}}>
                 <ChartTitle>Leitura Bíblica</ChartTitle>
                 <div style={{marginTop:8}}>
                   <DistBar label="📖 Leitura diária" pct={det.leitura_d||0} color="#439B6A"/>
@@ -7752,7 +7809,7 @@ function PageCenso(){
                 <DistBar label="📋 Divorciado(a)" pct={det.div||0} color="#D4AF37"/>
                 <DistBar label="🕊️ Viúvo(a)" pct={det.viu||0} color="#888"/>
               </div>
-              <div style={{marginTop:12,padding:'8px 10px',background:'rgba(7,135,128,0.06)',borderRadius:6,fontSize:11,color:'#666'}}>
+              <div style={{marginTop:12,padding:'8px 10px',background:tealA(0.06),borderRadius:6,fontSize:11,color:'#666'}}>
                 {det.cas>det.sol
                   ? `Igreja predominantemente casada (${det.cas}%) — forte base familiar`
                   : `Igreja predominantemente solteira (${det.sol}%) — alto potencial jovem`}
@@ -7764,7 +7821,7 @@ function PageCenso(){
                 <DistBar label="💰 Contribuintes de dízimo" pct={d.diz||0} color="#D4AF37"/>
                 <DistBar label="⛪ Membros formalizados" pct={d.member||0} color={C.teal}/>
               </div>
-              <div style={{marginTop:10,padding:'8px 10px',background:'rgba(7,135,128,0.06)',borderRadius:6}}>
+              <div style={{marginTop:10,padding:'8px 10px',background:tealA(0.06),borderRadius:6}}>
                 <div style={{fontSize:10,color:'#555',marginBottom:4}}>Dízimo vs Média Global</div>
                 {(()=>{
                   const avg=Math.round(censoLocs.reduce((s,l)=>s+(CENSO_DATA[l].diz||0),0)/censoLocs.length);
@@ -7796,8 +7853,8 @@ function PageCenso(){
               <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                 {[{k:'member',lbl:'👥 Membros'},{k:'link',lbl:'🔗 Links'},{k:'ger',lbl:'🏘️ Geracional'},{k:'dom02',lbl:'📅 0-2 Domingos'}].map(t=>(
                   <button key={t.k} onClick={()=>setSelCross(t.k)}
-                    style={{background:selCross===t.k?C.teal:'rgba(7,135,128,0.1)',color:selCross===t.k?C.deepGreen:C.cream,
-                      border:`1px solid ${selCross===t.k?C.teal:'rgba(7,135,128,0.3)'}`,borderRadius:20,padding:'4px 10px',
+                    style={{background:selCross===t.k?C.teal:tealA(0.1),color:selCross===t.k?C.deepGreen:C.cream,
+                      border:`1px solid ${selCross===t.k?C.teal:tealA(0.3)}`,borderRadius:20,padding:'4px 10px',
                       fontSize:10,cursor:'pointer',fontWeight:600}}>
                     {t.lbl}
                   </button>
@@ -7814,12 +7871,12 @@ function PageCenso(){
                   <div style={{fontSize:11,color:'#888'}}>
                     Mostrando <b style={{color:C.cream}}>{globalCx.yesLabel}</b> — delta vs {globalCx.noLabel} ao final de cada linha
                   </div>
-                  {isLocData&&<span style={{fontSize:10,color:'rgba(7,135,128,0.5)',background:'rgba(7,135,128,0.08)',padding:'2px 8px',borderRadius:10}}>📍 {selLoc}</span>}
+                  {isLocData&&<span style={{fontSize:10,color:tealA(0.5),background:tealA(0.08),padding:'2px 8px',borderRadius:10}}>📍 {selLoc}</span>}
                 </div>
                 {rows.map(r=>(
                   <div key={r.lbl} style={{marginBottom:10,display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:190,fontSize:12,color:C.cream,fontWeight:500,flexShrink:0}}>{r.lbl}</div>
-                    <div style={{flex:1,position:'relative',height:22,background:'rgba(7,135,128,0.08)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{flex:1,position:'relative',height:22,background:tealA(0.08),borderRadius:4,overflow:'hidden'}}>
                       <div style={{position:'absolute',left:0,top:0,height:'100%',width:Math.min(r.yes,100)+'%',
                         background:r.delta>=0?'rgba(67,155,106,0.75)':'rgba(224,92,92,0.65)',borderRadius:4,transition:'width 0.3s'}}/>
                       <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',
@@ -7838,7 +7895,7 @@ function PageCenso(){
                     alta:   {cor:'#5dd68c',bg:'rgba(93,214,140,0.08)',bd:'rgba(93,214,140,0.28)',ic:'▲'},
                     atencao:{cor:'#D4AF37',bg:'rgba(212,175,55,0.08)', bd:'rgba(212,175,55,0.28)', ic:'!'},
                     inverso:{cor:'#f07070',bg:'rgba(240,112,112,0.08)',bd:'rgba(240,112,112,0.28)',ic:'▼'},
-                    acao:   {cor:C.teal,   bg:'rgba(7,135,128,0.08)',  bd:'rgba(7,135,128,0.3)',   ic:'→'},
+                    acao:   {cor:C.teal,   bg:tealA(0.08),  bd:tealA(0.3),   ic:'→'},
                   };
                   const ins=insightsCruzamento(selCross,rows,globalCx);
                   if(!ins.length) return null;
@@ -7937,7 +7994,7 @@ function PageDigital(){
           <ChartTitle>Ranking Instagram — {PERIODS[period]?.label}</ChartTitle>
           <ResponsiveContainer width="100%" height={380}>
             <BarChart data={igRows} layout="vertical" margin={{top:5,right:70,bottom:5,left:4}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.1)}/>
               <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
               <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
               <Tooltip content={<TT/>}/>
@@ -7952,7 +8009,7 @@ function PageDigital(){
           <ChartTitle>Ranking YouTube — {PERIODS[period]?.label}</ChartTitle>
           <ResponsiveContainer width="100%" height={380}>
             <BarChart data={ytRows} layout="vertical" margin={{top:5,right:70,bottom:5,left:4}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.1)}/>
               <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')}/>
               <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
               <Tooltip content={<TT/>}/>
@@ -7971,7 +8028,7 @@ function PageDigital(){
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={trendData} margin={{top:22,right:16,bottom:0,left:0}}>
               <defs><linearGradient id="ytSP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#078780" stopOpacity={0.3}/><stop offset="95%" stopColor="#078780" stopOpacity={0}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>(v/1000).toFixed(0)+'k'} width={36}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
@@ -7985,14 +8042,14 @@ function PageDigital(){
           <ChartTitle>{campusLock?'YouTube — Evolução 2026':'YouTube — Recife, Quito e Outras (Evolução 2026)'}</ChartTitle>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={trendData} margin={{top:22,right:16,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={44}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
               <Legend wrapperStyle={{fontSize:10,color:C.cream}}/>
               {soVis(['Recife','Quito','Campinas','Ribeirão Preto']).map((l,i)=>(
                 <Line key={l} isAnimationActive={false} type="monotone" dataKey={l} name={l} stroke={ytColors[i+1]} strokeWidth={2} dot={{r:3,fill:ytColors[i+1],strokeWidth:0}} connectNulls={true}>
-                  <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600,stroke:"#021a1a",strokeWidth:3,paintOrder:"stroke"}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
+                  <LabelList dataKey={l} position="top" style={{fill:ytColors[i+1],fontSize:9,fontWeight:600,stroke:C.outline,strokeWidth:3,paintOrder:"stroke"}} formatter={v=>v?v.toLocaleString('pt-BR'):''}/>
                 </Line>
               ))}
             </LineChart>
@@ -8006,7 +8063,7 @@ function PageDigital(){
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={igTrendData} margin={{top:22,right:16,bottom:0,left:0}}>
               <defs><linearGradient id="igSP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#439B6A" stopOpacity={0.3}/><stop offset="95%" stopColor="#439B6A" stopOpacity={0}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>(v/1000).toFixed(0)+'k'} width={36}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
@@ -8020,7 +8077,7 @@ function PageDigital(){
           <ChartTitle>{campusLock?'Instagram — Evolução 2026':'Instagram — Recife, Quito, Campinas e Outras (Evolução 2026)'}</ChartTitle>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={igTrendData} margin={{top:22,right:16,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.15)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.15)}/>
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v.toLocaleString('pt-BR')} width={44}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
@@ -8106,7 +8163,7 @@ function PageDSM(){
           <ChartTitle>Missões por Ano</ChartTitle>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={barData} margin={{top:22,right:8,bottom:0,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
               <XAxis dataKey="name" tick={{fill:C.cream,fontSize:13,fontWeight:600}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -8121,7 +8178,7 @@ function PageDSM(){
           <ChartTitle>Top Localidades — Enviados Acumulados</ChartTitle>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={locAcc} layout="vertical" margin={{top:5,right:55,bottom:5,left:4}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.1)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.1)}/>
               <XAxis type="number" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
               <Tooltip content={<TT/>}/>
@@ -8139,7 +8196,7 @@ function PageDSM(){
           return(
             <button key={y} onClick={function(){setSelYear(y);}}
               style={{padding:'7px 22px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:700,
-                background:selYear===y?C.teal:'rgba(7,135,128,0.12)',color:selYear===y?C.cream:C.teal}}>
+                background:selYear===y?C.teal:tealA(0.12),color:selYear===y?C.cream:C.teal}}>
               {y} <span style={{fontSize:11,fontWeight:400}}>({DSM_DATA[y].total} enviados)</span>
             </button>
           );
@@ -8152,12 +8209,12 @@ function PageDSM(){
             <Card key={item.loc} style={{padding:'14px 16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                 <div className="serif" style={{fontSize:15,fontWeight:700,color:C.cream}}>{item.loc}</div>
-                <div style={{background:C.teal,color:C.cream,borderRadius:20,padding:'2px 12px',fontSize:12,fontWeight:700}}>{item.n}</div>
+                <div style={{background:C.teal,color:C.onTeal,borderRadius:20,padding:'2px 12px',fontSize:12,fontWeight:700}}>{item.n}</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:4}}>
                 {item.names.map(function(name,i){
                   return(
-                    <div key={i} style={{fontSize:11,color:'#aaa',padding:'3px 0',borderBottom:'1px solid rgba(7,135,128,0.08)'}}>{name}</div>
+                    <div key={i} style={{fontSize:11,color:'#aaa',padding:'3px 0',borderBottom:'1px solid '+tealA(0.08)}}>{name}</div>
                   );
                 })}
               </div>
@@ -8202,7 +8259,7 @@ function PagePUL(){
         <ChartTitle>Projeção PUL Anual por Localidade (US$)</ChartTitle>
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={sorted} margin={{top:22,right:8,bottom:50,left:70}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+            <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
             <XAxis dataKey="campus" tick={{fill:C.cream,fontSize:11}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
             <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>'US$'+Math.round(v/1000)+'k'} width={65}/>
             <Tooltip content={<TT/>} formatter={v=>fmtUSD(v)}/>
@@ -8220,7 +8277,7 @@ function PagePUL(){
           <ChartTitle>Compromissos por Localidade</ChartTitle>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={sorted} margin={{top:20,right:8,bottom:50,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
               <XAxis dataKey="campus" tick={{fill:C.cream,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
@@ -8235,7 +8292,7 @@ function PagePUL(){
           <p style={{fontSize:10,color:'#666',marginTop:-8,marginBottom:8}}>Compromissos ÷ Dizimistas — quanto cada dizimista contribui em média</p>
           <ResponsiveContainer width="100%" height={268}>
             <BarChart data={engSorted} margin={{top:20,right:8,bottom:50,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+              <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
               <XAxis dataKey="campus" tick={{fill:C.cream,fontSize:10}} angle={-35} textAnchor="end" interval={0} axisLine={false} tickLine={false} height={60}/>
               <YAxis tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>v+'x'}/>
               <Tooltip content={<TT/>}/>
@@ -8253,14 +8310,14 @@ function PagePUL(){
         <ChartTitle>Tabela Completa — PUL Global 2025</ChartTitle>
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-            <thead><tr style={{borderBottom:'2px solid rgba(7,135,128,0.4)'}}>
+            <thead><tr style={{borderBottom:'2px solid '+tealA(0.4)}}>
               {['Localidade','Projeção Anual','Projeção Mensal','Compromissos','Ticket Médio','Dizimistas','Engajamento'].map(h=>(
                 <th key={h} style={{textAlign:h==='Localidade'?'left':'right',padding:'8px 12px',color:C.teal,fontSize:11,textTransform:'uppercase',letterSpacing:0.5}}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
               {sorted.map((r,i)=>(
-                <tr key={r.campus} style={{borderBottom:'1px solid rgba(7,135,128,0.1)',background:i%2===0?'rgba(7,135,128,0.04)':'transparent'}}>
+                <tr key={r.campus} style={{borderBottom:'1px solid '+tealA(0.1),background:i%2===0?tealA(0.04):'transparent'}}>
                   <td style={{padding:'8px 12px',color:C.cream,fontWeight:600}}>{r.campus}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:C.cream,fontWeight:700}}>{fmtUSD(r.proj)}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:'#aaa'}}>{fmtUSD(r.mensal)}</td>
@@ -8268,11 +8325,11 @@ function PagePUL(){
                   <td style={{padding:'8px 12px',textAlign:'right',color:'#aaa'}}>US$ {r.ticket.toFixed(2).replace('.',',')}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:C.cream}}>{r.dizimistas.toLocaleString('pt-BR')}</td>
                   <td style={{padding:'8px 12px',textAlign:'right'}}>
-                    <span style={{background:r.eng>=5?'rgba(67,155,106,0.2)':r.eng>=2?'rgba(212,175,55,0.15)':'rgba(7,135,128,0.1)',color:r.eng>=5?C.sage:r.eng>=2?'#D4AF37':C.teal,padding:'2px 8px',borderRadius:12,fontSize:11,fontWeight:700}}>{r.eng.toFixed(2)}x</span>
+                    <span style={{background:r.eng>=5?'rgba(67,155,106,0.2)':r.eng>=2?'rgba(212,175,55,0.15)':tealA(0.1),color:r.eng>=5?C.sage:r.eng>=2?'#D4AF37':C.teal,padding:'2px 8px',borderRadius:12,fontSize:11,fontWeight:700}}>{r.eng.toFixed(2)}x</span>
                   </td>
                 </tr>
               ))}
-              <tr style={{borderTop:'2px solid rgba(7,135,128,0.4)',background:'rgba(7,135,128,0.12)'}}>
+              <tr style={{borderTop:'2px solid '+tealA(0.4),background:tealA(0.12)}}>
                 <td style={{padding:'8px 12px',color:C.teal,fontWeight:700,fontSize:12}}>TOTAL</td>
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.sage,fontWeight:700}}>{fmtUSD(total.proj)}</td>
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.sage,fontWeight:700}}>{fmtUSD(total.mensal)}</td>
@@ -8284,7 +8341,7 @@ function PagePUL(){
             </tbody>
           </table>
         </div>
-        <div style={{marginTop:12,fontSize:10,color:'rgba(7,135,128,0.5)',lineHeight:1.8}}>
+        <div style={{marginTop:12,fontSize:10,color:tealA(0.5),lineHeight:1.8}}>
           * Lançamento da Campanha em Março &nbsp;|&nbsp; Dólar real: 5,76 &nbsp;|&nbsp; Dólar/Euro: 0,92 &nbsp;|&nbsp; Dólar/Peso Chileno: 977,81
         </div>
       </Card>
@@ -8410,7 +8467,7 @@ function RxBarra({pct,max,mediana}){
   const w=Math.max(0,Math.min(100,100*(pct||0)/(max||1)));
   const mk=Math.max(0,Math.min(100,100*(mediana||0)/(max||1)));
   return(
-    <div style={{position:'relative',height:8,background:'rgba(7,135,128,0.15)',borderRadius:4,overflow:'visible'}}>
+    <div style={{position:'relative',height:8,background:tealA(0.15),borderRadius:4,overflow:'visible'}}>
       <div style={{width:w+'%',height:'100%',background:C.teal,borderRadius:4}}/>
       {mediana!=null&&<div title="mediana Zion Global" style={{position:'absolute',left:mk+'%',top:-3,width:2,height:14,background:C.sand}}/>}
     </div>
@@ -8418,26 +8475,26 @@ function RxBarra({pct,max,mediana}){
 }
 function RxLinha({label,ind,mediana,unidade,nota}){
   if(ind?.na) return(
-    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid '+tealA(0.12)}}>
       <div style={{fontSize:12,color:C.cream}}>{label}</div>
       <div style={{fontSize:12,color:'#6b7b7b'}}>N/A</div>
       <div style={{fontSize:11,color:'#6b7b7b'}}>não realizado nesta localidade</div><div/>
     </div>
   );
   if(!ind) return(
-    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid '+tealA(0.12)}}>
       <div style={{fontSize:12,color:C.cream}}>{label}</div>
-      <div style={{fontSize:12,color:'#c8a020'}}>sem dado</div>
-      <div style={{fontSize:11,color:'#c8a020'}}>não dá para avaliar sem o lançamento</div><div/>
+      <div style={{fontSize:12,color:C.warn}}>sem dado</div>
+      <div style={{fontSize:11,color:C.warn}}>não dá para avaliar sem o lançamento</div><div/>
     </div>
   );
   const razao=mediana?ind.pct/mediana:null;
   const cor=razao==null?C.cream:razao>=1.5?C_TOP:razao<=0.5?C_BOT:C.cream;
   const maxRede=Math.max(mediana?mediana*2.2:0,ind.pct*1.1,1);
   return(
-    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}>
+    <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid '+tealA(0.12)}}>
       <div style={{fontSize:12,color:C.cream}}>{label}
-        {nota&&<div style={{fontSize:9,color:'rgba(7,135,128,0.7)'}}>{nota}</div>}</div>
+        {nota&&<div style={{fontSize:9,color:tealA(0.7)}}>{nota}</div>}</div>
       <div>
         <div style={{fontSize:14,fontWeight:700,color:cor}}>{ind.pct.toFixed(1)}%</div>
         <div style={{fontSize:10,color:C.teal}}>{fmt(ind.v)}{unidade?' '+unidade:''}</div>
@@ -8529,8 +8586,8 @@ function RxEvolucao({campo,rotulo,locId}){
       <div style={{overflowX:'auto'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
           <thead><tr>
-            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{porMetrica?'Indicador':'Localidade'}</th>
-            {per.map(p=><th key={p.k} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)',whiteSpace:'nowrap'}}>{p.label}</th>)}
+            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>{porMetrica?'Indicador':'Localidade'}</th>
+            {per.map(p=><th key={p.k} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3),whiteSpace:'nowrap'}}>{p.label}</th>)}
           </tr></thead>
           <tbody>
             {linhas.map(r=>(
@@ -8540,9 +8597,9 @@ function RxEvolucao({campo,rotulo,locId}){
               </tr>
             ))}
             {!porMetrica&&<tr>
-              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>Mediana</td>
+              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid '+tealA(0.3)}}>Mediana</td>
               {medianas.map((m,i)=>(
-                <td key={i} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>{m==null?'—':m.toFixed(1)+'%'}</td>
+                <td key={i} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid '+tealA(0.3)}}>{m==null?'—':m.toFixed(1)+'%'}</td>
               ))}
             </tr>}
           </tbody>
@@ -8572,7 +8629,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
         <ChartTitle>Raio-X — {rotulo} como % da média de culto</ChartTitle>
         <div style={{display:'flex',gap:6}}>
           {RX_ESCOPOS.map(e=>(
-            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
           ))}
         </div>
       </div>
@@ -8588,7 +8645,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
           <thead><tr>
             {['Localidade','Porte','Média/dom.',rotulo,'% da igreja','','vs mediana'].map((h,i)=>(
-              <th key={i} style={{textAlign:i<2?'left':i===5?'left':'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)',position:'sticky',top:0,background:'#04292a'}}>{h}</th>
+              <th key={i} style={{textAlign:i<2?'left':i===5?'left':'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3),position:'sticky',top:0,background:'#04292a'}}>{h}</th>
             ))}
           </tr></thead>
           <tbody>
@@ -8597,7 +8654,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
               const cor=razao==null?C.cream:razao>=1.5?C_TOP:razao<=0.5?C_BOT:C.cream;
               const sel=destaque===r.loc.id;
               return(
-                <tr key={r.loc.id} style={{background:sel?'rgba(7,135,128,0.18)':'transparent'}}>
+                <tr key={r.loc.id} style={{background:sel?tealA(0.18):'transparent'}}>
                   <td style={{padding:'4px 6px',color:C.cream,fontWeight:sel?700:400}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'4px 6px',color:C.teal}}>{r.porte.label}</td>
                   <td style={{padding:'4px 6px',color:C.teal,textAlign:'right'}}>{fmt(r.base)}</td>
@@ -8619,7 +8676,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
           </tbody>
         </table>
       </div>
-      <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:8}}>A marca clara em cada barra é a mediana do escopo selecionado. Igrejas abaixo de 150 pessoas movem mais de 0,7 ponto percentual por pessoa — ler como ordem de grandeza.</div>
+      <div style={{fontSize:10,color:tealA(0.7),marginTop:8}}>A marca clara em cada barra é a mediana do escopo selecionado. Igrejas abaixo de 150 pessoas movem mais de 0,7 ponto percentual por pessoa — ler como ordem de grandeza.</div>
     </Card>
   );
 }
@@ -8644,7 +8701,7 @@ function RxGeracionais(){
         <ChartTitle>Raio-X — participação de cada geracional no culto</ChartTitle>
         <div style={{display:'flex',gap:6}}>
           {RX_ESCOPOS.map(e=>(
-            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:'rgba(7,135,128,0.12)',color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
           ))}
         </div>
       </div>
@@ -8652,9 +8709,9 @@ function RxGeracionais(){
       <div style={{overflowX:'auto'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
           <thead><tr>
-            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Localidade</th>
-            <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>Média/dom.</th>
-            {RX_GER.map(g=><th key={g.pref} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid rgba(7,135,128,0.3)'}}>{g.label}</th>)}
+            <th style={{textAlign:'left',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Localidade</th>
+            <th style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>Média/dom.</th>
+            {RX_GER.map(g=><th key={g.pref} style={{textAlign:'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3)}}>{g.label}</th>)}
           </tr></thead>
           <tbody>
             {linhas.map(r=>(
@@ -8671,9 +8728,9 @@ function RxGeracionais(){
               </tr>
             ))}
             <tr>
-              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>Mediana do escopo</td>
-              <td style={{borderTop:'1px solid rgba(7,135,128,0.3)'}}/>
-              {RX_GER.map(g=><td key={g.pref} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid rgba(7,135,128,0.3)'}}>{meds[g.pref]==null?'—':meds[g.pref].toFixed(1)+'%'}</td>)}
+              <td style={{padding:'6px',color:C.sand,fontWeight:700,borderTop:'1px solid '+tealA(0.3)}}>Mediana do escopo</td>
+              <td style={{borderTop:'1px solid '+tealA(0.3)}}/>
+              {RX_GER.map(g=><td key={g.pref} style={{padding:'6px',textAlign:'right',color:C.sand,fontWeight:700,borderTop:'1px solid '+tealA(0.3)}}>{meds[g.pref]==null?'—':meds[g.pref].toFixed(1)+'%'}</td>)}
             </tr>
           </tbody>
         </table>
@@ -8742,7 +8799,7 @@ function RxSaude({locId}){
                 <div style={{fontSize:12,color:C.cream}}>{f.label}
                   <div style={{fontSize:10,color:C.teal}}>{na?'N/A':sem?'sem dado':fmt(x.v)+' '+(f.unidade||'')}</div>
                 </div>
-                <div style={{height:26,background:'rgba(7,135,128,0.12)',borderRadius:6}}>
+                <div style={{height:26,background:tealA(0.12),borderRadius:6}}>
                   <div style={{width:Math.max(1.5,Math.min(100,pct))+'%',height:'100%',background:i===0?C.sage:C.teal,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:8}}>
                     <span style={{fontSize:11,color:C.cream,fontWeight:600,whiteSpace:'nowrap'}}>{na?'N/A':sem?'—':pct.toFixed(1)+(f.porCem?' por 100':'%')}</span>
                   </div>
@@ -8755,26 +8812,26 @@ function RxSaude({locId}){
             );
           })}
         </div>
-        <div style={{fontSize:10,color:'rgba(7,135,128,0.7)',marginTop:10}}>O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
+        <div style={{fontSize:10,color:tealA(0.7),marginTop:10}}>O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
       </Card>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
         <Card>
           <ChartTitle>Destaques</ChartTitle>
           {destaques.length?destaques.map((t,i)=>(
-            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_TOP,marginRight:8}}>▲</span>{t}</div>
+            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid '+tealA(0.12)}}><span style={{color:C_TOP,marginRight:8}}>▲</span>{t}</div>
           )):<div style={{fontSize:12,color:C.teal}}>Nenhum indicador acima de 1,5× a mediana Zion Global.</div>}
         </Card>
         <Card>
           <ChartTitle>Alertas</ChartTitle>
           {alertas.length?alertas.map((t,i)=>(
-            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid rgba(7,135,128,0.12)'}}><span style={{color:C_BOT,marginRight:8}}>▼</span>{t}</div>
+            <div key={i} style={{fontSize:12,color:C.cream,padding:'6px 0',borderBottom:'1px solid '+tealA(0.12)}}><span style={{color:C_BOT,marginRight:8}}>▼</span>{t}</div>
           )):<div style={{fontSize:12,color:C.teal}}>Nenhum alerta.</div>}
         </Card>
       </div>
       <RxEvolucao locId={locId}/>
 
       {(ind.base3||0)<150&&<Card style={{borderColor:'rgba(200,160,32,0.4)'}}>
-        <div style={{fontSize:11,color:'#c8a020'}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza e comparar com localidades do mesmo porte.</div>
+        <div style={{fontSize:11,color:C.warn}}>⚠️ Igreja de porte pequeno: com menos de 150 pessoas de média, cada pessoa vale mais de 0,7 ponto percentual. Ler os índices como ordem de grandeza e comparar com localidades do mesmo porte.</div>
       </Card>}
     </div>
   );
@@ -8826,7 +8883,7 @@ const GER_LOGO={
   ekl:{w:161,src:"data:image/jpeg;base64,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"},
 };
 
-const R_TINTA='#FCFCEB';
+/* tinta e eixo do Report seguem o tema (ver TTS acima) */
 const HORA_CORES={
   1:['#12796d'],
   2:['#2f7d4d','#0e6480'],
@@ -8839,8 +8896,8 @@ const R_MES  ='#1d6f57';   /* medias mensais */
 const R_ANO  ='#155e63';   /* medias anuais */
 const R_ALTO ='#2b7a4e';   /* 3 melhores */
 const R_BAIXO='#9b4444';   /* 3 piores */
-const R_GRID ='rgba(157,222,220,0.10)';
-const R_EIXO ='rgba(252,252,235,0.55)';
+
+
 
 function corHora(i,n){const p=HORA_CORES[n]||HORA_CORES[4];return p[Math.min(i,p.length-1)];}
 function ddmm(iso){const p=iso.split('-');return p[2]+'/'+p[1];}
@@ -8955,8 +9012,8 @@ function numeroNaBarra(tamanho){
     const cabe=height>=tamanho+12;
     return(
       <text x={x+width/2} y={cabe?y+tamanho+5:y-6} textAnchor="middle"
-            fontSize={tamanho} fontWeight={700} fill={R_TINTA}
-            stroke={cabe?'none':'#021a1a'} strokeWidth={cabe?0:3.5} paintOrder="stroke">
+            fontSize={tamanho} fontWeight={700} fill={C.rTinta}
+            stroke={cabe?'none':C.outline} strokeWidth={cabe?0:3.5} paintOrder="stroke">
         {txt}
       </text>
     );
@@ -8970,7 +9027,7 @@ function faixaLabel(tamanho){
     if(value===null||value===undefined||height<tamanho+6||width<30) return null;
     return(
       <text x={x+width/2} y={y+height/2+tamanho/2-1} textAnchor="middle"
-            fontSize={tamanho} fontWeight={700} fill={R_TINTA}>
+            fontSize={tamanho} fontWeight={700} fill={C.rTinta}>
         {Number(value).toLocaleString('pt-BR')}
       </text>
     );
@@ -8984,7 +9041,7 @@ function totalAcima(props){
   if(value===null||value===undefined) return null;
   return(
     <text x={x+width/2} y={y-9} textAnchor="middle" fontSize={15} fontWeight={700}
-          fill={R_TINTA} stroke="#021a1a" strokeWidth={4} paintOrder="stroke">
+          fill={C.rTinta} stroke={C.outline} strokeWidth={4} paintOrder="stroke">
       {Number(value).toLocaleString('pt-BR')}
     </text>
   );
@@ -8997,7 +9054,7 @@ function cresceLabel(props){
   const pos=value>=0;
   return(
     <text x={x+width/2} y={y-9} textAnchor="middle" fontSize={15} fontWeight={700}
-          fill={pos?'#7fd6a0':'#f08a8a'} stroke="#021a1a" strokeWidth={3.5} paintOrder="stroke">
+          fill={pos?'#7fd6a0':'#f08a8a'} stroke={C.outline} strokeWidth={3.5} paintOrder="stroke">
       {(pos?'+':'')+value.toFixed(1)+'%'}
     </text>
   );
@@ -9026,13 +9083,13 @@ function Slide({children,pad=54}){
   return(
     <div ref={ref} className="slide" style={{position:'relative',width:'100%',
          aspectRatio:SL_W+' / '+SL_H,overflow:'hidden',borderRadius:14,
-         background:'#062a2a',border:'1px solid rgba(7,135,128,0.22)'}}>
+         background:C.bgSlide,border:'1px solid '+tealA(0.22)}}>
       {/* O fundo e' um rect de SVG, nao background CSS: preenchimento de SVG
           imprime sempre, background CSS so' com "Graficos de segundo plano"
           marcado. Sem isto o PDF sai branco e o texto creme some. */}
       <svg viewBox="0 0 4 4" preserveAspectRatio="none" aria-hidden="true"
            style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:0}}>
-        <rect width="4" height="4" fill="#062a2a"/>
+        <rect width="4" height="4" fill={C.bgSlide}/>
       </svg>
       <div className="slide-canvas" style={{position:'relative',zIndex:1,
                    width:SL_W,height:SL_H,transformOrigin:'top left',
@@ -9143,9 +9200,9 @@ function SubTitulo({children}){
   return<div style={{fontSize:14,color:C.teal,textTransform:'uppercase',
                      letterSpacing:1.6,marginBottom:8,flexShrink:0}}>{children}</div>;
 }
-const eixoX={tick:{fill:R_EIXO,fontSize:14},axisLine:{stroke:R_GRID},tickLine:false};
-const eixoY={tick:{fill:R_EIXO,fontSize:14},axisLine:false,tickLine:false,width:58};
-const dicaEstilo={background:'#062828',border:'1px solid rgba(7,135,128,0.45)',
+function eixoX(){return{tick:{fill:C.rEixo,fontSize:14},axisLine:{stroke:C.rGrid},tickLine:false};}
+function eixoY(){return{tick:{fill:C.rEixo,fontSize:14},axisLine:false,tickLine:false,width:58};}
+const dicaEstilo={background:'#062828',border:'1px solid '+tealA(0.45),
                   borderRadius:8,color:C.cream,fontSize:12};
 
 /* Medias mensais. O mes incompleto sai hachurado e com o rotulo "parcial":
@@ -9165,9 +9222,9 @@ function GraficoMensal({dados,cor,media,altura=230,dom}){
               <line x1="0" y1="0" x2="0" y2="7" stroke={C.sand} strokeWidth="2.4" strokeOpacity="0.55"/>
             </pattern>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
-          <XAxis dataKey="mes" {...eixoX}/>
-          <YAxis {...eixoY} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
+          <CartesianGrid strokeDasharray="3 3" stroke={C.rGrid} vertical={false}/>
+          <XAxis dataKey="mes" {...eixoX()}/>
+          <YAxis {...eixoY()} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
           <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                    formatter={function(v,n,p){
                      return[Number(v).toLocaleString('pt-BR'),
@@ -9196,9 +9253,9 @@ function MediasAnuais({serie,cor,altura=230,dom}){
   return(
     <ResponsiveContainer width="100%" height={altura}>
       <BarChart data={serie} margin={{top:34,right:10,left:0,bottom:4}}>
-        <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
-        <XAxis dataKey="ano" {...eixoX}/>
-        <YAxis {...eixoY} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
+        <CartesianGrid strokeDasharray="3 3" stroke={C.rGrid} vertical={false}/>
+        <XAxis dataKey="ano" {...eixoX()}/>
+        <YAxis {...eixoY()} domain={dom||[0,'auto']} ticks={dom&&dom.ticks} interval={0}/>
         <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                  formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),'Média'];}}/>
         <Bar dataKey="v" fill={cor} radius={[4,4,0,0]} isAnimationActive={false} name="Média">
@@ -9404,9 +9461,9 @@ function PageReport(){
            alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
           <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-          <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:'rgba(7,135,128,0.15)',color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+          <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
           {MESES.map(function(m){return(
-            <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:'rgba(7,135,128,0.12)',color:m===selMonth?'#021a1a':C.teal}}>
+            <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>
               {MNAMES[parseInt(m.slice(5))-1]}{parciais[m]?'*':''}
             </button>
           );})}
@@ -9434,7 +9491,7 @@ function PageReport(){
         <TituloSlide nota={'Dados até '+(dataDados||'—')}>Domingo — Resumo</TituloSlide>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:18,flexShrink:0}}>
           {kpis.map(function(k){return(
-            <div key={k.label} style={{background:'rgba(7,135,128,0.10)',border:'1px solid rgba(7,135,128,0.24)',
+            <div key={k.label} style={{background:tealA(0.10),border:'1px solid '+tealA(0.24),
                  borderRadius:12,padding:'20px 18px',textAlign:'center'}}>
               <div style={{fontSize:14,color:C.teal,textTransform:'uppercase',letterSpacing:1.2,marginBottom:8}}>{k.label}</div>
               <div className="serif" style={{fontSize:46,fontWeight:700,color:C.cream,lineHeight:1}}>{fmt(k.value)}</div>
@@ -9480,10 +9537,10 @@ function PageReport(){
                 <div key={fi} style={{flex:1,minHeight:0}}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={fila} margin={{top:32,right:14,left:0,bottom:4}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
-                      <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={56}
-                             tick={{fill:R_EIXO,fontSize:14}}/>
-                      <YAxis {...eixoY} domain={horaDom} ticks={horaDom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.rGrid} vertical={false}/>
+                      <XAxis dataKey="rot" {...eixoX()} interval={0} angle={-45} textAnchor="end" height={56}
+                             tick={{fill:C.rEixo,fontSize:14}}/>
+                      <YAxis {...eixoY()} domain={horaDom} ticks={horaDom.ticks} interval={0} tick={{fill:C.rEixo,fontSize:14}} width={62}/>
                       <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                                formatter={function(v,n){return[Number(v).toLocaleString('pt-BR'),n];}}/>
                       {ultimaFila&&<Legend wrapperStyle={{fontSize:16,color:C.cream}}/>}
@@ -9514,10 +9571,10 @@ function PageReport(){
               <div key={fi} style={{flex:1,minHeight:0}}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={fila} margin={{top:20,right:14,left:0,bottom:4}} barCategoryGap="16%">
-                    <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
-                    <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={54}
-                           tick={{fill:R_EIXO,fontSize:14}}/>
-                    <YAxis {...eixoY} domain={domDom} ticks={domDom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:14}} width={62}/>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.rGrid} vertical={false}/>
+                    <XAxis dataKey="rot" {...eixoX()} interval={0} angle={-45} textAnchor="end" height={54}
+                           tick={{fill:C.rEixo,fontSize:14}}/>
+                    <YAxis {...eixoY()} domain={domDom} ticks={domDom.ticks} interval={0} tick={{fill:C.rEixo,fontSize:14}} width={62}/>
                     <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                              formatter={function(v){return[Number(v).toLocaleString('pt-BR'),'Pessoas'];}}/>
                     <ReferenceLine y={domInfo.media} stroke={C.sand} strokeDasharray="6 4"/>
@@ -9561,7 +9618,7 @@ function PageReport(){
           return(
           <Slide key={g.key}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,
-                         marginBottom:20,paddingBottom:16,borderBottom:'1px solid rgba(7,135,128,0.3)',flexShrink:0}}>
+                         marginBottom:20,paddingBottom:16,borderBottom:'1px solid '+tealA(0.3),flexShrink:0}}>
               <div style={{display:'flex',alignItems:'center',gap:22}}>
                 {GER_LOGO[g.key]
                   ?<img src={GER_LOGO[g.key].src} alt={g.label} height={72}
@@ -9600,10 +9657,10 @@ function PageReport(){
                   <div key={fi} style={{flex:1,minHeight:0}}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={fila} margin={{top:20,right:12,left:0,bottom:4}}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={R_GRID} vertical={false}/>
-                        <XAxis dataKey="rot" {...eixoX} interval={0} angle={-45} textAnchor="end" height={48}
-                               tick={{fill:R_EIXO,fontSize:13}}/>
-                        <YAxis {...eixoY} domain={dom} ticks={dom.ticks} interval={0} tick={{fill:R_EIXO,fontSize:13}} width={58}/>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.rGrid} vertical={false}/>
+                        <XAxis dataKey="rot" {...eixoX()} interval={0} angle={-45} textAnchor="end" height={48}
+                               tick={{fill:C.rEixo,fontSize:13}}/>
+                        <YAxis {...eixoY()} domain={dom} ticks={dom.ticks} interval={0} tick={{fill:C.rEixo,fontSize:13}} width={58}/>
                         <Tooltip contentStyle={dicaEstilo} cursor={{fill:'rgba(157,222,220,0.06)'}}
                                  formatter={function(v){return[Number(v).toLocaleString('pt-BR'),g.label];}}/>
                         <ReferenceLine y={g.media} stroke={C.sand} strokeDasharray="6 4"/>
@@ -9639,11 +9696,11 @@ function SemAcesso(){
   );
 }
 
-function Sidebar({page,setPage,collapsed,setCollapsed}){
+function Sidebar({page,setPage,collapsed,setCollapsed,trocarTema}){
   const campusLock=React.useContext(CampusCtx);
   return(
-    <aside style={{width:collapsed?52:222,minWidth:collapsed?52:222,background:'#021a1a',borderRight:'1px solid rgba(7,135,128,0.2)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto',overflowX:'hidden',transition:'width 0.22s,min-width 0.22s'}}>
-      <div style={{padding:collapsed?'14px 0':'14px 16px',borderBottom:'1px solid rgba(7,135,128,0.2)',display:'flex',alignItems:'center',justifyContent:collapsed?'center':'space-between',cursor:'pointer',minHeight:56,flexShrink:0}} title={collapsed?'Expandir menu':'Recolher menu'} onClick={()=>setCollapsed(!collapsed)}>
+    <aside style={{width:collapsed?52:222,minWidth:collapsed?52:222,background:C.bgAlt,borderRight:'1px solid '+tealA(0.2),display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto',overflowX:'hidden',transition:'width 0.22s,min-width 0.22s'}}>
+      <div style={{padding:collapsed?'14px 0':'14px 16px',borderBottom:'1px solid '+tealA(0.2),display:'flex',alignItems:'center',justifyContent:collapsed?'center':'space-between',cursor:'pointer',minHeight:56,flexShrink:0}} title={collapsed?'Expandir menu':'Recolher menu'} onClick={()=>setCollapsed(!collapsed)}>
         <Isologo size={collapsed?24:30}/>
         {!collapsed&&<div style={{color:C.teal,fontSize:16,lineHeight:1}}>◀</div>}
       </div>
@@ -9660,9 +9717,9 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
           {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','zionglobal','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
-            {!collapsed&&<div style={{fontSize:9,color:'rgba(7,135,128,0.35)',letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
+            {!collapsed&&<div style={{fontSize:9,color:tealA(0.35),letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
             {PAGES.filter(p=>group.ids.includes(p.id)).map(p=>(
-              <button key={p.id} onClick={()=>setPage(p.id)} title={collapsed?p.label:''} style={{width:'100%',padding:collapsed?'10px 0':'9px 14px',background:page===p.id?'rgba(7,135,128,0.22)':'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:9,color:page===p.id?C.cream:C.teal,fontSize:12,fontWeight:page===p.id?600:400,textAlign:'left',justifyContent:collapsed?'center':'flex-start',borderLeft:page===p.id?`3px solid ${C.teal}`:'3px solid transparent'}}>
+              <button key={p.id} onClick={()=>setPage(p.id)} title={collapsed?p.label:''} style={{width:'100%',padding:collapsed?'10px 0':'9px 14px',background:page===p.id?tealA(0.22):'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:9,color:page===p.id?C.cream:C.teal,fontSize:12,fontWeight:page===p.id?600:400,textAlign:'left',justifyContent:collapsed?'center':'flex-start',borderLeft:page===p.id?`3px solid ${C.teal}`:'3px solid transparent'}}>
                 <span style={{fontSize:15,minWidth:20,textAlign:'center'}}>{p.icon}</span>
                 {!collapsed&&<span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.label}</span>}
               </button>
@@ -9670,7 +9727,17 @@ function Sidebar({page,setPage,collapsed,setCollapsed}){
           </div>
         ))}
       </nav>
-      {!collapsed&&<div style={{padding:'10px 14px',borderTop:'1px solid rgba(7,135,128,0.2)',fontSize:10,color:'rgba(7,135,128,0.4)',textAlign:'center',flexShrink:0}}>© 2026 Zion Church</div>}
+      <div style={{borderTop:'1px solid '+tealA(0.2),flexShrink:0}}>
+        <button onClick={trocarTema} title={C.nome==='escuro'?'Tema claro':'Tema escuro'}
+          style={{width:'100%',padding:collapsed?'10px 0':'9px 14px',background:'transparent',
+                  border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:9,
+                  color:C.teal,fontSize:12,
+                  justifyContent:collapsed?'center':'flex-start'}}>
+          <span style={{fontSize:15,minWidth:20,textAlign:'center'}}>{C.nome==='escuro'?'☀️':'🌙'}</span>
+          {!collapsed&&<span style={{whiteSpace:'nowrap'}}>{C.nome==='escuro'?'Tema claro':'Tema escuro'}</span>}
+        </button>
+        {!collapsed&&<div style={{padding:'2px 14px 10px',fontSize:10,color:tealA(0.4),textAlign:'center'}}>© 2026 Zion Church</div>}
+      </div>
     </aside>
   );
 }
@@ -9782,8 +9849,8 @@ function RmBarra({v,max,alt=14}){
   const p=Math.min(Math.abs(v)/max,1)*50;
   const pos=v>=0;
   return(
-    <div style={{position:'relative',height:alt,background:'rgba(7,135,128,0.10)',borderRadius:3}}>
-      <div style={{position:'absolute',top:0,bottom:0,left:'50%',width:1,background:'rgba(252,252,235,0.28)'}}/>
+    <div style={{position:'relative',height:alt,background:tealA(0.10),borderRadius:3}}>
+      <div style={{position:'absolute',top:0,bottom:0,left:'50%',width:1,background:creamA(0.28)}}/>
       <div style={{position:'absolute',top:2,bottom:2,borderRadius:2,
            background:pos?C.sage:'#e05c5c',
            left:pos?'50%':(50-p)+'%',width:p+'%'}}/>
@@ -9791,7 +9858,7 @@ function RmBarra({v,max,alt=14}){
   );
 }
 function RmPct({v}){
-  if(v==null)return<span style={{color:'rgba(252,252,235,0.35)'}}>—</span>;
+  if(v==null)return<span style={{color:creamA(0.35)}}>—</span>;
   return<span style={{color:v>=0?C.sage:'#e05c5c',fontWeight:700}}>{fmtPct(v)}</span>;
 }
 
@@ -9821,7 +9888,7 @@ function RmTabela({linhas,campo,fonte,altura=690}){
   function Linha({r}){
     return(
       <div style={{display:'grid',gridTemplateColumns:grid,alignItems:'center',gap:14,
-                   height:linhaH,borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                   height:linhaH,borderBottom:'1px solid '+tealA(0.14)}}>
         <span style={{fontSize:umaCol?20:15}}>{r.flag}</span>
         <span style={{fontSize:fonte1,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
                       textOverflow:'ellipsis'}}>{r.name}</span>
@@ -9838,9 +9905,9 @@ function RmTabela({linhas,campo,fonte,altura=690}){
         {cols.map(function(c,ci){return(
           <div key={ci}>
             <div style={{display:'grid',gridTemplateColumns:grid,gap:14,
-                         fontSize:13,color:'rgba(7,135,128,0.85)',textTransform:'uppercase',
+                         fontSize:13,color:tealA(0.85),textTransform:'uppercase',
                          letterSpacing:1,paddingBottom:6,
-                         borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+                         borderBottom:'1px solid '+tealA(0.3)}}>
               <span/><span>Localidade</span>
               <span style={{textAlign:'right'}}>Méd. domingo</span>
               <span style={{textAlign:'center'}}>Variação</span>
@@ -9850,7 +9917,7 @@ function RmTabela({linhas,campo,fonte,altura=690}){
           </div>
         );})}
       </div>
-      {fonte&&<div style={{fontSize:14,color:'rgba(7,135,128,0.75)',marginTop:'auto',
+      {fonte&&<div style={{fontSize:14,color:tealA(0.75),marginTop:'auto',
                             paddingTop:14,flexShrink:0,lineHeight:1.5}}>{fonte}</div>}
     </div>
   );
@@ -9973,17 +10040,17 @@ function PageZionGlobal(){
             <button key={m} onClick={function(){setYm(m);}}
               style={{padding:'3px 11px',borderRadius:20,border:'none',cursor:'pointer',
                       fontSize:11,fontWeight:600,
-                      background:m===ym?C.sage:'rgba(7,135,128,0.13)',
+                      background:m===ym?C.sage:tealA(0.13),
                       color:m===ym?'#021a1a':C.teal}}>{rmCurto(m)}</button>
           );})}
         </div>
-        <span style={{fontSize:11,color:'rgba(7,135,128,0.8)'}}>
+        <span style={{fontSize:11,color:tealA(0.8)}}>
           Ctrl/Cmd + P salva em PDF — um quadro por página
         </span>
       </div>
 
-      <div className="sem-print" style={{background:'rgba(7,135,128,0.08)',
-           border:'1px solid rgba(7,135,128,0.25)',borderRadius:10,padding:'10px 14px',
+      <div className="sem-print" style={{background:tealA(0.08),
+           border:'1px solid '+tealA(0.25),borderRadius:10,padding:'10px 14px',
            fontSize:12,color:C.teal,lineHeight:1.6}}>
         <strong style={{color:C.cream}}>Fecha no dia {RM_DIA_FECHAMENTO}</strong>, com o mês
         anterior. Cobertura de {rmNome(ym)}: <strong style={{color:C.cream}}>{cobertura}</strong> localidades
@@ -10013,8 +10080,8 @@ function PageZionGlobal(){
             {l:'Encontros geracionais',v:fmt(gers.reduce(function(a,g){return a+g.enc;},0)),
              s:gers.length+' geracionais ativos',cor:C.teal}
           ].map(function(k){return(
-            <div key={k.l} style={{background:'rgba(7,135,128,0.09)',
-                 border:'1px solid rgba(7,135,128,0.22)',borderRadius:12,padding:'20px 20px 18px'}}>
+            <div key={k.l} style={{background:tealA(0.09),
+                 border:'1px solid '+tealA(0.22),borderRadius:12,padding:'20px 20px 18px'}}>
               <div style={{fontSize:14,color:C.teal,textTransform:'uppercase',letterSpacing:1.2,
                            minHeight:34,lineHeight:1.25}}>{k.l}</div>
               <div className="serif" style={{fontSize:48,fontWeight:700,color:C.cream,lineHeight:1.05,
@@ -10030,7 +10097,7 @@ function PageZionGlobal(){
           <div style={{flex:1,minHeight:0}}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rank} margin={{top:26,right:10,bottom:66,left:60}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,135,128,0.12)"/>
+                <CartesianGrid strokeDasharray="3 3" stroke={tealA(0.12)}/>
                 <XAxis dataKey="name" tick={{fill:C.cream,fontSize:15}} angle={-38}
                        textAnchor="end" interval={0} axisLine={false} tickLine={false} height={76}/>
                 <YAxis domain={[0,'auto']} tick={{fill:C.teal,fontSize:15}} axisLine={false}
@@ -10046,7 +10113,7 @@ function PageZionGlobal(){
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6,flexShrink:0}}>
+          <div style={{fontSize:13,color:tealA(0.75),marginTop:6,flexShrink:0}}>
             Público somado nos domingos de {rmNome(ym)}: {fmt(publico)} pessoas, nas {ok.length}
             localidades com o mês completo. A média Zion Global e o "cresceram · caíram" usam a base
             comparável — as {base.length} localidades fechadas em {rmCurto(prev)} e em {rmCurto(ym)} —
@@ -10073,7 +10140,7 @@ function PageZionGlobal(){
                  'quatro meses fechados. É aqui que mês fraco se separa de tendência: cair no mês '+
                  'e seguir na própria média é oscilação; subir no mês e seguir abaixo dela é queda longa.'}/>
         {mensal.length>0&&
-          <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid rgba(7,135,128,0.3)',flexShrink:0}}>
+          <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid '+tealA(0.3),flexShrink:0}}>
             <div style={{fontSize:16,color:C.cream,fontWeight:600,marginBottom:6}}>
               Um culto por mês — só comparação com os últimos 6 meses
             </div>
@@ -10086,7 +10153,7 @@ function PageZionGlobal(){
                 </div>
               );})}
             </div>
-            <div style={{fontSize:13,color:'rgba(7,135,128,0.75)',marginTop:6}}>
+            <div style={{fontSize:13,color:tealA(0.75),marginTop:6}}>
               Mês contra mês nestas é um domingo contra um domingo — ruído, não tendência.
               Por isso ficam fora do quadro anterior e do ranking.
             </div>
@@ -10101,8 +10168,8 @@ function PageZionGlobal(){
         <div style={{display:'grid',gridTemplateColumns:'repeat('+Math.max(gers.length,1)+',1fr)',
                      gap:14,flexShrink:0}}>
           {gers.map(function(g){return(
-            <div key={g.key} style={{background:'rgba(7,135,128,0.09)',borderRadius:12,
-                 padding:'14px 16px',border:'1px solid rgba(7,135,128,0.22)',
+            <div key={g.key} style={{background:tealA(0.09),borderRadius:12,
+                 padding:'14px 16px',border:'1px solid '+tealA(0.22),
                  borderTop:'3px solid '+g.color}}>
               <div style={{fontSize:17,color:g.color,fontWeight:700,letterSpacing:0.5}}>{g.label}</div>
               <div className="serif" style={{fontSize:42,fontWeight:700,color:C.cream,
@@ -10110,11 +10177,11 @@ function PageZionGlobal(){
               <div style={{fontSize:13,color:C.teal,marginTop:2}}>
                 por encontro · {g.enc} encontro{g.enc===1?'':'s'}
               </div>
-              <div style={{fontSize:13,color:'rgba(7,135,128,0.8)'}}>
+              <div style={{fontSize:13,color:tealA(0.8)}}>
                 em {g.nloc} localidade{g.nloc===1?'':'s'}
               </div>
               <div style={{fontSize:15,marginTop:5}}><RmPct v={g.d}/>
-                <span style={{color:'rgba(7,135,128,0.8)',fontSize:13}}> vs {rmCurto(prev)}</span></div>
+                <span style={{color:tealA(0.8),fontSize:13}}> vs {rmCurto(prev)}</span></div>
             </div>
           );})}
         </div>
@@ -10136,22 +10203,22 @@ function PageZionGlobal(){
               {g.top.slice(0,5).map(function(t,i){return(
                 <div key={t.id} style={{display:'grid',gridTemplateColumns:'22px 1fr auto',
                      alignItems:'center',gap:8,height:66,
-                     borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
-                  <span style={{fontSize:17,color:'rgba(7,135,128,0.7)',fontWeight:700}}>{i+1}</span>
+                     borderBottom:'1px solid '+tealA(0.14)}}>
+                  <span style={{fontSize:17,color:tealA(0.7),fontWeight:700}}>{i+1}</span>
                   <span style={{fontSize:19,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
                                 textOverflow:'ellipsis'}}>{t.flag} {t.name}</span>
                   <span style={{fontSize:23,color:C.teal,fontWeight:700}}>{fmt(t.media)}</span>
                 </div>
               );})}
               {g.top.length<5&&
-                <div style={{fontSize:14,color:'rgba(7,135,128,0.55)',paddingTop:12,
+                <div style={{fontSize:14,color:tealA(0.55),paddingTop:12,
                              lineHeight:1.4}}>
                   só {g.top.length} localidade{g.top.length===1?'':'s'} com {g.label} lançado
                 </div>}
             </div>
           );})}
         </div>
-        <div style={{fontSize:13,color:'rgba(7,135,128,0.78)',marginTop:'auto',paddingTop:12,
+        <div style={{fontSize:13,color:tealA(0.78),marginTop:'auto',paddingTop:12,
                      flexShrink:0,lineHeight:1.5}}>
           Entra toda localidade com encontro lançado no mês, mesmo que o mês de culto esteja
           incompleto — a média por encontro não depende de quantos domingos foram lançados.
@@ -10170,9 +10237,9 @@ function PageZionGlobal(){
             <div key={bloco.t}>
               <div style={{fontSize:20,color:bloco.cor,fontWeight:700,marginBottom:8}}>{bloco.t}</div>
               <div style={{display:'grid',gridTemplateColumns:'22px 1fr 100px 118px 76px',gap:10,
-                           fontSize:12,color:'rgba(7,135,128,0.8)',textTransform:'uppercase',
+                           fontSize:12,color:tealA(0.8),textTransform:'uppercase',
                            letterSpacing:1,paddingBottom:5,
-                           borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+                           borderBottom:'1px solid '+tealA(0.3)}}>
                 <span/><span>Localidade</span><span>Geracional</span>
                 <span style={{textAlign:'right'}}>{rmCurto(prev)} → {rmCurto(ym)}</span>
                 <span style={{textAlign:'right'}}>%</span>
@@ -10180,7 +10247,7 @@ function PageZionGlobal(){
               {bloco.rs.map(function(m,i){return(
                 <div key={i} style={{display:'grid',gridTemplateColumns:'22px 1fr 100px 118px 76px',
                      alignItems:'center',gap:10,height:62,
-                     borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                     borderBottom:'1px solid '+tealA(0.14)}}>
                   <span style={{fontSize:18}}>{m.flag}</span>
                   <span style={{fontSize:20,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
                                 textOverflow:'ellipsis'}}>{m.loc}</span>
@@ -10190,12 +10257,12 @@ function PageZionGlobal(){
                   <span style={{fontSize:19,textAlign:'right'}}><RmPct v={m.d}/></span>
                 </div>
               );})}
-              {!bloco.rs.length&&<div style={{fontSize:16,color:'rgba(7,135,128,0.7)',paddingTop:10}}>
+              {!bloco.rs.length&&<div style={{fontSize:16,color:tealA(0.7),paddingTop:10}}>
                 Nenhuma nesta direção.</div>}
             </div>
           );})}
         </div>
-        <div style={{fontSize:13,color:'rgba(7,135,128,0.78)',marginTop:'auto',paddingTop:12,
+        <div style={{fontSize:13,color:tealA(0.78),marginTop:'auto',paddingTop:12,
                      flexShrink:0,lineHeight:1.5}}>
           {movGer.length} pares de localidade e geracional têm encontro lançado nos dois meses.
           Grupo que se reuniu só em um dos meses fica de fora — não é queda, é mês sem registro.
@@ -10217,7 +10284,7 @@ function PageZionGlobal(){
           </div>
         ):(
           <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
-            <div style={{fontSize:19,color:'rgba(252,252,235,0.85)',marginBottom:16,flexShrink:0,
+            <div style={{fontSize:19,color:creamA(0.85),marginBottom:16,flexShrink:0,
                          lineHeight:1.45}}>
               Estas localidades não entram em nenhum número deste relatório. A ausência é de
               lançamento, não de culto — o que falta é o dado, e o dado não chega sozinho.
@@ -10228,12 +10295,12 @@ function PageZionGlobal(){
               <div key={b.t} style={{marginBottom:18}}>
                 <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:6}}>
                   <span style={{fontSize:20,color:b.grave?'#e05c5c':'#c8a020',fontWeight:700}}>{b.t}</span>
-                  <span style={{fontSize:16,color:'rgba(7,135,128,0.85)'}}>— {b.sub}</span>
+                  <span style={{fontSize:16,color:tealA(0.85)}}>— {b.sub}</span>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 150px 190px 160px',gap:12,
-                             fontSize:12,color:'rgba(7,135,128,0.8)',textTransform:'uppercase',
+                             fontSize:12,color:tealA(0.8),textTransform:'uppercase',
                              letterSpacing:1,paddingBottom:5,
-                             borderBottom:'1px solid rgba(7,135,128,0.3)'}}>
+                             borderBottom:'1px solid '+tealA(0.3)}}>
                   <span>Localidade</span>
                   <span style={{textAlign:'center'}}>Domingos no mês</span>
                   <span style={{textAlign:'center'}}>Último lançamento</span>
@@ -10244,7 +10311,7 @@ function PageZionGlobal(){
                   return(
                     <div key={r.id} style={{display:'grid',gridTemplateColumns:'1fr 150px 190px 160px',
                          gap:12,alignItems:'center',padding:'8px 0',
-                         borderBottom:'1px solid rgba(7,135,128,0.14)'}}>
+                         borderBottom:'1px solid '+tealA(0.14)}}>
                       <span style={{fontSize:21,color:C.cream}}>{r.flag} {r.name}</span>
                       <span style={{fontSize:19,textAlign:'center',fontWeight:600,
                            color:r.lanc===0?'#e05c5c':'#c8a020'}}>{r.lanc} de {r.esp}</span>
@@ -10258,7 +10325,7 @@ function PageZionGlobal(){
                 })}
               </div>
             );})}
-            <div style={{fontSize:14,color:'rgba(7,135,128,0.8)',marginTop:'auto',flexShrink:0,
+            <div style={{fontSize:14,color:tealA(0.8),marginTop:'auto',flexShrink:0,
                          lineHeight:1.5,paddingTop:8}}>
               Acima de 60 dias sem lançar nada, em vermelho: não é atraso de fechamento,
               é a coleta ter parado. Essas precisam de conversa, não de cobrança.
@@ -10272,6 +10339,14 @@ function PageZionGlobal(){
 }
 
 function App(){
+  /* `tema` existe so' para forcar o redesenho: quem guarda a cor e' o objeto
+     C, que aplicarTema reescreve. Todas as paginas leem C no render, entao
+     uma mudanca de estado aqui repinta o dashboard inteiro. */
+  const [tema,setTema]=useState(C.nome);
+  function trocarTema(){
+    const novo = C.nome==='escuro' ? 'claro' : 'escuro';
+    aplicarTema(novo); setTema(novo);
+  }
   const [campusFilter,setCampusFilter]=useState(undefined);
   const [page,setPage]=useState('global');
   const [collapsed,setCollapsed]=useState(false);
@@ -10305,11 +10380,11 @@ function App(){
   return(
     <CampusCtx.Provider value={campusFilter}>
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
-      <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
-      <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,#032525 0%,${C.deepGreen} 100%)`}}>
-        <div className="sem-print" style={{fontSize:11,color:'rgba(7,135,128,0.5)',marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
+      <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed} trocarTema={trocarTema}/>
+      <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,${C.bgTop} 0%,${C.bg} 100%)`}}>
+        <div className="sem-print" style={{fontSize:11,color:tealA(0.5),marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
           <Isologo size={14} opacity={0.5}/>
-          <span style={{color:'rgba(7,135,128,0.3)'}}>›</span>
+          <span style={{color:tealA(0.3)}}>›</span>
           <span style={{color:C.teal,fontWeight:600}}>{PAGES.find(p=>p.id===page)?.label||''}</span>
         </div>
         {renderPage()}
@@ -10343,7 +10418,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
     var b=document.createElement('div');
     b.className='sem-print';
     b.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;'+
-      'background:#062a2a;border:1px solid #078780;border-radius:12px;padding:12px 18px;'+
+      'background:'+C.bgSlide+';border:1px solid '+C.teal+';border-radius:12px;padding:12px 18px;'+
       'display:flex;gap:14px;align-items:center;font:600 13px system-ui,sans-serif;color:#FCFCEB;'+
       'box-shadow:0 8px 30px rgba(0,0,0,.45)';
     b.innerHTML='<span>Há uma versão mais nova do dashboard, com dados atualizados.</span>';
