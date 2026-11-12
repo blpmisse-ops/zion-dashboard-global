@@ -181,6 +181,14 @@ const LOCS=[
   {id:'Miami',           name:'Miami',            flag:'🇺🇸'},
   {id:'Orlando',         name:'Orlando',          flag:'🇺🇸'},
   {id:'Zion Online',     name:'Zion Online',      flag:'🌐'},
+  /* Beirute e Ubatuba entraram em 12/11/2026 por pedido do Breno, para
+     aparecerem no Ranking antes de terem numero. Beirute nao tem nenhum dado
+     ainda; Ubatuba ja' aparece no MAC10 (01/11 e 08/11), mas a serie comeca
+     em dezembro — por isso 'desde' em 2026-12 nas duas e Ubatuba segue em
+     IGNORAR_CAMPUS no pipeline. Sem PRIMEIRO_CULTO: a data das duas nao foi
+     confirmada e nao se deduz. */
+  {id:'Beirute',         name:'Beirute',          flag:'🇱🇧'},
+  {id:'Ubatuba',         name:'Ubatuba',          flag:'🇧🇷'},
 ];
 
 /* ═══ FASE DA LOCALIDADE E PRIMEIRO CULTO
@@ -860,12 +868,12 @@ const DATA = {
     "2025-10":{sunS:4573,sunN:4,bap:0,raiz:83,vol:392,zao:162,links:53,ig:48650,yt:10870},
     "2025-11":{sunS:5942,sunN:5,bap:0,raiz:0,vol:392,zao:138,links:54,ig:49000,yt:11000},
     "2025-12":{sunS:3881,sunN:3,bap:0,raiz:0,vol:392,zao:138,links:54,ig:49456,yt:11000},
-    "2026-01":{links:16,sunS:3945,sunN:3,bap:0,raiz:0,vol:392,ig:49530,yt:11150},
+    "2026-01":{links:56,sunS:3945,sunN:3,bap:0,raiz:0,vol:392,ig:49530,yt:11150},
     "2026-02":{sunS:7272,sunN:4,bap:0,raiz:0,vol:392,zao:153,links:56,plinks:91,ig:50950,yt:11450},
-    "2026-03":{sunS:6944,sunN:5,bap:0,raiz:90,vol:392,zao:153,links:16,plinks:80,ig:53450,yt:11950},
-    "2026-04":{sunS:5471,sunN:4,bap:0,raiz:0,vol:392,zao:148,links:16,plinks:80,ig:54100,yt:12200},
-    "2026-05":{sunS:4942,sunN:4,bap:0,raiz:60,vol:392,zao:199,links:16,plinks:77,ig:55005,yt:12350},
-    "2026-06":{sunS:5174,sunN:4,bap:42,raiz:0,vol:392,zao:217,links:16,plinks:34,ig:55589,yt:12498},
+    "2026-03":{sunS:6944,sunN:5,bap:0,raiz:90,vol:392,zao:153,links:56,plinks:80,ig:53450,yt:11950},
+    "2026-04":{sunS:5471,sunN:4,bap:0,raiz:0,vol:392,zao:148,links:56,plinks:80,ig:54100,yt:12200},
+    "2026-05":{sunS:4942,sunN:4,bap:0,raiz:60,vol:392,zao:199,links:56,plinks:77,ig:55005,yt:12350},
+    "2026-06":{sunS:5174,sunN:4,bap:42,raiz:0,vol:392,zao:217,links:56,plinks:34,ig:55589,yt:12498},
     "2026-07":{sunS:5272,sunN:4,bap:0,vol:392,zao:182,ig:56050,yt:0,raiz:0},
     "2026-08":{sunS:7349,sunN:5,bap:0,raiz:78,vol:392,ig:56600,yt:12720,zao:186},
     "2026-09":{sunS:5337,sunN:4,bap:0,zao:185,vol:392,ig:56911,yt:12847,raiz:0},
@@ -3465,7 +3473,7 @@ const CAMPUS_PASSWORDS={
   'ZionPTM26':'Portimão','ZionMIA26':'Miami','ZionORL26':'Orlando',
   'ZionSTS26':'Santos','ZionJDI26':'Jundiaí','ZionCUE26':'Cuenca',
   'ZionVIT26':'Vitória','ZionSJC26':'SJCampos','ZionONL26':'Zion Online',
-  'ZionMIL26':'Milão',
+  'ZionMIL26':'Milão','ZionBEI26':'Beirute','ZionUBA26':'Ubatuba',
 };
 
 /* ═══ LOGIN */
@@ -3591,6 +3599,14 @@ function PageRanking(){
               <div key={r.loc.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:i===0?tealA(0.18):tealA(0.05)}}>
                 <span style={{color:C.teal,fontWeight:700,width:22,textAlign:'center',fontSize:12}}>{i+1}</span>
                 <span style={{flex:1,fontSize:12}}>{r.loc.flag} {r.loc.name}</span>
+                {/* Data do primeiro culto na propria linha do ranking (pedido do
+                    Breno, 12/11/2026). O card "Historico das Unidades" ja' tinha
+                    a data, mas ela nao aparecia ao lado da media — que e' onde
+                    se compara igreja nova com igreja madura. Sem data confirmada
+                    mostra "a confirmar", nunca um palpite. */}
+                <span style={{fontSize:10,color:creamA(PRIMEIRO_CULTO[r.loc.id]?0.5:0.3),minWidth:70,textAlign:'right',whiteSpace:'nowrap'}}>
+                  {PRIMEIRO_CULTO[r.loc.id]?ddmmaaaa(PRIMEIRO_CULTO[r.loc.id]):'a confirmar'}
+                </span>
                 <div style={{background:r.tier.color,color:r.tier.text,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.tier.name}</div>
                 <span className="serif" style={{fontWeight:700,color:C.cream,fontSize:14,minWidth:56,textAlign:'right'}}>{fmt(r.avg)}</span>
                 <span style={{minWidth:52,textAlign:'right'}}><DeltaBadge d={r.d}/></span>
@@ -4693,6 +4709,12 @@ const CAMPUS_CONFIG={
      nao ha' canal no YouTube. Batismo e links ficam em aberto ate' ela responder
      — nao isentar o que nao foi confirmado. */
   'Milão':           {sem:['zao','yt'], desde:'2026-09'},
+  /* Beirute e Ubatuba: 'desde' em dezembro para nao entrarem como "em falta"
+     nos meses que antecedem a entrada delas. Nenhuma isencao em sem[] de
+     proposito — nao se isenta metrica que ainda nao se sabe se existe; a
+     pergunta vai no ciclo de dezembro, como foi com Portimao e Milao. */
+  'Beirute':         {desde:'2026-12'},
+  'Ubatuba':         {desde:'2026-12'},
   'Orlando':         {sem:['bap','yt']},
   'Campo Grande':    {sem:['yt']},
   'Cuenca':          {sem:['yt']},
@@ -4833,6 +4855,18 @@ function PageDataControl(){
        ficou para tras nao sera recuperado e cobrar de novo so gera ruido. */
     const desde=CAMPUS_CONFIG[locId]?.desde;
     const mesesLoc=desde?months.filter(mo=>mo>=desde):months;
+    /* Localidade que ainda nao comecou dentro do periodo escolhido: 'desde' e'
+       posterior a todos os meses da tela. Antes isso caia em allVacation e
+       desenhava "Ferias" nas seis metricas, com o contador em "6/6
+       preenchidos" — Beirute e Ubatuba, que nao tem um unico dado, apareciam
+       como completas em 12/11/2026. Ferias e' mes dispensado de quem ja'
+       opera; aqui a unidade nao existia. */
+    if(mesesLoc.length===0){
+      return{metRows:METRIC_DEFS.map(m=>({...m,status:'futura',ok:false,
+        partial:false,allVacation:false,label2:null,monthDetails:[],
+        tooltip:'A localidade passa a ser acompanhada em '+ddmmaaaa(desde)})),
+        okCount:0,partialCount:0,total:METRIC_DEFS.length,futura:true};
+    }
     const metRows=METRIC_DEFS.map(m=>{
       // Métrica não existe nesta localidade → N/A
       if(campusSem.includes(m.key)){
@@ -4906,9 +4940,14 @@ function PageDataControl(){
 
   const locData=locsVis().map(loc=>({loc,...locStatus(loc.id)}));
   const filtered=locFilter==='all'?locData:locData.filter(r=>r.loc.id===locFilter);
-  const totalOk=locData.filter(r=>r.okCount===r.total).length;
-  const totalPartial=locData.filter(r=>(r.okCount>0&&r.okCount<r.total)||r.partialCount>0).length;
-  const totalNone=locData.filter(r=>r.okCount===0&&r.partialCount===0).length;
+  /* Localidade 'futura' sai das tres contagens do topo: ela nao esta' completa,
+     nao esta' parcial e nao esta' sem nada lancado — ela ainda nao comecou.
+     Somar em qualquer uma das tres mentiria sobre a cobertura da rede. */
+  const locAtivas=locData.filter(r=>!r.futura);
+  const locFuturas=locData.filter(r=>r.futura);
+  const totalOk=locAtivas.filter(r=>r.okCount===r.total).length;
+  const totalPartial=locAtivas.filter(r=>(r.okCount>0&&r.okCount<r.total)||r.partialCount>0).length;
+  const totalNone=locAtivas.filter(r=>r.okCount===0&&r.partialCount===0).length;
 
   function Badge({status,label2,tooltip}){
     const isZero=status==='ok'&&label2==='0';
@@ -4919,6 +4958,7 @@ function PageDataControl(){
       partial: {bg:'rgba(212,175,55,0.15)', color:C.ouro,border:'rgba(212,175,55,0.35)',text:'Parcial'},
       pending: {bg:'rgba(224,92,92,0.15)',  color:C.neg,border:'rgba(224,92,92,0.3)', text:'Pendente'},
       vacation:{bg:tealA(0.1),   color:'#078780',border:tealA(0.3), text:'Férias'},
+      futura: {bg:tealA(0.06),  color:creamA(0.35),border:tealA(0.18),text:'Não iniciada'},
       na:      {bg:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.2)',border:'rgba(255,255,255,0.08)',text:'N/A'},
     }[status]||{bg:'#222',color:'#555',border:'#333',text:'—'};
     return(
@@ -7315,10 +7355,17 @@ function PagePredios(){
     const pred=PRED_DATA[loc.id]||{seats:0,cultos:1,cap:0,name:loc.name,tier:'—'};
     const people=avgSunday(loc.id,months);
     const isHotel=pred.tier==='HOTEL';
+    /* temPred separa "nao tem predio proprio" (HOTEL) de "nao tem predio
+       CADASTRADO" (localidade nova, sem linha no PRED_DATA). Sem isso o
+       default tier:'—' fazia isHotel=false e a unidade entrava na contagem
+       de sedes proprias com zero cadeira: em 12/11/2026 o contador dizia
+       "18 sedes proprias" contando o Milao, que nunca teve linha aqui, e
+       Beirute e Ubatuba levariam para 20. */
+    const temPred=!!PRED_DATA[loc.id];
     const utilPct=(!isHotel&&pred.cap>0)?Math.round(people/pred.cap*100):0;
     const buildTier=getBldgTierByName(pred.tier||'—');
     const peopleTier=getTier(people);
-    return{loc,pred,people,utilPct,buildTier,peopleTier,isHotel};
+    return{loc,pred,people,utilPct,buildTier,peopleTier,isHotel,temPred};
   }).sort((a,b)=>b.people-a.people);
 
   const chartData=rows.map(r=>({name:r.loc.name,seats:r.pred.seats,cap:r.pred.cap,people:r.people,util:r.utilPct}));
@@ -7336,13 +7383,13 @@ function PagePredios(){
         </div>
       </div>
       <div style={{background:'rgba(123,92,62,0.15)',border:'1px solid rgba(123,92,62,0.4)',borderRadius:10,padding:'12px 16px',fontSize:12,color:'#c8a07a',display:'flex',gap:8,alignItems:'center'}}>
-        🏨 <span><b>HOTEL</b> = campus sem prédio próprio{campusLock?'':' (SJCampos, Vitória, Cascais)'} — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
+        🏨 <span><b>HOTEL</b> = campus sem prédio próprio{campusLock?'':' ('+locsGlobal().filter(l=>PRED_DATA[l.id]&&PRED_DATA[l.id].tier==='HOTEL').map(l=>l.name).join(', ')+')'} — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
         <Card style={{textAlign:'center'}}>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cadeiras (Templo)</div>
           <div className="serif" style={{fontSize:24,fontWeight:700,color:C.ouro}}>{rows.filter(r=>!r.isHotel).reduce((s,r)=>s+(r.pred.seats||0),0).toLocaleString('pt-BR')}</div>
-          <div style={{fontSize:10,color:'#777',marginTop:2}}>{rows.filter(r=>!r.isHotel).length} sedes próprias</div>
+          <div style={{fontSize:10,color:'#777',marginTop:2}}>{rows.filter(r=>r.temPred&&!r.isHotel).length} sedes próprias</div>
         </Card>
         <Card style={{textAlign:'center'}}>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Cap. Total (×Cultos)</div>
