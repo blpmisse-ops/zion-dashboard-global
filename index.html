@@ -262,7 +262,17 @@ const PRIMEIRO_CULTO={
      dela, caindo para 331 no registro seguinte — culto de inauguracao. A lista
      dizia fev/2025; o Breno ficou com janeiro (04/11/2026). */
   'Jundia\u00ed':       '2025-01-19',
-  'Cuenca':        '2025-02',
+  /* Cuenca FICA SEM DATA, de proposito. Duas fontes se contradizem:
+     - Luciana (04/11/2026) mandou fev/2025, e era o que estava gravado;
+     - Jaziel Pinheiro (12/11/2026): "Data do primeiro culto, esta' em Fev de
+       2025, e nosso culto foi Fev de 2026".
+     O ano de 2025 esta' errado — Cuenca nao tem um unico culto em 2025 no
+     dashboard. Mas fev/2026 tambem nao fecha: existe culto lancado em
+     18/01/2026, anterior a fevereiro. E 18/01/2026 nao pode ser usado: o Pr
+     Aldo confirmou aquele dia como primeiro culto DO ANO, nao da igreja, e a
+     bateria do nums.js proibe essa data explicitamente como artefato do DB.
+     Entao vale a regra: sem data confirmada, "a confirmar" e sem selo de fase.
+     Perguntado ao Jaziel em 13/11/2026 qual das duas e' a fundacao. */
   /* CONFERIDO contra o MAC10 - CULTOS.csv em 04/11/2026. A planilha comeca em
      03/09/2023, entao Sao Paulo, Campinas, Recife, Maceio, Quito, Lisboa e
      Santiago aparecem nela com a data da primeira coluna — artefato, nao
@@ -427,9 +437,9 @@ function pMonths(p){return PERIODS[p]?.months||[];}
 /* ═══ REAL DATA — extracted from Data Base - Dashboard Global (19).xlsx + user corrections */
 const DATA = {
   "Mil\u00e3o": {
-    "2026-09":{sunS:116,sunN:3,vol:26},
-    "2026-10":{sunS:111,sunN:3,raiz:14,vol:28,ig:3004,yt:0},
-    "2026-11":{sunS:90,sunN:2,vol:28,ig:3008},
+    "2026-09":{sunS:116,sunN:3,vol:26,links:1},
+    "2026-10":{sunS:150,sunN:4,raiz:14,vol:28,ig:3004,yt:0,bap:0,links:1},
+    "2026-11":{sunS:90,sunN:2,vol:28,ig:3008,links:1},
   },
   "Campinas": {
     "2023-01":{bap:0,raiz:17,vol:10,zao:0,ig:1800},
@@ -528,6 +538,7 @@ const DATA = {
     "2026-11":{ig:1285,yt:0},
   },
   "Cuenca": {
+    "2025-10":{raiz:36},
     "2026-01":{links:4,sunS:148,sunN:2,bap:0,raiz:0,vol:36,zao:34,ig:1700,yt:0},
     "2026-02":{sunS:437,sunN:4,bap:0,raiz:0,vol:36,zao:35,links:4,plinks:59,ig:1900,yt:0},
     "2026-03":{sunS:617,sunN:5,bap:0,raiz:0,vol:36,zao:32,links:4,plinks:66,ig:2027,yt:0},
@@ -538,7 +549,7 @@ const DATA = {
     "2026-08":{sunS:493,sunN:5,bap:0,raiz:0,vol:58,zao:0,plinks:0,ig:2369,yt:0,links:0},
     "2026-09":{sunS:460,sunN:4,vol:58,zao:48,ig:2432,yt:0,bap:0,raiz:0,links:8},
     "2026-10":{sunS:508,sunN:4,vol:58,bap:11,raiz:0,zao:48,ig:2487,yt:0},
-    "2026-11":{sunS:259,sunN:2,ig:2486,yt:0,raiz:14,vol:72},
+    "2026-11":{sunS:259,sunN:2,ig:2486,yt:0,raiz:14,vol:72,links:7},
   },
   "Jundia\u00ed": {
     "2024-01":{bap:0,raiz:0,vol:0,zao:0},
@@ -1141,6 +1152,7 @@ const RAW_CULTOS = {
     {d:"2026-09-27",v:47},
     {d:"2026-10-04",v:39},
     {d:"2026-10-11",v:36},
+    {d:"2026-10-18",v:39},
     {d:"2026-10-25",v:36},
     {d:"2026-11-01",v:44},
     {d:"2026-11-08",v:46},
@@ -5124,6 +5136,7 @@ const RAW_HORA={
     "2026-09-27":{"10:00":47},
     "2026-10-04":{"10:00":39},
     "2026-10-11":{"10:00":36},
+    "2026-10-18":{"10:00":39},
     "2026-10-25":{"10:00":36},
     "2026-11-01":{"10:00":44},
     "2026-11-08":{"10:30":46},
@@ -5869,6 +5882,7 @@ const RAW_GER={
     "2026-09-27":{"g52":6},
     "2026-10-04":{"g52":3},
     "2026-10-11":{"g52":2},
+    "2026-10-18":{"g52":4},
     "2026-10-25":{"g52":5},
     "2026-11-01":{"g52":5},
     "2026-11-08":{"g52":4},
@@ -6576,7 +6590,7 @@ const RAW_GER={
 const GER_DATA={
   "Mil\u00e3o":{
     "2026-09":{lumenS:12,lumenN:3},
-    "2026-10":{lumenS:10,lumenN:3},
+    "2026-10":{lumenS:14,lumenN:4},
     "2026-11":{lumenS:9,lumenN:2},
   },
   "Cascais":{
