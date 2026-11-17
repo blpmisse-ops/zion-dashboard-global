@@ -47,6 +47,16 @@ html,body,#root{height:100%;background:var(--zbg);font-family:'Montserrat',sans-
   .pilha-slides>*{margin:0!important}
 }
 .quebra-evitar{break-inside:avoid;page-break-inside:avoid}
+/* Isologo como mascara: o PNG e' branco e sumiria sobre o creme do tema
+   claro. A imagem entra uma vez so', aqui, via --zlogo (definido no boot);
+   cada instancia carrega apenas tamanho e cor. */
+.zion-isologo{
+  display:block; flex-shrink:0;
+  -webkit-mask-image:var(--zlogo); mask-image:var(--zlogo);
+  -webkit-mask-size:contain;       mask-size:contain;
+  -webkit-mask-repeat:no-repeat;   mask-repeat:no-repeat;
+  -webkit-mask-position:center;    mask-position:center;
+}
 </style>
 </head>
 <body>
@@ -84,6 +94,12 @@ const TEMAS={
     deepGreen:'#043030', graphite:'#202020', creamRGB:'252,252,235',
     onTeal:'#FCFCEB', gradLogin:'linear-gradient(135deg,#043030 0%,#021a1a 60%,#0C5149 100%)',
     rTinta:'#FCFCEB', rEixo:'rgba(252,252,235,0.55)', rGrid:'rgba(157,222,220,0.10)',
+    /* Cor de rotulo sobre o proprio teal (pilula selecionada). No escuro e' o
+       ouro de sempre; no claro o ouro escureceu e sumiu sobre o teal. */
+    warnOnTeal:'#D4AF37', sobreSage:'#021a1a',
+    /* Tinta dos seis geracionais. Aqui sao as cores originais, pensadas para
+       brilhar sobre o verde escuro. */
+    gen:{lumen:'#5BC4BF',rise:'#78C47A',flow:'#D4AF37',vox:'#078780',ekl:'#A8A9AD',diam:'#89CFF0'},
   },
   claro:{
     bg:'#FCFCEB', bgTop:'#FFFFFF', bgAlt:'#F2F3E4', bgSlide:'#FBFBEF',
@@ -91,8 +107,15 @@ const TEMAS={
     sage:'#2F7D4D', sand:'#7A6B2A', aqua:'#15716E', mid:'#0C5149',
     neg:'#C23B3B', warn:'#8B6914', pos:'#2F7D4D', ouro:'#8B6914',
     deepGreen:'#043030', graphite:'#202020', creamRGB:'7,48,46',
-    onTeal:'#FCFCEB', gradLogin:'linear-gradient(135deg,#FFFFFF 0%,#F2F3E4 55%,#DCE8E4 100%)',
-    rTinta:'#07302E', rEixo:'rgba(7,48,46,0.62)',    rGrid:'rgba(5,78,74,0.16)',
+    onTeal:'#FCFCEB', gradLogin:'linear-gradient(135deg,#F7F8EC 0%,#E9EDDF 50%,#C9DCD6 100%)',
+    rTinta:'#07302E', rEixo:'rgba(7,48,46,0.74)',    rGrid:'rgba(5,78,74,0.16)',  /* 0.62 dava 4.2:1 sobre o creme do slide */
+    warnOnTeal:'#FFD66B', sobreSage:'#FCFCEB',
+    /* As mesmas seis famIlias, escurecidas e mais saturadas. Sobre o creme as
+       originais davam 1.6:1 (Diamantes) a 2.3:1 (Eklektos) — linha de grafico
+       que o olho nao acha. Estas ficam acima de 4.5:1 e mantem a familia de
+       matiz: Lumen e Vox continuam os dois teais, Rise verde, Flow ouro,
+       Eklektos cinza, Diamantes azul. */
+    gen:{lumen:'#0E7C77',rise:'#36753F',flow:'#8B6914',vox:'#04534E',ekl:'#5A5E62',diam:'#1A6690'},
   },
 };
 const C={};
@@ -101,6 +124,63 @@ const C={};
 function tealA(a){ return 'rgba('+C.tealRGB+','+a+')'; }
 /* Texto principal com alpha (rotulo apagado, nota de rodape). */
 function creamA(a){ return 'rgba('+C.creamRGB+','+a+')'; }
+/* ── TINTA DE TEXTO ──────────────────────────────────────────────────────
+   tealA/creamA servem para tres coisas ao mesmo tempo: superficie, borda e
+   texto. Isso funciona no tema escuro, onde a tinta e' clara e o mesmo alpha
+   que da uma superficie discreta da tambem um cinza legivel. No tema claro a
+   tinta e' quase preta sobre creme, e ai os dois usos divergem: alpha 0.35
+   continua certo para uma borda e vira fantasma num rotulo (1.9:1).
+   Por isso o TEXTO passa a ter funcao propria. Ela so' mexe no tema claro, e
+   so' na faixa de texto (alpha >= 0.25), remapeada para 0.78-1 — onde o
+   contraste sobre o creme passa de 4.5:1. Abaixo de 0.25 o alpha e'
+   superficie: devolve igual, senao painel vira bloco escuro.
+   A hierarquia visual encolhe de proposito: sobre fundo claro a faixa util de
+   cinza e' menor que sobre fundo escuro. */
+function aTexto(a){
+  if(C.nome!=='claro') return a;
+  if(a<0.25) return a;
+  return Math.min(1, 0.78+(a-0.25)*(1-0.78)/0.6);
+}
+function tintaTeal(a){  return 'rgba('+C.tealRGB+','+aTexto(a)+')'; }
+function tintaCreme(a){ return 'rgba('+C.creamRGB+','+aTexto(a)+')'; }
+/* ── TINTA DE GRAFICO ────────────────────────────────────────────────────
+   A paleta de status e de serie foi escolhida para brilhar sobre o verde
+   escuro. Sobre o creme as mesmas cores somem: #89CFF0 da 1.6:1, #A8A9AD
+   2.3:1, #e05c5c 3.5:1. INK guarda o par; o tema escuro devolve a cor
+   original (nada muda no que ja' esta' no ar) e o claro devolve a versao
+   escurecida. So' usar em TINTA — color, fill, stroke, linha de grafico.
+   Fundo de pilula e de barra continua com a cor original nos dois temas:
+   la' a cor clara e' o fundo, e quem precisa de contraste e' o texto por
+   cima, que ja' e' escuro. */
+const INK={
+  '#e05c5c':'#B32A2A','#f07070':'#C03535','#f08a8a':'#BE4040','#f5b5b5':'#C05E5E',
+  '#5dd68c':'#1E7D45','#3dc87a':'#15703A','#7fd6a0':'#2A7F52','#439B6A':'#2E7049',
+  '#D4AF37':'#7A5E0E','#c8a020':'#7A5E0E','#e0a05c':'#8A5A17','#d5a45b':'#8A5A17',
+  '#c8a07a':'#8A5A17','#A8A9AD':'#5A5E62','#aaa':'#5A5E62','#888':'#5A5E62',
+  '#E5E4E2':'#6B6B68','#89CFF0':'#1A6690','#5BC4BF':'#0E7C77','#78C47A':'#36753F',
+  '#00c3b6':'#056E67','#9b8fd5':'#5B4E97','#6b7b7b':'#4C5A5A',
+};
+function ink(c){ return C.nome==='claro' ? (INK[c]||c) : c; }
+/* As paletas declaradas como const no topo congelam o C do primeiro tema
+   carregado — o mesmo defeito que a regra "nunca congelar C num const" ja'
+   proibia. Em vez de transformar as tres em funcao e mexer em todo call site,
+   aplicarTema REESCREVE as cores no lugar. O try existe porque a primeira
+   chamada acontece antes das declaracoes (TDZ): ela falha de proposito e a
+   chamada logo apos GEN_CATS resolve. */
+function repintarPaletas(){
+  try{
+    /* O `color` do tier e' o FUNDO da pilula e o `text` e' escuro por cima.
+       Fundo claro e' o certo nos dois temas — trocar por C.ouro no claro
+       escureceu a pilula e o texto escuro sumiu (2.8:1). Por isso tier fica
+       de fora da repintura, de proposito. */
+    FASE_DEF[0].color=C.sage;  FASE_DEF[0].text=C.onTeal;
+    FASE_DEF[1].color=C.aqua;  FASE_DEF[1].text=C.nome==='claro'?C.onTeal:C.deepGreen;
+    FASE_DEF[2].color=C.teal;  FASE_DEF[2].text=C.onTeal;
+    GEN_CATS[0].color=C.gen.lumen; GEN_CATS[1].color=C.gen.rise;
+    GEN_CATS[2].color=C.gen.flow;  GEN_CATS[3].color=C.gen.vox;
+    GEN_CATS[4].color=C.gen.ekl;   GEN_CATS[5].color=C.gen.diam;
+  }catch(e){ /* TDZ na primeira chamada; refeita depois de GEN_CATS */ }
+}
 function aplicarTema(nome){
   Object.assign(C, TEMAS[nome]||TEMAS.claro);
   C.nome = TEMAS[nome] ? nome : 'claro';
@@ -111,6 +191,7 @@ function aplicarTema(nome){
     r.setProperty('--zteal',C.teal);
   }catch(e){ /* montagem headless nao tem documentElement */ }
   try{ localStorage.setItem('zion-tema-v2',C.nome); }catch(e){}
+  repintarPaletas();
 }
 /* Padrao e' o tema CLARO (Breno, 17/11/2026). A chave do localStorage mudou de
    'zion-tema' para 'zion-tema-v2' de proposito: quem ja' tinha 'escuro' gravado
@@ -121,14 +202,30 @@ aplicarTema((function(){
 })());
 /* Isologo oficial (export/Isologo/branco.png), embutido para o arquivo seguir autossuficiente */
 const LOGO='data:image/png;base64,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';
-function Isologo({size=32,opacity=1,style={}}){
-  return<img src={LOGO} alt="Zion Church" width={size} height={size} style={{display:'block',opacity,flexShrink:0,...style}}/>;
+/* O PNG do isologo e' branco. No tema escuro isso e' exatamente o que se
+   quer; no claro, branco sobre creme desaparece — ele sumia do login, da
+   sidebar e do breadcrumb (a marca ficava um buraco). Em vez de carregar um
+   segundo PNG escuro, o desenho vira MASCARA e a cor vem do tema: C.cream e'
+   creme no escuro e verde escuro no claro, entao o mesmo componente serve nos
+   dois. Quem precisa dele sempre claro — a marca sobre o banner teal dos
+   slides do Report — passa `cor` na mao.
+   backgroundColor, nao background: a bateria chk_tema procura a string
+   `background:#FCFCEB` para achar painel claro no tema escuro, e uma mascara
+   nao e' painel. */
+function Isologo({size=32,opacity=1,cor=null,style={}}){
+  const tinta=cor||C.cream;
+  return<span role="img" aria-label="Zion Church" className="zion-isologo"
+    style={{width:size,height:size,opacity,backgroundColor:tinta,...style}}/>;
 }
+/* --zlogo e' a imagem da mascara. Fica no :root para a regra .zion-isologo
+   achar, e e' definida uma vez so' — o base64 nao entra no style de cada
+   instancia. Montagem headless nao tem documentElement, dai o try. */
+try{ document.documentElement.style.setProperty('--zlogo','url('+LOGO+')'); }catch(e){}
 const TIER_DEF=[
   {name:'BLACK',   min:6000,color:'#1a1a1a',text:'#FCFCEB'},
   {name:'DIAMOND', min:4000,color:'#89CFF0',text:'#043030'},
   {name:'PLATINUM',min:3000,color:'#E5E4E2',text:'#043030'},
-  {name:'GOLD',    min:2000,color:C.ouro,text:'#043030'},
+  {name:'GOLD',    min:2000,color:'#D4AF37',text:'#043030'},  /* fundo da pilula: ouro claro nos dois temas */
   {name:'SILVER',  min:1,   color:'#A8A9AD',text:'#043030'},
   {name:'—',       min:0,   color:'#2a3a3a',text:'#FCFCEB'},
 ];
@@ -146,7 +243,7 @@ const BLDG_TIER=[
   {name:'BLACK',   color:'#1a1a1a',text:'#FCFCEB'},
   {name:'DIAMOND', color:'#89CFF0',text:'#043030'},
   {name:'PLATINUM',color:'#E5E4E2',text:'#043030'},
-  {name:'GOLD',    color:C.ouro,text:'#043030'},
+  {name:'GOLD',    color:'#D4AF37',text:'#043030'},  /* idem: fundo, nao tinta */
   {name:'SILVER',  color:'#A8A9AD',text:'#043030'},
   {name:'HOTEL',   color:'#7B5C3E',text:'#FCFCEB'},
   {name:'—',       color:'#2a3a3a',text:'#FCFCEB'},
@@ -3314,7 +3411,7 @@ function KpiCard({label,value,d,unit='',period}){
 }
 function DeltaBadge({d}){
   if(d==null)return<span style={{color:'#555'}}>—</span>;
-  return<span style={{color:d>=0?C.sage:'#e05c5c',fontSize:11,fontWeight:600}}>{fmtPct(d)}</span>;
+  return<span style={{color:d>=0?C.sage:ink('#e05c5c'),fontSize:11,fontWeight:600}}>{fmtPct(d)}</span>;
 }
 /* Funcao, nao const: um objeto de modulo guardaria as cores do tema que
    estava ativo no carregamento e nao mudaria mais ao trocar de tema. */
@@ -3345,7 +3442,7 @@ function ChartTitle({children}){
 /* ═══ DESTAQUE DOS EXTREMOS
    Marca os 3 maiores e os 3 menores valores de uma série semanal, para que
    os melhores e os piores domingos saltem à vista no gráfico.            */
-const C_TOP='#5dd68c', C_BOT='#f07070';
+const C_TOP=ink('#5dd68c'), C_BOT=ink('#f07070');
 /* So' destaca com pelo menos 10 datas: com 7 (Diamantes), 6 das 7 barras saiam
    coloridas e o destaque deixava de apontar qualquer coisa. */
 function extremos(dados,campo){
@@ -3405,7 +3502,7 @@ function PeriodSelector({value,onChange}){
   const sem   = isS?value.split('-S')[1]:null;
   const btnStyle=(active)=>({
     padding:'4px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,
-    background:active?C.teal:tealA(0.15),color:active?C.cream:C.teal,
+    background:active?C.teal:tealA(0.15),color:active?C.onTeal:C.teal,
   });
   /* Era `year!=='2026'`: escondia H2, Q3 e Q4 de 2026 mesmo depois do ano
      passar de junho. Agora o botao aparece se o periodo existir. */
@@ -3417,7 +3514,7 @@ function PeriodSelector({value,onChange}){
     <div style={{display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end'}}>
       <div style={{display:'flex',gap:4}}>
         {YEARS.map(y=>(
-          <button key={y} onClick={()=>onChange(y)} style={btnStyle(year===y)}>{y}{year===y&&y==='2026'&&<span style={{fontSize:9,color:C.warn,marginLeft:3}}>YTD</span>}</button>
+          <button key={y} onClick={()=>onChange(y)} style={btnStyle(year===y)}>{y}{year===y&&y==='2026'&&<span style={{fontSize:9,color:C.warnOnTeal,marginLeft:3}}>YTD</span>}</button>
         ))}
       </div>
       <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -3530,15 +3627,15 @@ function Login({onLogin}){
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:32,background:C.gradLogin}}>
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
         <Isologo size={104} style={{marginBottom:22}}/>
-        <div style={{fontSize:13,color:C.teal,letterSpacing:7,textTransform:'uppercase'}}>Dashboard Global</div>
+        <div style={{fontSize:13,color:C.teal,fontWeight:600,letterSpacing:7,textTransform:'uppercase'}}>Dashboard Global</div>
       </div>
       <form onSubmit={handle} style={{display:'flex',flexDirection:'column',gap:12,width:280}}>
         <input type="password" placeholder="Senha de acesso" value={pw} onChange={e=>setPw(e.target.value)}
-          style={{padding:'12px 16px',borderRadius:8,border:`1px solid ${err?C.neg:C.teal}`,background:tealA(0.1),color:C.cream,fontSize:14,outline:'none'}}/>
+          style={{padding:'12px 16px',borderRadius:8,border:`1px solid ${err?C.neg:C.teal}`,background:C.nome==='claro'?'#FFFFFF':tealA(0.1),color:C.cream,fontSize:14,outline:'none'}}/>
         <button type="submit" style={{padding:'12px',borderRadius:8,border:'none',cursor:'pointer',background:C.teal,color:C.onTeal,fontSize:14,fontWeight:600,letterSpacing:1}}>ENTRAR</button>
         {err&&<div style={{color:C.neg,textAlign:'center',fontSize:12}}>Senha incorreta</div>}
       </form>
-      <div style={{fontSize:11,color:creamA(0.3)}}>© 2026 Zion Church</div>
+      <div style={{fontSize:11,color:tintaCreme(0.45)}}>© 2026 Zion Church</div>
     </div>
   );
 }
@@ -3571,7 +3668,7 @@ function LocMultiFilter({selected,onChange,locs}){
       {open&&(
         <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:999,background:'#062828',border:'1px solid '+tealA(0.4),borderRadius:10,padding:'8px 0',minWidth:240,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
           <div style={{display:'flex',gap:6,padding:'6px 12px 8px',borderBottom:'1px solid '+tealA(0.15)}}>
-            <button onClick={()=>allSel?onChange([VIS[0].id]):onChange(VIS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:tealA(0.2),color:allSel?C.cream:C.teal}}>Todas</button>
+            <button onClick={()=>allSel?onChange([VIS[0].id]):onChange(VIS.map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:allSel?C.teal:tealA(0.2),color:allSel?C.onTeal:C.teal}}>Todas</button>
             <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇧🇷').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🇧🇷</button>
             <button onClick={()=>onChange(VIS.filter(l=>l.flag==='🇵🇹').map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🇵🇹</button>
             <button onClick={()=>onChange(VIS.filter(l=>['🇪🇨','🇨🇱','🇺🇸'].includes(l.flag)).map(l=>l.id))} style={{flex:1,padding:'3px 0',borderRadius:6,border:'none',cursor:'pointer',fontSize:10,fontWeight:600,background:tealA(0.15),color:C.teal}}>🌎</button>
@@ -3586,7 +3683,7 @@ function LocMultiFilter({selected,onChange,locs}){
               return(
                 <div key={l.id} onClick={()=>toggle(l.id)} onDoubleClick={()=>onChange([l.id])} title="Duplo clique: só esta localidade" style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',cursor:'pointer',background:ckRowBg,userSelect:'none'}}>
                   <span style={{width:16,height:16,borderRadius:4,border:ckBorder,background:ckBg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,color:C.cream,lineHeight:1}}>{ck?'✓':''}</span>
-                  <span style={{fontSize:12,color:ck?C.cream:'#aaa'}}>{l.flag} {l.name}</span>
+                  <span style={{fontSize:12,color:ck?C.cream:ink('#aaa')}}>{l.flag} {l.name}</span>
                 </div>
               );
             })}
@@ -3644,7 +3741,7 @@ function PageRanking(){
                     a data, mas ela nao aparecia ao lado da media — que e' onde
                     se compara igreja nova com igreja madura. Sem data confirmada
                     mostra "a confirmar", nunca um palpite. */}
-                <span style={{fontSize:10,color:creamA(PRIMEIRO_CULTO[r.loc.id]?0.5:0.3),minWidth:70,textAlign:'right',whiteSpace:'nowrap'}}>
+                <span style={{fontSize:10,color:tintaCreme(PRIMEIRO_CULTO[r.loc.id]?0.5:0.3),minWidth:70,textAlign:'right',whiteSpace:'nowrap'}}>
                   {PRIMEIRO_CULTO[r.loc.id]?ddmmaaaa(PRIMEIRO_CULTO[r.loc.id]):'a confirmar'}
                 </span>
                 <div style={{background:r.tier.color,color:r.tier.text,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.tier.name}</div>
@@ -3704,13 +3801,13 @@ function PageRanking(){
                 <SeloFase locId={l.id} size="small"/>
                 {iso
                   ? <span style={{fontSize:12,color:C.aqua,fontWeight:600,minWidth:88,textAlign:'right'}}>{ddmmaaaa(iso)}</span>
-                  : <span style={{fontSize:11,color:creamA(0.35),minWidth:88,textAlign:'right'}}>a confirmar</span>}
+                  : <span style={{fontSize:11,color:tintaCreme(0.35),minWidth:88,textAlign:'right'}}>a confirmar</span>}
                 <span style={{fontSize:11,color:C.teal,minWidth:112,textAlign:'right'}}>{iso?tempoDeHistoria(iso):''}</span>
               </div>
             );
           })}
         </div>
-        <div style={{fontSize:10,color:creamA(0.4),marginTop:10,lineHeight:1.5}}>
+        <div style={{fontSize:10,color:tintaCreme(0.4),marginTop:10,lineHeight:1.5}}>
           A data do primeiro culto só entra aqui quando confirmada. Ela não pode ser
           lida do banco: a coleta começou em setembro de 2023, então as unidades
           anteriores a essa data aparecem no banco com o dia em que o registro
@@ -3815,9 +3912,9 @@ function PageGlobal(){
       {/* Month filter row */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.onTeal:C.teal}}>Todos</button>
         {allMonths.map(m=>{const [,mo]=m.split('-');return(
-          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
+          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?C.sobreSage:C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
         );})}
       </div>
 
@@ -3864,7 +3961,7 @@ function PageGlobal(){
         function DeltaLabel(props){
           const{x,y,width,value}=props;
           if(value===null||value===undefined)return null;
-          const color=value>0?'#5dd68c':value<0?'#f07070':'#888';
+          const color=value>0?ink('#5dd68c'):value<0?ink('#f07070'):ink('#888');
           const text=value>0?'+'+value.toLocaleString('pt-BR'):value.toLocaleString('pt-BR');
           /* y já é o topo da barra vB; sobe 14px para não tocar no valor de dentro */
           return<text x={x+width/2} y={y-6} fill={color} textAnchor="middle" fontSize={10} fontWeight="bold" stroke={C.outline} strokeWidth={3} paintOrder="stroke">{text}</text>;
@@ -3951,7 +4048,7 @@ function PageLocal({lockedLocId=null}){
 
       {!lockedLocId&&<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {locsVis().map(l=>(
-          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:tealA(0.12),color:l.id===locId?C.cream:C.teal}}>{l.flag} {l.name}</button>
+          <button key={l.id} onClick={()=>setLocId(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:l.id===locId?C.teal:tealA(0.12),color:l.id===locId?C.onTeal:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>}
 
@@ -3968,7 +4065,7 @@ function PageLocal({lockedLocId=null}){
             {PRIMEIRO_CULTO[locId]
               ? <span>Primeiro culto em <strong style={{color:C.aqua}}>{ddmmaaaa(PRIMEIRO_CULTO[locId])}</strong>
                   {tempoDeHistoria(PRIMEIRO_CULTO[locId])?' \u00b7 '+tempoDeHistoria(PRIMEIRO_CULTO[locId])+' de hist\u00f3ria':''}</span>
-              : <span style={{color:creamA(0.4)}}>Data do primeiro culto a confirmar</span>}
+              : <span style={{color:tintaCreme(0.4)}}>Data do primeiro culto a confirmar</span>}
           </div>
         </div>
         <div style={{marginLeft:'auto',textAlign:'right'}}>
@@ -4201,9 +4298,9 @@ function PageCultos(){
       {/* Month filter */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+        <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.onTeal:C.teal}}>Todos</button>
         {allMonths.map(m=>{const [,mo]=m.split('-');return(
-          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
+          <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?C.sobreSage:C.teal}}>{MNAMES[parseInt(mo)-1]}</button>
         );})}
       </div>
 
@@ -4333,7 +4430,7 @@ function PageCultos(){
                 <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
-                  <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
+                  <td style={{padding:'4px 6px',textAlign:'right',color:ink('#aaa')}}>{r.prv!==null?fmt(r.prv):'—'}</td>
                   <td style={{padding:'4px 6px',textAlign:'right'}}><DeltaBadge d={r.d}/></td>
                   <td style={{padding:'4px 6px',textAlign:'center'}}><span style={{background:t.color,color:t.text,padding:'1px 6px',borderRadius:8,fontSize:9,fontWeight:700}}>{t.name}</span></td>
                 </tr>
@@ -4453,9 +4550,9 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
 
       {/* Drill-down filter: Global or single location */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-        <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:tealA(0.12),color:isGlobal?C.cream:C.teal}}>🌍 Global</button>
+        <button onClick={()=>setLocFilter('global')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:isGlobal?C.teal:tealA(0.12),color:isGlobal?C.onTeal:C.teal}}>🌍 Global</button>
         {locsVis().map(l=>(
-          <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+          <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.onTeal:C.teal}}>{l.flag} {l.name}</button>
         ))}
       </div>
 
@@ -4534,7 +4631,7 @@ function MetricPage({title,pageTitle,field,isStock,aggFn,description,color,compT
                 <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'4px 6px',color:C.cream}}>{r.loc.flag} {r.loc.name}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:C.cream}}>{fmt(r.cur)}</td>
-                  <td style={{padding:'4px 6px',textAlign:'right',color:'#aaa'}}>{r.prv!==null?fmt(r.prv):'—'}</td>
+                  <td style={{padding:'4px 6px',textAlign:'right',color:ink('#aaa')}}>{r.prv!==null?fmt(r.prv):'—'}</td>
                   <td style={{padding:'4px 6px',textAlign:'right'}}><DeltaBadge d={r.d}/></td>
                 </tr>
               ))}
@@ -4678,7 +4775,7 @@ function PageTaxas(){
       </div>
 
       {/* Definitions */}
-      <div style={{background:tealA(0.06),border:'1px solid '+tealA(0.2),borderRadius:10,padding:'12px 16px',fontSize:11,color:'#aaa',lineHeight:1.7}}>
+      <div style={{background:tealA(0.06),border:'1px solid '+tealA(0.2),borderRadius:10,padding:'12px 16px',fontSize:11,color:ink('#aaa'),lineHeight:1.7}}>
         <span style={{color:C.teal,fontWeight:700}}>Guia de leitura: </span>
         <b style={{color:C.cream}}>Conexão</b> = Pessoas em Links ÷ Presença/Dom (%) &nbsp;|&nbsp;
         <b style={{color:C.cream}}>Serviço</b> = Voluntários ÷ Presença/Dom (%) &nbsp;|&nbsp;
@@ -4711,14 +4808,14 @@ function PageTaxas(){
               {locData.sort((a,b)=>b.cur.engajamento-a.cur.engajamento).map(({loc,cur,prv})=>(
                 <tr key={loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{loc.flag} {loc.name}</td>
-                  <td style={{padding:'5px 8px',textAlign:'right',color:'#aaa'}}>{fmt(cur.sun)}</td>
+                  <td style={{padding:'5px 8px',textAlign:'right',color:ink('#aaa')}}>{fmt(cur.sun)}</td>
                   {RATE_COLS.map(r=>{
                     const v=cur[r.key];
                     const isGood=r.good(v);
                     return(
                       <td key={r.key} style={{padding:'5px 8px',textAlign:'right',fontWeight:600,color:v>0?(isGood?'#6ee7b7':C.cream):'#444'}}>
                         {v>0?r.fmt(v):'—'}
-                        {prv&&v>0&&<span style={{fontSize:10,color:v>=prv[r.key]?C.sage:'#e05c5c',marginLeft:4}}>{v>=prv[r.key]?'▲':'▼'}</span>}
+                        {prv&&v>0&&<span style={{fontSize:10,color:v>=prv[r.key]?C.sage:ink('#e05c5c'),marginLeft:4}}>{v>=prv[r.key]?'▲':'▼'}</span>}
                       </td>
                     );
                   })}
@@ -4995,18 +5092,18 @@ function PageDataControl(){
     const isZero=status==='ok'&&label2==='0';
     const cfg={
       ok:     isZero
-              ? {bg:'rgba(30,110,70,0.45)', color:'#3dc87a',border:'rgba(30,110,70,0.7)', text:'Confirmado 0'}
-              : {bg:'rgba(67,155,106,0.2)', color:'#439B6A',border:'rgba(67,155,106,0.4)',text:'Preenchido'},
+              ? {bg:'rgba(30,110,70,0.45)', color:ink('#3dc87a'),border:'rgba(30,110,70,0.7)', text:'Confirmado 0'}
+              : {bg:'rgba(67,155,106,0.2)', color:ink('#439B6A'),border:'rgba(67,155,106,0.4)',text:'Preenchido'},
       partial: {bg:'rgba(212,175,55,0.15)', color:C.ouro,border:'rgba(212,175,55,0.35)',text:'Parcial'},
       pending: {bg:'rgba(224,92,92,0.15)',  color:C.neg,border:'rgba(224,92,92,0.3)', text:'Pendente'},
       vacation:{bg:tealA(0.1),   color:'#078780',border:tealA(0.3), text:'Férias'},
-      futura: {bg:tealA(0.06),  color:creamA(0.35),border:tealA(0.18),text:'Não iniciada'},
-      na:      {bg:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.2)',border:'rgba(255,255,255,0.08)',text:'N/A'},
+      futura: {bg:tealA(0.06),  color:tintaCreme(0.35),border:tealA(0.18),text:'Não iniciada'},
+      na:      {bg:tealA(0.05),       color:tintaCreme(0.45),border:tealA(0.14),text:'N/A'},
     }[status]||{bg:'#222',color:'#555',border:'#333',text:'—'};
     return(
       <span title={tooltip||''} style={{display:'inline-flex',alignItems:'center',gap:5,cursor:tooltip?'help':'default'}}>
         <span style={{background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.border}`,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{cfg.text}</span>
-        {label2&&label2!=='0'&&<span style={{fontSize:11,color:'#888'}}>{label2}</span>}
+        {label2&&label2!=='0'&&<span style={{fontSize:11,color:ink('#888')}}>{label2}</span>}
         {tooltip&&status!=='ok'&&<span style={{fontSize:10,color:'#555',cursor:'help'}} title={tooltip}>ⓘ</span>}
       </span>
     );
@@ -5024,8 +5121,8 @@ function PageDataControl(){
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
         <Card style={{textAlign:'center'}}>
-          <div style={{fontSize:10,color:'#439B6A',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Completos</div>
-          <div className="serif" style={{fontSize:36,color:'#439B6A',fontWeight:700,lineHeight:1}}>{totalOk}</div>
+          <div style={{fontSize:10,color:ink('#439B6A'),textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Completos</div>
+          <div className="serif" style={{fontSize:36,color:ink('#439B6A'),fontWeight:700,lineHeight:1}}>{totalOk}</div>
           <div style={{fontSize:11,color:'#777',marginTop:4}}>campus 100% preenchidos</div>
         </Card>
         <Card style={{textAlign:'center'}}>
@@ -5044,9 +5141,9 @@ function PageDataControl(){
       <div>
         <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Campus</div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:tealA(0.12),color:locFilter==='all'?C.cream:C.teal}}>Todos</button>
+          <button onClick={()=>setLocFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:locFilter==='all'?C.teal:tealA(0.12),color:locFilter==='all'?C.onTeal:C.teal}}>Todos</button>
           {locsVis().map(l=>(
-            <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.cream:C.teal}}>{l.flag} {l.name}</button>
+            <button key={l.id} onClick={()=>setLocFilter(l.id)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:locFilter===l.id?C.teal:tealA(0.12),color:locFilter===l.id?C.onTeal:C.teal}}>{l.flag} {l.name}</button>
           ))}
         </div>
       </div>
@@ -5056,9 +5153,9 @@ function PageDataControl(){
         <div>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Mês</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-            <button onClick={()=>setMonthFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:monthFilter==='all'?C.teal:tealA(0.12),color:monthFilter==='all'?C.cream:C.teal}}>Todos os meses</button>
+            <button onClick={()=>setMonthFilter('all')} style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:monthFilter==='all'?C.teal:tealA(0.12),color:monthFilter==='all'?C.onTeal:C.teal}}>Todos os meses</button>
             {allMonths.map(mo=>(
-              <button key={mo} onClick={()=>setMonthFilter(mo)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:monthFilter===mo?C.teal:tealA(0.12),color:monthFilter===mo?C.cream:C.teal}}>{mn(mo)}/{mo.split('-')[0].slice(2)}</button>
+              <button key={mo} onClick={()=>setMonthFilter(mo)} style={{padding:'5px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:monthFilter===mo?C.teal:tealA(0.12),color:monthFilter===mo?C.onTeal:C.teal}}>{mn(mo)}/{mo.split('-')[0].slice(2)}</button>
             ))}
           </div>
         </div>
@@ -5076,7 +5173,7 @@ function PageDataControl(){
               <div style={{width:120,height:6,background:tealA(0.2),borderRadius:3,overflow:'hidden'}}>
                 <div style={{width:`${Math.round(okCount/total*100)}%`,height:'100%',background:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',borderRadius:3}}/>
               </div>
-              <span style={{fontSize:12,fontWeight:700,color:okCount===total?'#439B6A':okCount>0?'#D4AF37':'#e05c5c',whiteSpace:'nowrap'}}>{okCount}/{total} preenchidos</span>
+              <span style={{fontSize:12,fontWeight:700,color:okCount===total?ink('#439B6A'):okCount>0?ink('#D4AF37'):ink('#e05c5c'),whiteSpace:'nowrap'}}>{okCount}/{total} preenchidos</span>
             </div>
           </div>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
@@ -5104,7 +5201,7 @@ function PageDataControl(){
                           return(
                             <span key={mo} title={tip} style={{fontSize:10,padding:'2px 9px',borderRadius:10,fontWeight:600,cursor:'help',
                               background:ok2?'rgba(67,155,106,0.2)':partial2?'rgba(212,175,55,0.15)':'rgba(224,92,92,0.1)',
-                              color:ok2?'#439B6A':partial2?'#D4AF37':'#e05c5c',
+                              color:ok2?ink('#439B6A'):partial2?ink('#D4AF37'):ink('#e05c5c'),
                               border:`1px solid ${ok2?'rgba(67,155,106,0.35)':partial2?'rgba(212,175,55,0.3)':'rgba(224,92,92,0.3)'}`
                             }}>
                               {mn(mo)}: {filled}/{expected}
@@ -5125,7 +5222,7 @@ function PageDataControl(){
                           return(
                             <span key={mo} title={tip} style={{fontSize:10,padding:'2px 9px',borderRadius:10,fontWeight:600,cursor:'help',
                               background:mf?'rgba(67,155,106,0.2)':'rgba(224,92,92,0.1)',
-                              color:mf?'#439B6A':'#e05c5c',
+                              color:mf?ink('#439B6A'):ink('#e05c5c'),
                               border:`1px solid ${mf?'rgba(67,155,106,0.35)':'rgba(224,92,92,0.3)'}`
                             }}>
                               {mn(mo)}{mf?`: ${val.toLocaleString('pt-BR')}`:'—'}
@@ -7190,6 +7287,10 @@ const GEN_CATS=[
   {key:'ekl',  label:'Eklektos',   color:'#A8A9AD'},
   {key:'diam', label:'Diamantes',  color:'#89CFF0'},
 ];
+/* As cores acima sao so' o valor inicial: repintarPaletas troca as seis pela
+   paleta do tema a cada aplicarTema. A primeira chamada caiu na TDZ destes
+   const, entao e' aqui que a paleta correta entra. */
+repintarPaletas();
 function gerAvg(locId,months,cat){
   let s=0,n=0;
   months.forEach(m=>{const d=GER_DATA[locId]?.[m];if(d){s+=d[cat+'S']||0;n+=d[cat+'N']||0;}});
@@ -7466,7 +7567,7 @@ function PagePredios(){
           <PeriodSelector value={period} onChange={setPeriod}/>
         </div>
       </div>
-      <div style={{background:'rgba(123,92,62,0.15)',border:'1px solid rgba(123,92,62,0.4)',borderRadius:10,padding:'12px 16px',fontSize:12,color:'#c8a07a',display:'flex',gap:8,alignItems:'center'}}>
+      <div style={{background:'rgba(123,92,62,0.15)',border:'1px solid rgba(123,92,62,0.4)',borderRadius:10,padding:'12px 16px',fontSize:12,color:ink('#c8a07a'),display:'flex',gap:8,alignItems:'center'}}>
         🏨 <span><b>HOTEL</b> = campus sem prédio próprio{campusLock?'':' ('+locsGlobal().filter(l=>PRED_DATA[l.id]&&PRED_DATA[l.id].tier==='HOTEL').map(l=>l.name).join(', ')+')'} — funcionam em espaço alugado. Ocupação não calculada para esses.</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
@@ -7482,7 +7583,7 @@ function PagePredios(){
         </Card>
         <Card style={{textAlign:'center'}}>
           <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Presença Total</div>
-          <div className="serif" style={{fontSize:24,fontWeight:700,color:'#A8A9AD'}}>{rows.reduce((s,r)=>s+r.people,0).toLocaleString('pt-BR')}</div>
+          <div className="serif" style={{fontSize:24,fontWeight:700,color:ink('#A8A9AD')}}>{rows.reduce((s,r)=>s+r.people,0).toLocaleString('pt-BR')}</div>
           <div style={{fontSize:10,color:'#777',marginTop:2}}>média por domingo</div>
         </Card>
         <Card style={{textAlign:'center'}}>
@@ -7503,10 +7604,10 @@ function PagePredios(){
             <Tooltip content={<TT/>}/>
             <Legend wrapperStyle={{fontSize:12,color:C.cream}}/>
             <Bar isAnimationActive={false} dataKey="seats" name="Cadeiras (templo)" fill="#8B6914" radius={[3,3,0,0]}/>
-            <Bar isAnimationActive={false} dataKey="cap" name="Cap. Total (×cultos)" fill="#D4AF37" radius={[3,3,0,0]}>
-              <LabelList dataKey="cap" position="top" style={{fill:'#D4AF37',fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
+            <Bar isAnimationActive={false} dataKey="cap" name="Cap. Total (×cultos)" fill={ink("#D4AF37")} radius={[3,3,0,0]}>
+              <LabelList dataKey="cap" position="top" style={{fill:ink('#D4AF37'),fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
-            <Bar isAnimationActive={false} dataKey="people" name="Presença/Dom (Silver)" fill="#A8A9AD" radius={[3,3,0,0]}>
+            <Bar isAnimationActive={false} dataKey="people" name="Presença/Dom (Silver)" fill={ink("#A8A9AD")} radius={[3,3,0,0]}>
               <LabelList dataKey="people" position="top" style={{fill:C.cream,fontSize:9}} formatter={v=>v.toLocaleString('pt-BR')}/>
             </Bar>
           </BarChart>
@@ -7523,26 +7624,26 @@ function PagePredios(){
               <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Cultos/Dom</th>
               <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Cap. Total</th>
               <th style={{textAlign:'center',padding:'7px 8px',color:C.ouro,borderBottom:'1px solid '+tealA(0.3)}}>Selo Prédio</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid '+tealA(0.3)}}>Pessoas/Dom</th>
-              <th style={{textAlign:'center',padding:'7px 8px',color:'#A8A9AD',borderBottom:'1px solid '+tealA(0.3)}}>Selo Pessoas</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:ink('#A8A9AD'),borderBottom:'1px solid '+tealA(0.3)}}>Pessoas/Dom</th>
+              <th style={{textAlign:'center',padding:'7px 8px',color:ink('#A8A9AD'),borderBottom:'1px solid '+tealA(0.3)}}>Selo Pessoas</th>
               <th style={{textAlign:'center',padding:'7px 8px',color:C.teal,borderBottom:'1px solid '+tealA(0.3)}}>Ocupação</th>
             </tr></thead>
             <tbody>
               {rows.map(r=>(
                 <tr key={r.loc.id} style={{borderBottom:'1px solid '+tealA(0.08)}}>
                   <td style={{padding:'5px 8px',color:C.cream,whiteSpace:'nowrap'}}>{r.loc.flag} {r.loc.name}</td>
-                  <td style={{padding:'5px 8px',color:'#aaa',fontSize:10}}>{r.pred.name}</td>
+                  <td style={{padding:'5px 8px',color:ink('#aaa'),fontSize:10}}>{r.pred.name}</td>
                   <td style={{padding:'5px 8px',textAlign:'center',color:'#8B6914',fontWeight:600}}>{(r.pred.seats||0).toLocaleString('pt-BR')}</td>
                   <td style={{padding:'5px 8px',textAlign:'center',color:C.ouro,fontWeight:700}}>{r.pred.cultos||1}×</td>
                   <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:C.ouro}}>{r.pred.cap.toLocaleString('pt-BR')}</td>
                   <td style={{padding:'5px 8px',textAlign:'center'}}>
                     <span style={{background:r.buildTier.color,color:r.buildTier.text,padding:'1px 7px',borderRadius:8,fontSize:9,fontWeight:700}}>{r.buildTier.name}</span>
                   </td>
-                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:'#A8A9AD'}}>{r.people.toLocaleString('pt-BR')}</td>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:ink('#A8A9AD')}}>{r.people.toLocaleString('pt-BR')}</td>
                   <td style={{padding:'5px 8px',textAlign:'center'}}>
                     <span style={{background:r.peopleTier.color,color:r.peopleTier.text,padding:'1px 7px',borderRadius:8,fontSize:9,fontWeight:700}}>{r.peopleTier.name}</span>
                   </td>
-                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:r.isHotel?'#7B5C3E':r.utilPct>=80?'#439B6A':r.utilPct>=50?'#D4AF37':'#e05c5c'}}>
+                  <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:r.isHotel?'#7B5C3E':r.utilPct>=80?ink('#439B6A'):r.utilPct>=50?ink('#D4AF37'):ink('#e05c5c')}}>
                     {r.isHotel?'🏨 —':r.utilPct+'%'}
                   </td>
                 </tr>
@@ -7596,7 +7697,7 @@ function censMatScore(d){
   return Math.round(m.reduce((a,b)=>a+b,0)/m.length);
 }
 function censMatColor(s){
-  if(s>=70)return{bg:'rgba(67,155,106,0.2)',color:'#439B6A',border:'rgba(67,155,106,0.4)',label:'Alta Maturidade'};
+  if(s>=70)return{bg:'rgba(67,155,106,0.2)',color:ink('#439B6A'),border:'rgba(67,155,106,0.4)',label:'Alta Maturidade'};
   if(s>=63)return{bg:tealA(0.15),color:'#078780',border:tealA(0.35),label:'Sólida'};
   if(s>=57)return{bg:'rgba(212,175,55,0.15)',color:C.ouro,border:'rgba(212,175,55,0.35)',label:'Em Crescimento'};
   return{bg:'rgba(224,92,92,0.15)',color:C.neg,border:'rgba(224,92,92,0.3)',label:'Emergente'};
@@ -7763,7 +7864,7 @@ function PageCenso(){
     return(
       <div style={{marginBottom:6}}>
         <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:C.cream,marginBottom:2}}>
-          <span style={{color:'#aaa'}}>{label}</span>
+          <span style={{color:ink('#aaa')}}>{label}</span>
           <span style={{fontWeight:700,color:color||C.teal}}>{pct}%</span>
         </div>
         <div style={{background:bg||tealA(0.08),borderRadius:3,height:6}}>
@@ -7794,7 +7895,7 @@ function PageCenso(){
           </p>
         </div>
         <select value={selLoc} onChange={e=>setSelLoc(e.target.value)}
-          style={{background:'#0C5149',color:C.cream,border:'1px solid '+tealA(0.4),borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>
+          style={{background:'#0C5149',color:C.onTeal,border:'1px solid '+tealA(0.4),borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>
           <option value="todas">🌍 Todas as Localidades</option>
           {censoLocs.map(l=><option key={l} value={l}>{l} (n={CENSO_DATA[l].n})</option>)}
         </select>
@@ -7812,7 +7913,7 @@ function PageCenso(){
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
               <ChartTitle>Comparativo por Indicador</ChartTitle>
               <select value={selMetric} onChange={e=>setSelMetric(e.target.value)}
-                style={{background:'#0C5149',color:C.cream,border:'1px solid '+tealA(0.4),borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer'}}>
+                style={{background:'#0C5149',color:C.onTeal,border:'1px solid '+tealA(0.4),borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer'}}>
                 {CENSO_METRICS.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}
               </select>
             </div>
@@ -7849,10 +7950,10 @@ function PageCenso(){
                       <span style={{background:r.mc.bg,color:r.mc.color,border:`1px solid ${r.mc.border}`,padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:700}}>{r.score}%</span>
                     </div>
                     <div style={{marginBottom:5}}>
-                      <div style={{fontSize:9,color:'#439B6A',letterSpacing:1,marginBottom:3}}>PONTOS FORTES</div>
+                      <div style={{fontSize:9,color:ink('#439B6A'),letterSpacing:1,marginBottom:3}}>PONTOS FORTES</div>
                       {strong.map(s=>(
                         <div key={s.l} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
-                          <span style={{color:'#888'}}>{s.l}</span><span style={{color:'#439B6A',fontWeight:700}}>{s.v}%</span>
+                          <span style={{color:ink('#888')}}>{s.l}</span><span style={{color:ink('#439B6A'),fontWeight:700}}>{s.v}%</span>
                         </div>
                       ))}
                     </div>
@@ -7860,7 +7961,7 @@ function PageCenso(){
                       <div style={{fontSize:9,color:C.neg,letterSpacing:1,marginBottom:3}}>OPORTUNIDADES</div>
                       {weak.map(s=>(
                         <div key={s.l} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
-                          <span style={{color:'#888'}}>{s.l}</span><span style={{color:C.neg,fontWeight:700}}>{s.v}%</span>
+                          <span style={{color:ink('#888')}}>{s.l}</span><span style={{color:C.neg,fontWeight:700}}>{s.v}%</span>
                         </div>
                       ))}
                     </div>
@@ -7885,7 +7986,7 @@ function PageCenso(){
                   <div key={k.k} style={{background:tealA(0.07),borderRadius:8,padding:'10px 12px',border:'1px solid '+tealA(0.13)}}>
                     <div style={{fontSize:10,color:C.teal,marginBottom:4}}>{k.icon} {k.label}</div>
                     <div className="serif" style={{fontSize:22,fontWeight:700,color:C.cream}}>{val}%</div>
-                    <div style={{fontSize:10,color:good?'#439B6A':'#e05c5c',marginTop:3,fontWeight:600}}>
+                    <div style={{fontSize:10,color:good?ink('#439B6A'):ink('#e05c5c'),marginTop:3,fontWeight:600}}>
                       {delta>0?'+':''}{delta}% vs média ({avg}%)
                     </div>
                     <div style={{background:tealA(0.08),borderRadius:3,height:4,marginTop:6}}>
@@ -7995,7 +8096,7 @@ function PageCenso(){
                 {(()=>{
                   const avg=Math.round(censoLocs.reduce((s,l)=>s+(CENSO_DATA[l].diz||0),0)/censoLocs.length);
                   const delta=Math.round((d.diz||0)-avg);
-                  return <div style={{fontSize:13,fontWeight:700,color:delta>=0?'#439B6A':'#e05c5c'}}>
+                  return <div style={{fontSize:13,fontWeight:700,color:delta>=0?ink('#439B6A'):ink('#e05c5c')}}>
                     {delta>=0?'+':''}{delta}pp vs média ({avg}%)
                   </div>;
                 })()}
@@ -8022,7 +8123,7 @@ function PageCenso(){
               <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                 {[{k:'member',lbl:'👥 Membros'},{k:'link',lbl:'🔗 Links'},{k:'ger',lbl:'🏘️ Geracional'},{k:'dom02',lbl:'📅 0-2 Domingos'}].map(t=>(
                   <button key={t.k} onClick={()=>setSelCross(t.k)}
-                    style={{background:selCross===t.k?C.teal:tealA(0.1),color:selCross===t.k?C.deepGreen:C.cream,
+                    style={{background:selCross===t.k?C.teal:tealA(0.1),color:selCross===t.k?C.onTeal:C.cream,
                       border:`1px solid ${selCross===t.k?C.teal:tealA(0.3)}`,borderRadius:20,padding:'4px 10px',
                       fontSize:10,cursor:'pointer',fontWeight:600}}>
                     {t.lbl}
@@ -8037,10 +8138,10 @@ function PageCenso(){
             ):(
               <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                  <div style={{fontSize:11,color:'#888'}}>
+                  <div style={{fontSize:11,color:ink('#888')}}>
                     Mostrando <b style={{color:C.cream}}>{globalCx.yesLabel}</b> — delta vs {globalCx.noLabel} ao final de cada linha
                   </div>
-                  {isLocData&&<span style={{fontSize:10,color:tealA(0.5),background:tealA(0.08),padding:'2px 8px',borderRadius:10}}>📍 {selLoc}</span>}
+                  {isLocData&&<span style={{fontSize:10,color:tintaTeal(0.5),background:tealA(0.08),padding:'2px 8px',borderRadius:10}}>📍 {selLoc}</span>}
                 </div>
                 {rows.map(r=>(
                   <div key={r.lbl} style={{marginBottom:10,display:'flex',alignItems:'center',gap:10}}>
@@ -8052,7 +8153,7 @@ function PageCenso(){
                         fontSize:11,fontWeight:700,color:'#fff'}}>{r.yes}%</div>
                     </div>
                     <div style={{width:54,textAlign:'right',flexShrink:0,fontSize:11,fontWeight:700,
-                      color:r.delta>=0?'#439B6A':'#e05c5c',
+                      color:r.delta>=0?ink('#439B6A'):ink('#e05c5c'),
                       background:r.delta>=0?'rgba(67,155,106,0.1)':'rgba(224,92,92,0.08)',
                       padding:'2px 6px',borderRadius:8,border:`1px solid ${r.delta>=0?'rgba(67,155,106,0.25)':'rgba(224,92,92,0.2)'}`}}>
                       {r.delta>=0?'+':''}{r.delta}pp
@@ -8061,9 +8162,9 @@ function PageCenso(){
                 ))}
                 {(()=>{
                   const TONS={
-                    alta:   {cor:'#5dd68c',bg:'rgba(93,214,140,0.08)',bd:'rgba(93,214,140,0.28)',ic:'▲'},
+                    alta:   {cor:ink('#5dd68c'),bg:'rgba(93,214,140,0.08)',bd:'rgba(93,214,140,0.28)',ic:'▲'},
                     atencao:{cor:'#D4AF37',bg:'rgba(212,175,55,0.08)', bd:'rgba(212,175,55,0.28)', ic:'!'},
-                    inverso:{cor:'#f07070',bg:'rgba(240,112,112,0.08)',bd:'rgba(240,112,112,0.28)',ic:'▼'},
+                    inverso:{cor:ink('#f07070'),bg:'rgba(240,112,112,0.08)',bd:'rgba(240,112,112,0.28)',ic:'▼'},
                     acao:   {cor:C.teal,   bg:tealA(0.08),  bd:tealA(0.3),   ic:'→'},
                   };
                   const ins=insightsCruzamento(selCross,rows,globalCx);
@@ -8137,8 +8238,8 @@ function PageDigital(){
     igLocsMain.forEach(function(l){const v=DATA[l]?.['2026-'+mm]?.ig;pt[l]=v||null;});
     return pt;
   });
-  const ytColors=['#078780','#e05c5c','#D4AF37','#89CFF0','#A8A9AD','#9b8fd5','#439B6A'];
-  const igColors=['#439B6A','#D4AF37','#89CFF0','#A8A9AD','#e05c5c'];
+  const ytColors=['#078780','#e05c5c','#D4AF37','#89CFF0','#A8A9AD','#9b8fd5','#439B6A'].map(ink);
+  const igColors=['#439B6A','#D4AF37','#89CFF0','#A8A9AD','#e05c5c'].map(ink);
 
   const locRows=visLocs.map(loc=>({loc,cur:lastVal(loc.id,months,'ig'),prv:prev?lastVal(loc.id,prevM,'ig'):null})).sort((a,b)=>b.cur-a.cur);
 
@@ -8183,7 +8284,7 @@ function PageDigital(){
               <YAxis type="category" dataKey="name" tick={{fill:C.cream,fontSize:11}} axisLine={false} tickLine={false} width={110}/>
               <Tooltip content={<TT/>}/>
               <Bar isAnimationActive={false} dataKey="val" name="YouTube" radius={[0,3,3,0]}>
-                {ytRows.map((_,i)=><Cell key={i} fill={i===0?'#D4AF37':'#c8a020'}/>)}
+                {ytRows.map((_,i)=><Cell key={i} fill={i===0?ink('#D4AF37'):ink('#c8a020')}/>)}
                 <LabelList dataKey="val" position="right" style={{fill:C.cream,fontSize:11}} formatter={v=>v.toLocaleString('pt-BR')}/>
               </Bar>
             </BarChart>
@@ -8236,7 +8337,7 @@ function PageDigital(){
               <XAxis dataKey="name" tick={{fill:C.teal,fontSize:11}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.teal,fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>(v/1000).toFixed(0)+'k'} width={36}/>
               <Tooltip content={<TT/>} formatter={v=>v?v.toLocaleString('pt-BR'):'—'}/>
-              <Area isAnimationActive={false} type="monotone" dataKey="São Paulo" name="São Paulo IG" stroke="#439B6A" fill="url(#igSP)" strokeWidth={2.5} dot={{r:3,fill:'#439B6A',strokeWidth:0}} connectNulls={true}>
+              <Area isAnimationActive={false} type="monotone" dataKey="São Paulo" name="São Paulo IG" stroke={ink("#439B6A")} fill="url(#igSP)" strokeWidth={2.5} dot={{r:3,fill:ink('#439B6A'),strokeWidth:0}} connectNulls={true}>
                 <LabelList dataKey="São Paulo" position="top" style={{fill:C.cream,fontSize:9,fontWeight:600}} formatter={v=>v?(v/1000).toFixed(0)+'k':''}/>
               </Area>
             </AreaChart>
@@ -8365,7 +8466,7 @@ function PageDSM(){
           return(
             <button key={y} onClick={function(){setSelYear(y);}}
               style={{padding:'7px 22px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:700,
-                background:selYear===y?C.teal:tealA(0.12),color:selYear===y?C.cream:C.teal}}>
+                background:selYear===y?C.teal:tealA(0.12),color:selYear===y?C.onTeal:C.teal}}>
               {y} <span style={{fontSize:11,fontWeight:400}}>({DSM_DATA[y].total} enviados)</span>
             </button>
           );
@@ -8383,7 +8484,7 @@ function PageDSM(){
               <div style={{display:'flex',flexDirection:'column',gap:4}}>
                 {item.names.map(function(name,i){
                   return(
-                    <div key={i} style={{fontSize:11,color:'#aaa',padding:'3px 0',borderBottom:'1px solid '+tealA(0.08)}}>{name}</div>
+                    <div key={i} style={{fontSize:11,color:ink('#aaa'),padding:'3px 0',borderBottom:'1px solid '+tealA(0.08)}}>{name}</div>
                   );
                 })}
               </div>
@@ -8489,12 +8590,12 @@ function PagePUL(){
                 <tr key={r.campus} style={{borderBottom:'1px solid '+tealA(0.1),background:i%2===0?tealA(0.04):'transparent'}}>
                   <td style={{padding:'8px 12px',color:C.cream,fontWeight:600}}>{r.campus}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:C.cream,fontWeight:700}}>{fmtUSD(r.proj)}</td>
-                  <td style={{padding:'8px 12px',textAlign:'right',color:'#aaa'}}>{fmtUSD(r.mensal)}</td>
+                  <td style={{padding:'8px 12px',textAlign:'right',color:ink('#aaa')}}>{fmtUSD(r.mensal)}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:C.cream}}>{r.compromissos.toLocaleString('pt-BR')}</td>
-                  <td style={{padding:'8px 12px',textAlign:'right',color:'#aaa'}}>US$ {r.ticket.toFixed(2).replace('.',',')}</td>
+                  <td style={{padding:'8px 12px',textAlign:'right',color:ink('#aaa')}}>US$ {r.ticket.toFixed(2).replace('.',',')}</td>
                   <td style={{padding:'8px 12px',textAlign:'right',color:C.cream}}>{r.dizimistas.toLocaleString('pt-BR')}</td>
                   <td style={{padding:'8px 12px',textAlign:'right'}}>
-                    <span style={{background:r.eng>=5?'rgba(67,155,106,0.2)':r.eng>=2?'rgba(212,175,55,0.15)':tealA(0.1),color:r.eng>=5?C.sage:r.eng>=2?'#D4AF37':C.teal,padding:'2px 8px',borderRadius:12,fontSize:11,fontWeight:700}}>{r.eng.toFixed(2)}x</span>
+                    <span style={{background:r.eng>=5?'rgba(67,155,106,0.2)':r.eng>=2?'rgba(212,175,55,0.15)':tealA(0.1),color:r.eng>=5?C.sage:r.eng>=2?ink('#D4AF37'):C.teal,padding:'2px 8px',borderRadius:12,fontSize:11,fontWeight:700}}>{r.eng.toFixed(2)}x</span>
                   </td>
                 </tr>
               ))}
@@ -8503,14 +8604,14 @@ function PagePUL(){
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.sage,fontWeight:700}}>{fmtUSD(total.proj)}</td>
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.sage,fontWeight:700}}>{fmtUSD(total.mensal)}</td>
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.cream,fontWeight:700}}>{total.compromissos.toLocaleString('pt-BR')}</td>
-                <td style={{padding:'8px 12px',textAlign:'right',color:'#888'}}>—</td>
+                <td style={{padding:'8px 12px',textAlign:'right',color:ink('#888')}}>—</td>
                 <td style={{padding:'8px 12px',textAlign:'right',color:C.cream,fontWeight:700}}>{total.dizimistas.toLocaleString('pt-BR')}</td>
-                <td style={{padding:'8px 12px',textAlign:'right',color:'#888'}}>—</td>
+                <td style={{padding:'8px 12px',textAlign:'right',color:ink('#888')}}>—</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div style={{marginTop:12,fontSize:10,color:tealA(0.5),lineHeight:1.8}}>
+        <div style={{marginTop:12,fontSize:10,color:tintaTeal(0.5),lineHeight:1.8}}>
           * Lançamento da Campanha em Março &nbsp;|&nbsp; Dólar real: 5,76 &nbsp;|&nbsp; Dólar/Euro: 0,92 &nbsp;|&nbsp; Dólar/Peso Chileno: 977,81
         </div>
       </Card>
@@ -8646,8 +8747,8 @@ function RxLinha({label,ind,mediana,unidade,nota}){
   if(ind?.na) return(
     <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid '+tealA(0.12)}}>
       <div style={{fontSize:12,color:C.cream}}>{label}</div>
-      <div style={{fontSize:12,color:'#6b7b7b'}}>N/A</div>
-      <div style={{fontSize:11,color:'#6b7b7b'}}>não realizado nesta localidade</div><div/>
+      <div style={{fontSize:12,color:ink('#6b7b7b')}}>N/A</div>
+      <div style={{fontSize:11,color:ink('#6b7b7b')}}>não realizado nesta localidade</div><div/>
     </div>
   );
   if(!ind) return(
@@ -8663,14 +8764,14 @@ function RxLinha({label,ind,mediana,unidade,nota}){
   return(
     <div style={{display:'grid',gridTemplateColumns:'190px 110px minmax(120px,1fr) 170px',gap:12,alignItems:'center',padding:'7px 0',borderBottom:'1px solid '+tealA(0.12)}}>
       <div style={{fontSize:12,color:C.cream}}>{label}
-        {nota&&<div style={{fontSize:9,color:tealA(0.7)}}>{nota}</div>}</div>
+        {nota&&<div style={{fontSize:9,color:tintaTeal(0.7)}}>{nota}</div>}</div>
       <div>
         <div style={{fontSize:14,fontWeight:700,color:cor}}>{ind.pct.toFixed(1)}%</div>
         <div style={{fontSize:10,color:C.teal}}>{fmt(ind.v)}{unidade?' '+unidade:''}</div>
       </div>
       <RxBarra pct={ind.pct} max={maxRede} mediana={mediana}/>
       <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
-        {mediana==null?'—':<>Zion Global {mediana.toFixed(1)}%<span style={{color:razao>=1?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{razao>=1?'+':''}{((razao-1)*100).toFixed(0)}%</span></>}
+        {mediana==null?'—':<>Zion Global {mediana.toFixed(1)}%<span style={{color:razao>=1?C.sage:ink('#e0a05c'),marginLeft:6,fontWeight:600}}>{razao>=1?'+':''}{((razao-1)*100).toFixed(0)}%</span></>}
       </div>
     </div>
   );
@@ -8723,7 +8824,7 @@ function RxCelula({v,ant}){
   return(
     <td style={{padding:'4px 6px',textAlign:'right',whiteSpace:'nowrap'}}>
       <span style={{color:cor,fontWeight:d!=null&&Math.abs(d)>=10?700:400}}>{v.toFixed(1)}%</span>
-      {d!=null&&<span style={{fontSize:9,color:d>=0?C.sage:'#e0a05c',marginLeft:4}}>{d>=0?'+':''}{d.toFixed(0)}%</span>}
+      {d!=null&&<span style={{fontSize:9,color:d>=0?C.sage:ink('#e0a05c'),marginLeft:4}}>{d>=0?'+':''}{d.toFixed(0)}%</span>}
     </td>
   );
 }
@@ -8798,7 +8899,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
         <ChartTitle>Raio-X — {rotulo} como % da média de culto</ChartTitle>
         <div style={{display:'flex',gap:6}}>
           {RX_ESCOPOS.map(e=>(
-            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.onTeal:C.teal}}>{e.label}</button>
           ))}
         </div>
       </div>
@@ -8814,7 +8915,7 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
           <thead><tr>
             {['Localidade','Porte','Média/dom.',rotulo,'% da igreja','','vs mediana'].map((h,i)=>(
-              <th key={i} style={{textAlign:i<2?'left':i===5?'left':'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3),position:'sticky',top:0,background:'#04292a'}}>{h}</th>
+              <th key={i} style={{textAlign:i<2?'left':i===5?'left':'right',color:C.teal,padding:'4px 6px',borderBottom:'1px solid '+tealA(0.3),position:'sticky',top:0,background:C.bgAlt}}>{h}</th>
             ))}
           </tr></thead>
           <tbody>
@@ -8830,22 +8931,22 @@ function RxMetrica({campo,rotulo,unidade,nota,destaque}){
                   <td style={{padding:'4px 6px',color:C.cream,textAlign:'right'}}>{fmt(r.x.v)}{unidade?' '+unidade:''}</td>
                   <td style={{padding:'4px 6px',textAlign:'right',fontWeight:700,color:cor}}>{r.x.pct.toFixed(1)}%</td>
                   <td style={{padding:'4px 6px',minWidth:120}}><RxBarra pct={r.x.pct} max={max} mediana={med}/></td>
-                  <td style={{padding:'4px 6px',textAlign:'right',color:razao>=1?C.sage:'#e0a05c'}}>{razao==null?'—':(razao>=1?'+':'')+((razao-1)*100).toFixed(0)+'%'}</td>
+                  <td style={{padding:'4px 6px',textAlign:'right',color:razao>=1?C.sage:ink('#e0a05c')}}>{razao==null?'—':(razao>=1?'+':'')+((razao-1)*100).toFixed(0)+'%'}</td>
                 </tr>
               );
             })}
             {fora.map(r=>(
               <tr key={r.loc.id}>
-                <td style={{padding:'4px 6px',color:'#6b7b7b'}}>{r.loc.flag} {r.loc.name}</td>
-                <td style={{padding:'4px 6px',color:'#6b7b7b'}}>{r.porte.label}</td>
-                <td style={{padding:'4px 6px',color:'#6b7b7b',textAlign:'right'}}>{fmt(r.base)}</td>
-                <td colSpan={4} style={{padding:'4px 6px',color:r.x?.na?'#6b7b7b':'#c8a020'}}>{r.x?.na?'não realizado nesta localidade':'sem dado lançado — não dá para avaliar'}</td>
+                <td style={{padding:'4px 6px',color:ink('#6b7b7b')}}>{r.loc.flag} {r.loc.name}</td>
+                <td style={{padding:'4px 6px',color:ink('#6b7b7b')}}>{r.porte.label}</td>
+                <td style={{padding:'4px 6px',color:ink('#6b7b7b'),textAlign:'right'}}>{fmt(r.base)}</td>
+                <td colSpan={4} style={{padding:'4px 6px',color:r.x?.na?ink('#6b7b7b'):ink('#c8a020')}}>{r.x?.na?'não realizado nesta localidade':'sem dado lançado — não dá para avaliar'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div style={{fontSize:10,color:tealA(0.7),marginTop:8}}>A marca clara em cada barra é a mediana do escopo selecionado. Igrejas abaixo de 150 pessoas movem mais de 0,7 ponto percentual por pessoa — ler como ordem de grandeza.</div>
+      <div style={{fontSize:10,color:tintaTeal(0.7),marginTop:8}}>A marca clara em cada barra é a mediana do escopo selecionado. Igrejas abaixo de 150 pessoas movem mais de 0,7 ponto percentual por pessoa — ler como ordem de grandeza.</div>
     </Card>
   );
 }
@@ -8870,7 +8971,7 @@ function RxGeracionais(){
         <ChartTitle>Raio-X — participação de cada geracional no culto</ChartTitle>
         <div style={{display:'flex',gap:6}}>
           {RX_ESCOPOS.map(e=>(
-            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.cream:C.teal}}>{e.label}</button>
+            <button key={e.id} onClick={()=>setEscopo(e.id)} style={{padding:'4px 11px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:escopo===e.id?C.teal:tealA(0.12),color:escopo===e.id?C.onTeal:C.teal}}>{e.label}</button>
           ))}
         </div>
       </div>
@@ -8948,12 +9049,12 @@ function RxSaude({locId}){
           <div style={{display:'flex',gap:26,flexWrap:'wrap'}}>
             <div style={{textAlign:'right'}}>
               <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Momentum</div>
-              <div className="serif" style={{fontSize:20,fontWeight:700,color:!mom?C.cream:mom.d>=0?C.sage:'#e05c5c'}}>{mom?fmtPct(mom.d):'—'}</div>
+              <div className="serif" style={{fontSize:20,fontWeight:700,color:!mom?C.cream:mom.d>=0?C.sage:ink('#e05c5c')}}>{mom?fmtPct(mom.d):'—'}</div>
               <div style={{fontSize:10,color:C.teal}}>3 meses vs. ano</div>
             </div>
             <div style={{textAlign:'right'}}>
               <div style={{fontSize:10,color:C.teal,textTransform:'uppercase',letterSpacing:1}}>Previsibilidade</div>
-              <div className="serif" style={{fontSize:20,fontWeight:700,color:!cons?C.cream:cons.cv<=12?C.sage:cons.cv<=25?C.cream:'#e05c5c'}}>{cons?cons.cv.toFixed(0)+'%':'—'}</div>
+              <div className="serif" style={{fontSize:20,fontWeight:700,color:!cons?C.cream:cons.cv<=12?C.sage:cons.cv<=25?C.cream:ink('#e05c5c')}}>{cons?cons.cv.toFixed(0)+'%':'—'}</div>
               <div style={{fontSize:10,color:C.teal}}>oscilação entre domingos</div>
             </div>
           </div>
@@ -8970,18 +9071,18 @@ function RxSaude({locId}){
                 </div>
                 <div style={{height:26,background:tealA(0.12),borderRadius:6}}>
                   <div style={{width:Math.max(1.5,Math.min(100,pct))+'%',height:'100%',background:i===0?C.sage:C.teal,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:8}}>
-                    <span style={{fontSize:11,color:C.cream,fontWeight:600,whiteSpace:'nowrap'}}>{na?'N/A':sem?'—':pct.toFixed(1)+(f.porCem?' por 100':'%')}</span>
+                    <span style={{fontSize:11,color:C.onTeal,fontWeight:600,whiteSpace:'nowrap'}}>{na?'N/A':sem?'—':pct.toFixed(1)+(f.porCem?' por 100':'%')}</span>
                   </div>
                 </div>
                 <div style={{fontSize:11,color:C.teal,textAlign:'right'}}>
                   {f.obs?f.obs:(m==null||na||sem)?'—':
-                    <>Zion Global {m.toFixed(1)}{f.porCem?' por 100':'%'}<span style={{color:pct>=m?C.sage:'#e0a05c',marginLeft:6,fontWeight:600}}>{pct>=m?'+':''}{(100*(pct/m-1)).toFixed(0)}%</span></>}
+                    <>Zion Global {m.toFixed(1)}{f.porCem?' por 100':'%'}<span style={{color:pct>=m?C.sage:ink('#e0a05c'),marginLeft:6,fontWeight:600}}>{pct>=m?'+':''}{(100*(pct/m-1)).toFixed(0)}%</span></>}
                 </div>
               </div>
             );
           })}
         </div>
-        <div style={{fontSize:10,color:tealA(0.7),marginTop:10}}>O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
+        <div style={{fontSize:10,color:tintaTeal(0.7),marginTop:10}}>O detalhe de cada indicador, com todas as localidades lado a lado, está na aba da própria métrica.</div>
       </Card>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
         <Card>
@@ -9223,7 +9324,7 @@ function cresceLabel(props){
   const pos=value>=0;
   return(
     <text x={x+width/2} y={y-9} textAnchor="middle" fontSize={15} fontWeight={700}
-          fill={pos?'#7fd6a0':'#f08a8a'} stroke={C.outline} strokeWidth={3.5} paintOrder="stroke">
+          fill={pos?ink('#7fd6a0'):ink('#f08a8a')} stroke={C.outline} strokeWidth={3.5} paintOrder="stroke">
       {(pos?'+':'')+value.toFixed(1)+'%'}
     </text>
   );
@@ -9312,8 +9413,8 @@ function FundoSlide({faixa=false}){
 function MarcaSlide({escala=1}){
   return(
     <div style={{display:'flex',alignItems:'center',gap:22*escala,flexShrink:0}}>
-      <Isologo size={92*escala}/>
-      <span style={{fontSize:64*escala,fontWeight:500,color:C.cream,
+      <Isologo size={92*escala} cor={C.onTeal}/>
+      <span style={{fontSize:64*escala,fontWeight:500,color:C.onTeal,
                     letterSpacing:7*escala,lineHeight:1}}>ZION</span>
     </div>
   );
@@ -9630,9 +9731,9 @@ function PageReport(){
            alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
           <span style={{fontSize:11,color:C.teal,marginRight:4}}>Mês:</span>
-          <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.cream:C.teal}}>Todos</button>
+          <button onClick={()=>setSelMonth('all')} style={{padding:'3px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:selMonth==='all'?C.teal:tealA(0.15),color:selMonth==='all'?C.onTeal:C.teal}}>Todos</button>
           {MESES.map(function(m){return(
-            <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?'#021a1a':C.teal}}>
+            <button key={m} onClick={()=>setSelMonth(m===selMonth?'all':m)} style={{padding:'3px 10px',borderRadius:20,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:m===selMonth?C.sage:tealA(0.12),color:m===selMonth?C.sobreSage:C.teal}}>
               {MNAMES[parseInt(m.slice(5))-1]}{parciais[m]?'*':''}
             </button>
           );})}
@@ -9641,7 +9742,7 @@ function PageReport(){
         <LocMultiFilter selected={selLocs} onChange={setSelLocs} locs={locsGlobal()}/>
       </div>
       {faltaUltimo&&<div className="sem-print" style={{background:'rgba(240,138,138,0.12)',border:'1px solid rgba(240,138,138,0.55)',
-            borderRadius:10,padding:'10px 16px',color:'#f5b5b5',fontSize:13,fontWeight:600}}>
+            borderRadius:10,padding:'10px 16px',color:ink('#f5b5b5'),fontSize:13,fontWeight:600}}>
         O culto de domingo {faltaUltimo.domingo} ainda não está nos dados de {escopo} — o último lançado é {faltaUltimo.ultimo}.
         Confira se o MAC10 foi exportado depois do culto e se a igreja já lançou, e atualize antes de gerar o PDF.
       </div>}
@@ -9886,7 +9987,7 @@ function Sidebar({page,setPage,collapsed,setCollapsed,trocarTema}){
           {sep:'— ANÁLISES —',ids:campusLock?['report','predios','dados']:['report','zionglobal','predios','dados','censo','dsm','pul']},
         ].map(group=>(
           <div key={group.sep}>
-            {!collapsed&&<div style={{fontSize:9,color:tealA(0.35),letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
+            {!collapsed&&<div style={{fontSize:9,color:tintaTeal(0.35),letterSpacing:2,textTransform:'uppercase',padding:'12px 14px 4px'}}>{group.sep}</div>}
             {PAGES.filter(p=>group.ids.includes(p.id)).map(p=>(
               <button key={p.id} onClick={()=>setPage(p.id)} title={collapsed?p.label:''} style={{width:'100%',padding:collapsed?'10px 0':'9px 14px',background:page===p.id?tealA(0.22):'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:9,color:page===p.id?C.cream:C.teal,fontSize:12,fontWeight:page===p.id?600:400,textAlign:'left',justifyContent:collapsed?'center':'flex-start',borderLeft:page===p.id?`3px solid ${C.teal}`:'3px solid transparent'}}>
                 <span style={{fontSize:15,minWidth:20,textAlign:'center'}}>{p.icon}</span>
@@ -9905,7 +10006,7 @@ function Sidebar({page,setPage,collapsed,setCollapsed,trocarTema}){
           <span style={{fontSize:15,minWidth:20,textAlign:'center'}}>{C.nome==='escuro'?'☀️':'🌙'}</span>
           {!collapsed&&<span style={{whiteSpace:'nowrap'}}>{C.nome==='escuro'?'Tema claro':'Tema escuro'}</span>}
         </button>
-        {!collapsed&&<div style={{padding:'2px 14px 10px',fontSize:10,color:tealA(0.4),textAlign:'center'}}>© 2026 Zion Church</div>}
+        {!collapsed&&<div style={{padding:'2px 14px 10px',fontSize:10,color:tintaTeal(0.4),textAlign:'center'}}>© 2026 Zion Church</div>}
       </div>
     </aside>
   );
@@ -10027,8 +10128,8 @@ function RmBarra({v,max,alt=14}){
   );
 }
 function RmPct({v}){
-  if(v==null)return<span style={{color:creamA(0.35)}}>—</span>;
-  return<span style={{color:v>=0?C.sage:'#e05c5c',fontWeight:700}}>{fmtPct(v)}</span>;
+  if(v==null)return<span style={{color:tintaCreme(0.35)}}>—</span>;
+  return<span style={{color:v>=0?C.sage:ink('#e05c5c'),fontWeight:700}}>{fmtPct(v)}</span>;
 }
 
 /* Tabela de movimento. `campo` e' 'mom' ou 'vsSem'. */
@@ -10074,7 +10175,7 @@ function RmTabela({linhas,campo,fonte,altura=690}){
         {cols.map(function(c,ci){return(
           <div key={ci}>
             <div style={{display:'grid',gridTemplateColumns:grid,gap:14,
-                         fontSize:13,color:tealA(0.85),textTransform:'uppercase',
+                         fontSize:13,color:tintaTeal(0.85),textTransform:'uppercase',
                          letterSpacing:1,paddingBottom:6,
                          borderBottom:'1px solid '+tealA(0.3)}}>
               <span/><span>Localidade</span>
@@ -10086,7 +10187,7 @@ function RmTabela({linhas,campo,fonte,altura=690}){
           </div>
         );})}
       </div>
-      {fonte&&<div style={{fontSize:14,color:tealA(0.75),marginTop:'auto',
+      {fonte&&<div style={{fontSize:14,color:tintaTeal(0.75),marginTop:'auto',
                             paddingTop:14,flexShrink:0,lineHeight:1.5}}>{fonte}</div>}
     </div>
   );
@@ -10210,10 +10311,10 @@ function PageZionGlobal(){
               style={{padding:'3px 11px',borderRadius:20,border:'none',cursor:'pointer',
                       fontSize:11,fontWeight:600,
                       background:m===ym?C.sage:tealA(0.13),
-                      color:m===ym?'#021a1a':C.teal}}>{rmCurto(m)}</button>
+                      color:m===ym?C.sobreSage:C.teal}}>{rmCurto(m)}</button>
           );})}
         </div>
-        <span style={{fontSize:11,color:tealA(0.8)}}>
+        <span style={{fontSize:11,color:tintaTeal(0.8)}}>
           Ctrl/Cmd + P salva em PDF — um quadro por página
         </span>
       </div>
@@ -10239,13 +10340,13 @@ function PageZionGlobal(){
           {[
             {l:'Média por domingo',v:fmt(zgAtual),
              s:zgDelta!=null?fmtPct(zgDelta)+' vs '+rmCurto(prev):'sem base comparável',
-             cor:zgDelta==null?C.teal:(zgDelta>=0?C.sage:'#e05c5c')},
+             cor:zgDelta==null?C.teal:(zgDelta>=0?C.sage:ink('#e05c5c'))},
             {l:'Cresceram · caíram',v:subiram.length+' · '+desceram.length,
              s:rmCurto(ym)+' vs '+rmCurto(prev),
-             cor:subiram.length>=desceram.length?C.sage:'#e05c5c'},
+             cor:subiram.length>=desceram.length?C.sage:ink('#e05c5c')},
             {l:'Localidades com o mês completo',v:ok.length+'/'+linhas.length,
              s:faltando.length?faltando.length+' em falta':'todas lançaram',
-             cor:faltando.length?'#c8a020':C.sage},
+             cor:faltando.length?ink('#c8a020'):C.sage},
             {l:'Encontros geracionais',v:fmt(gers.reduce(function(a,g){return a+g.enc;},0)),
              s:gers.length+' geracionais ativos',cor:C.teal}
           ].map(function(k){return(
@@ -10282,7 +10383,7 @@ function PageZionGlobal(){
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div style={{fontSize:13,color:tealA(0.75),marginTop:6,flexShrink:0}}>
+          <div style={{fontSize:13,color:tintaTeal(0.75),marginTop:6,flexShrink:0}}>
             Público somado nos domingos de {rmNome(ym)}: {fmt(publico)} pessoas, nas {ok.length}
             localidades com o mês completo. A média Zion Global e o "cresceram · caíram" usam a base
             comparável — as {base.length} localidades fechadas em {rmCurto(prev)} e em {rmCurto(ym)} —
@@ -10322,7 +10423,7 @@ function PageZionGlobal(){
                 </div>
               );})}
             </div>
-            <div style={{fontSize:13,color:tealA(0.75),marginTop:6}}>
+            <div style={{fontSize:13,color:tintaTeal(0.75),marginTop:6}}>
               Mês contra mês nestas é um domingo contra um domingo — ruído, não tendência.
               Por isso ficam fora do quadro anterior e do ranking.
             </div>
@@ -10346,11 +10447,11 @@ function PageZionGlobal(){
               <div style={{fontSize:13,color:C.teal,marginTop:2}}>
                 por encontro · {g.enc} encontro{g.enc===1?'':'s'}
               </div>
-              <div style={{fontSize:13,color:tealA(0.8)}}>
+              <div style={{fontSize:13,color:tintaTeal(0.8)}}>
                 em {g.nloc} localidade{g.nloc===1?'':'s'}
               </div>
               <div style={{fontSize:15,marginTop:5}}><RmPct v={g.d}/>
-                <span style={{color:tealA(0.8),fontSize:13}}> vs {rmCurto(prev)}</span></div>
+                <span style={{color:tintaTeal(0.8),fontSize:13}}> vs {rmCurto(prev)}</span></div>
             </div>
           );})}
         </div>
@@ -10373,21 +10474,21 @@ function PageZionGlobal(){
                 <div key={t.id} style={{display:'grid',gridTemplateColumns:'22px 1fr auto',
                      alignItems:'center',gap:8,height:66,
                      borderBottom:'1px solid '+tealA(0.14)}}>
-                  <span style={{fontSize:17,color:tealA(0.7),fontWeight:700}}>{i+1}</span>
+                  <span style={{fontSize:17,color:tintaTeal(0.7),fontWeight:700}}>{i+1}</span>
                   <span style={{fontSize:19,color:C.cream,whiteSpace:'nowrap',overflow:'hidden',
                                 textOverflow:'ellipsis'}}>{t.flag} {t.name}</span>
                   <span style={{fontSize:23,color:C.teal,fontWeight:700}}>{fmt(t.media)}</span>
                 </div>
               );})}
               {g.top.length<5&&
-                <div style={{fontSize:14,color:tealA(0.55),paddingTop:12,
+                <div style={{fontSize:14,color:tintaTeal(0.55),paddingTop:12,
                              lineHeight:1.4}}>
                   só {g.top.length} localidade{g.top.length===1?'':'s'} com {g.label} lançado
                 </div>}
             </div>
           );})}
         </div>
-        <div style={{fontSize:13,color:tealA(0.78),marginTop:'auto',paddingTop:12,
+        <div style={{fontSize:13,color:tintaTeal(0.78),marginTop:'auto',paddingTop:12,
                      flexShrink:0,lineHeight:1.5}}>
           Entra toda localidade com encontro lançado no mês, mesmo que o mês de culto esteja
           incompleto — a média por encontro não depende de quantos domingos foram lançados.
@@ -10401,12 +10502,12 @@ function PageZionGlobal(){
         <TituloSlide nota={rmCurto(ym)+' vs '+rmCurto(prev)}>Movimento dos geracionais</TituloSlide>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:44,flex:1,minHeight:0,
                      alignContent:'start'}}>
-          {[{t:'Maiores altas',rs:sobe,cor:C.sage},{t:'Maiores quedas',rs:cai,cor:'#e05c5c'}]
+          {[{t:'Maiores altas',rs:sobe,cor:C.sage},{t:'Maiores quedas',rs:cai,cor:ink('#e05c5c')}]
             .map(function(bloco){return(
             <div key={bloco.t}>
               <div style={{fontSize:20,color:bloco.cor,fontWeight:700,marginBottom:8}}>{bloco.t}</div>
               <div style={{display:'grid',gridTemplateColumns:'22px 1fr 100px 118px 76px',gap:10,
-                           fontSize:12,color:tealA(0.8),textTransform:'uppercase',
+                           fontSize:12,color:tintaTeal(0.8),textTransform:'uppercase',
                            letterSpacing:1,paddingBottom:5,
                            borderBottom:'1px solid '+tealA(0.3)}}>
                 <span/><span>Localidade</span><span>Geracional</span>
@@ -10426,12 +10527,12 @@ function PageZionGlobal(){
                   <span style={{fontSize:19,textAlign:'right'}}><RmPct v={m.d}/></span>
                 </div>
               );})}
-              {!bloco.rs.length&&<div style={{fontSize:16,color:tealA(0.7),paddingTop:10}}>
+              {!bloco.rs.length&&<div style={{fontSize:16,color:tintaTeal(0.7),paddingTop:10}}>
                 Nenhuma nesta direção.</div>}
             </div>
           );})}
         </div>
-        <div style={{fontSize:13,color:tealA(0.78),marginTop:'auto',paddingTop:12,
+        <div style={{fontSize:13,color:tintaTeal(0.78),marginTop:'auto',paddingTop:12,
                      flexShrink:0,lineHeight:1.5}}>
           {movGer.length} pares de localidade e geracional têm encontro lançado nos dois meses.
           Grupo que se reuniu só em um dos meses fica de fora — não é queda, é mês sem registro.
@@ -10453,7 +10554,7 @@ function PageZionGlobal(){
           </div>
         ):(
           <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
-            <div style={{fontSize:19,color:creamA(0.85),marginBottom:16,flexShrink:0,
+            <div style={{fontSize:19,color:tintaCreme(0.85),marginBottom:16,flexShrink:0,
                          lineHeight:1.45}}>
               Estas localidades não entram em nenhum número deste relatório. A ausência é de
               lançamento, não de culto — o que falta é o dado, e o dado não chega sozinho.
@@ -10463,11 +10564,11 @@ function PageZionGlobal(){
               .filter(function(b){return b.rs.length;}).map(function(b){return(
               <div key={b.t} style={{marginBottom:18}}>
                 <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:6}}>
-                  <span style={{fontSize:20,color:b.grave?'#e05c5c':'#c8a020',fontWeight:700}}>{b.t}</span>
-                  <span style={{fontSize:16,color:tealA(0.85)}}>— {b.sub}</span>
+                  <span style={{fontSize:20,color:b.grave?ink('#e05c5c'):ink('#c8a020'),fontWeight:700}}>{b.t}</span>
+                  <span style={{fontSize:16,color:tintaTeal(0.85)}}>— {b.sub}</span>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 150px 190px 160px',gap:12,
-                             fontSize:12,color:tealA(0.8),textTransform:'uppercase',
+                             fontSize:12,color:tintaTeal(0.8),textTransform:'uppercase',
                              letterSpacing:1,paddingBottom:5,
                              borderBottom:'1px solid '+tealA(0.3)}}>
                   <span>Localidade</span>
@@ -10483,18 +10584,18 @@ function PageZionGlobal(){
                          borderBottom:'1px solid '+tealA(0.14)}}>
                       <span style={{fontSize:21,color:C.cream}}>{r.flag} {r.name}</span>
                       <span style={{fontSize:19,textAlign:'center',fontWeight:600,
-                           color:r.lanc===0?'#e05c5c':'#c8a020'}}>{r.lanc} de {r.esp}</span>
+                           color:r.lanc===0?ink('#e05c5c'):ink('#c8a020')}}>{r.lanc} de {r.esp}</span>
                       <span style={{fontSize:18,textAlign:'center',color:C.teal}}>
                         {r.ultimo?r.ultimo.split('-').reverse().join('/'):'nunca'}</span>
                       <span style={{fontSize:19,textAlign:'center',fontWeight:700,
-                           color:vermelho?'#e05c5c':(r.dias>20?'#c8a020':C.teal)}}>
+                           color:vermelho?ink('#e05c5c'):(r.dias>20?ink('#c8a020'):C.teal)}}>
                         {r.dias!=null?r.dias+' dias':'—'}</span>
                     </div>
                   );
                 })}
               </div>
             );})}
-            <div style={{fontSize:14,color:tealA(0.8),marginTop:'auto',flexShrink:0,
+            <div style={{fontSize:14,color:tintaTeal(0.8),marginTop:'auto',flexShrink:0,
                          lineHeight:1.5,paddingTop:8}}>
               Acima de 60 dias sem lançar nada, em vermelho: não é atraso de fechamento,
               é a coleta ter parado. Essas precisam de conversa, não de cobrança.
@@ -10551,9 +10652,9 @@ function App(){
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
       <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed} trocarTema={trocarTema}/>
       <main style={{flex:1,overflowY:'auto',padding:'24px',background:`linear-gradient(180deg,${C.bgTop} 0%,${C.bg} 100%)`}}>
-        <div className="sem-print" style={{fontSize:11,color:tealA(0.5),marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
+        <div className="sem-print" style={{fontSize:11,color:tintaTeal(0.5),marginBottom:8,letterSpacing:1,display:'flex',alignItems:'center',gap:6}}>
           <Isologo size={14} opacity={0.5}/>
-          <span style={{color:tealA(0.3)}}>›</span>
+          <span style={{color:tintaTeal(0.3)}}>›</span>
           <span style={{color:C.teal,fontWeight:600}}>{PAGES.find(p=>p.id===page)?.label||''}</span>
         </div>
         {renderPage()}
